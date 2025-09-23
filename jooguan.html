@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SUPER LORA AI Computer Processing 3000 🚀</title>
+  <style>
+    body {
+      margin:0; overflow:hidden;
+      font-family: 'Segoe UI', sans-serif;
+      background: radial-gradient(circle at center, #0f172a 0%, #000 100%);
+      color:white; text-align:center;
+    }
+    .card {
+      margin:80px auto; max-width:800px;
+      background:rgba(0,0,0,0.6);
+      border:2px solid rgba(255,255,255,0.2);
+      border-radius:20px; padding:40px;
+      box-shadow:0 0 40px rgba(0,255,255,0.5);
+    }
+    h1 { 
+      text-shadow:0 0 10px #0ff, 0 0 20px #f0f, 0 0 40px #ff0; 
+      font-size: 36px;
+    }
+    .countdown { 
+      font-size:60px; 
+      font-weight:bold; 
+      margin:20px 0; 
+      text-shadow: 0 0 10px #0ff, 0 0 20px #0ff; 
+    }
+    .progress { 
+      height:20px; 
+      border-radius:10px; 
+      overflow:hidden; 
+      border:1px solid #fff; 
+      margin-bottom: 20px;
+    }
+    .bar { 
+      height:100%; 
+      width:0%; 
+      background:linear-gradient(270deg,#ff0080,#7928ca,#2afadf,#ff0080);
+      background-size:600% 600%; 
+      animation: rainbow 5s linear infinite; 
+    }
+    #status {
+      font-size: 28px;
+      font-weight: bold;
+      margin-top: 20px;
+      text-shadow: 0 0 10px #0ff, 0 0 20px #f0f, 0 0 30px #ff0;
+      background: linear-gradient(90deg, #ff0080, #f0f, #2afadf, #ff0);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      animation: glow 2s ease-in-out infinite alternate, flicker 1.5s infinite;
+    }
+    #downloadBtn {
+      display:none;
+      margin-top:30px;
+      padding:15px 30px;
+      font-size:20px;
+      border:none;
+      border-radius:10px;
+      cursor:pointer;
+      background:linear-gradient(90deg,#2afadf,#4facfe);
+      color:#000;
+      font-weight:bold;
+      box-shadow:0 0 20px rgba(0,255,255,0.7);
+    }
+    @keyframes rainbow {
+      0%{background-position:0% 50%} 
+      50%{background-position:100% 50%} 
+      100%{background-position:0% 50%}
+    }
+    @keyframes glow {
+      from { text-shadow: 0 0 5px #ff0, 0 0 10px #f0f; }
+      to   { text-shadow: 0 0 20px #0ff, 0 0 40px #ff0080; }
+    }
+    @keyframes flicker {
+      0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; }
+      20%, 24%, 55% { opacity: 0.6; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>⚡ SUPER LORA AI COMPUTER Processing 3000 ⚡</h1>
+    <p>Sila tunggu sebentar... AI sedang kerja keras 💻</p>
+    <div class="countdown" id="countdown">20s</div>
+    <div class="progress"><div class="bar" id="bar"></div></div>
+    <div id="status">Booting sistem lama Windows XP… 🎶</div>
+    <button id="downloadBtn"⬇️ Download Now</button>
+    <footer style="margin-top:20px;">keputusan anda akan dimuat turun secara automatik 🚀</footer>
+  </div>
+
+  <script>
+    const PDF_URL = "https://docs.google.com/spreadsheets/d/1fQHskSq5Qy2tS-8jU2Pk7YGdphuKEeb4Lib-MXABmDY/export?format=xlsx";
+    const TOTAL_SECONDS = 20;
+    const funnyStatus = [
+      "🤖 “Mengira stok battery macam kira hutang kedai kopi…”",
+      "⚡ “AI tengah charge diri sendiri dulu, jangan cabut plug!”",
+      "🔋 “Scanning… oh ni bukan powerbank, ni betul-betul battery!”",
+      "🐢 “Proses slow sebab AI tersangkut main Candy Crush…”",
+      "🚀 “Bersedia… battery hampir teleport masuk sistem anda!”"
+    ];
+
+    const countdownEl = document.getElementById('countdown');
+    const barEl = document.getElementById('bar');
+    const statusEl = document.getElementById('status');
+    const downloadBtn = document.getElementById('downloadBtn');
+    let elapsed = 0;
+
+    function triggerDownload() {
+      const a = document.createElement('a');
+      a.href = PDF_URL;
+      a.download = "order-battery.xlsx"; 
+      a.click();
+    }
+
+    downloadBtn.addEventListener("click", triggerDownload);
+
+    const tick = setInterval(() => {
+      elapsed++;
+      const left = Math.max(0, TOTAL_SECONDS - elapsed);
+      countdownEl.textContent = left + 's';
+      const pct = Math.min(100, Math.round((elapsed / TOTAL_SECONDS) * 100));
+      barEl.style.width = pct + '%';
+
+      if (elapsed % 4 === 0 && funnyStatus.length) {
+        statusEl.textContent = funnyStatus.shift();
+      }
+
+      if (elapsed >= TOTAL_SECONDS) {
+        clearInterval(tick);
+        countdownEl.textContent = 'DONE 🎉';
+        statusEl.textContent = 'YEAH GUA sudah siap, muat turun bermula…';
+        triggerDownload();
+        downloadBtn.style.display = "inline-block"; // fallback button muncul
+      }
+    }, 1000);
+  </script>
+</body>
+</html>
+
