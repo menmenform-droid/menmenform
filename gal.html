@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RETURN</title>
+<title>Galgame Interaktif</title>
 <style>
   body { background-color: #0f1724; color: #e6eef6; font-family: "Microsoft YaHei", sans-serif; text-align: center; margin: 0; padding: 0; }
   .container { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; }
@@ -15,15 +15,19 @@
 </head>
 <body>
   <div class="container">
-    <img src="https://i.imgur.com/OlGDeUa.png" alt="chibi">
+    <img src="chibi.png" alt="chibi">
     <div id="question" class="question">Memuat...</div>
     <div id="choices" class="choices"></div>
   </div>
   <script>
     const routes = {
   "start": {
-    "text": "APA YANG ANDA INGI LAKUKAN?",
+    "text": "APA YANG ANDA INGIN LAKUKAN?",
     "choices": [
+      {
+        "text": "TUKAR BARANG",
+        "to": "next9"
+      },
       {
         "text": "RETURN MAKANAN",
         "to": "next1"
@@ -38,20 +42,16 @@
       }
     ]
   },
-  "next1": {
-    "text": "MAKANAN DARI SIAPA?",
+  "next9": {
+    "text": "ISI EXCHANGE FORM BAGI SALESMAN CHOP SAIN DAN UPLOAD",
     "choices": [
       {
-        "text": "CHOCO ALBAB",
-        "to": "next4"
+        "text": "DOWNLOAD FORMAT EXCHANGE FORM",
+        "link": "https://docs.google.com/spreadsheets/d/1dOXrOIb9WhAQ6Ifhme9K4t8zYvtdM8NI/edit?gid=934497272#gid=934497272"
       },
       {
-        "text": "CP INTEGRATED",
-        "to": "next4"
-      },
-      {
-        "text": "LAIN LAIN BUKAN ATAS",
-        "to": "next5"
+        "text": "UPLOAD EXCHANGE FORM",
+        "link": "https://docs.google.com/forms/d/e/1FAIpQLScbwrFORbUfp7Id6vWkSUCfmyXtID84yWVDbMvfaYFNBWoGGg/viewform"
       },
       {
         "text": "KEMBALI SEBELUM",
@@ -59,9 +59,102 @@
       }
     ]
   },
-  "next4": {
-    "text": "TAK PERLU PR/TN, HANYA BUAT VISITOR BOOK ATAU EXCEL UPLOAD",
+  "next1": {
+    "text": "MAKANAN DARI SIAPA?",
     "choices": [
+      {
+        "text": "CHOCO ALBAB",
+        "to": "next8"
+      },
+      {
+        "text": "CP INTEGRATED",
+        "to": "next8"
+      },
+      {
+        "text": "LAIN LAIN BUKAN ATAS",
+        "to": "next88"
+      },
+      {
+        "text": "KEMBALI SEBELUM",
+        "to": "start"
+      }
+    ]
+  },
+  "next8": {
+    "text": "SALESMAN AMBIL SENDIRI ATAU HANTAR WAREHOUSE?",
+    "choices": [
+      {
+        "text": "SALESMAN AMBIL DI KEDAI",
+        "to": "next4"
+      },
+      {
+        "text": "HANTAR WAREHOUSE",
+        "to": "next888"
+      }
+    ]
+  },
+  "next88": {
+    "text": "SALESMAN AMBIL SENDIRI ATAU HANTAR WAREHOUSE?",
+    "choices": [
+      {
+        "text": "SALESMAN AMBIL DI KEDAI",
+        "to": "next5"
+      },
+      {
+        "text": "HANTAR WAREHOUSE",
+        "to": "next55"
+      }
+    ]
+  },
+  "next8855": {
+    "text": "SALESMAN AMBIL SENDIRI ATAU HANTAR WAREHOUSE?",
+    "choices": [
+      {
+        "text": "SALESMAN AMBIL DI KEDAI",
+        "to": "next5"
+      },
+      {
+        "text": "HANTAR WAREHOUSE",
+        "to": "next555"
+      }
+    ]
+  },
+  "next888": {
+    "text": "EXCEL RECORD QUANTITY,PRINT LABEL KOTAK TAMPAL HANTAR WAREHOUSE,  DAN UPLOAD",
+    "choices": [
+      {
+        "text": "DOWNLOAD EXCEL RECORD QUANTITY",
+        "link": "https://docs.google.com/spreadsheets/d/1igRZv895mTM6nk0X-8NOz-prUgvhR9FKqC9RuL7M5XA/edit?gid=0#gid=0"
+      },
+      {
+        "text": "DOWNLOAD FORMAT LABEL KOTAK",
+        "link": "https://docs.google.com/spreadsheets/d/14xT7T8M-8b76J2tP-Bhz4qRyAbLYmkIUi1yiXLiCgSY/edit?gid=0#gid=0"
+      },
+      {
+        "text": "UPLOAD",
+        "link": "https://docs.google.com/forms/d/e/1FAIpQLScJW42TEPVD-fM-AMfYZDhq1Prle6zNrQULr5IitdOYEfcswg/viewform"
+      },
+      {
+        "text": "KEMBALI START",
+        "to": "start"
+      }
+    ]
+  },
+  "next4": {
+    "text": "TAK PERLU PR/TN, HANYA BUAT VISITOR BOOK ATAU EXCEL RECORD QUANTITY DAN UPLOAD",
+    "choices": [
+      {
+        "text": "DOWNLOAD VISITOR BOOK",
+        "link": "https://docs.google.com/spreadsheets/d/1xZhlNkiaPQwSezuejkFQdpKuqD8E1df1cPx2JiRgudI/edit?gid=0#gid=0"
+      },
+      {
+        "text": "DOWNLOAD EXCEL RECORD QUANTITY",
+        "link": "https://docs.google.com/spreadsheets/d/1igRZv895mTM6nk0X-8NOz-prUgvhR9FKqC9RuL7M5XA/edit?gid=0#gid=0"
+      },
+      {
+        "text": "UPLOAD",
+        "link": "https://docs.google.com/forms/d/e/1FAIpQLScJW42TEPVD-fM-AMfYZDhq1Prle6zNrQULr5IitdOYEfcswg/viewform"
+      },
       {
         "text": "KEMBALI START",
         "to": "start"
@@ -72,14 +165,52 @@
     "text": "BUAT PR DI IRSPOS,CHOP SAIN OLEH PENERIMA  DAN UPLOAD PR",
     "choices": [
       {
+        "text": "UPLOAD PR",
+        "link": "https://docs.google.com/forms/d/e/1FAIpQLScbwrFORbUfp7Id6vWkSUCfmyXtID84yWVDbMvfaYFNBWoGGg/viewform"
+      },
+      {
         "text": "KEMBALI START",
         "to": "start"
       }
     ]
   },
-  "next6": {
-    "text": "BUAT TN DI IRSPOS,PRINT LABEL WAREHOUSE TAMPAL",
+  "next55": {
+    "text": "BUAT PR DI IRSPOS,PRINT LABEL KOTAK TAMPAL HANTAR WAREHOUSE, PR CHOP SAIN KEDAI  DAN UPLOAD PR",
     "choices": [
+      {
+        "text": "UPLOAD PR",
+        "link": "https://docs.google.com/forms/d/e/1FAIpQLScbwrFORbUfp7Id6vWkSUCfmyXtID84yWVDbMvfaYFNBWoGGg/viewform"
+      },
+      {
+        "text": "DOWNLOAD FORMAT LABEL KOTAK",
+        "link": "https://docs.google.com/spreadsheets/d/14xT7T8M-8b76J2tP-Bhz4qRyAbLYmkIUi1yiXLiCgSY/edit?gid=0#gid=0"
+      },
+      {
+        "text": "KEMBALI START",
+        "to": "start"
+      }
+    ]
+  },
+  "next555": {
+    "text": "BUAT TN DI IRSPOS,PRINT LABEL KOTAK TAMPAL HANTAR WAREHOUSE",
+    "choices": [
+      {
+        "text": "DOWNLOAD FORMAT LABEL KOTAK",
+        "link": "https://docs.google.com/spreadsheets/d/14xT7T8M-8b76J2tP-Bhz4qRyAbLYmkIUi1yiXLiCgSY/edit?gid=0#gid=0"
+      },
+      {
+        "text": "KEMBALI SEBELUM",
+        "to": "start"
+      }
+    ]
+  },
+  "next6": {
+    "text": "BUAT TN DI IRSPOS,PRINT LABEL KOTAK TAMPAL HANTAR WAREHOUSE",
+    "choices": [
+      {
+        "text": "DOWNLOAD FORMAT LABEL KOTAK",
+        "link": "https://docs.google.com/spreadsheets/d/14xT7T8M-8b76J2tP-Bhz4qRyAbLYmkIUi1yiXLiCgSY/edit?gid=0#gid=0"
+      },
       {
         "text": "KEMBALI START",
         "to": "start"
@@ -91,35 +222,35 @@
     "choices": [
       {
         "text": "APT INVENTIONS",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "ARAS MEGA",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "RABAK LIT",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "ANA MUSLIM",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "IMAN",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "IRAWDA",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "KEMVES",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "SENTAP PRESS",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "MUST READ",
@@ -127,23 +258,23 @@
       },
       {
         "text": "PRESTASI",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "TOAD",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "WIROES",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "HR DISTRIBUTORS",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "LAIN LAIN BUKAN ATAS",
-        "to": "next6"
+        "to": "next8855"
       },
       {
         "text": "KEMBALI SEBELUM",
@@ -156,31 +287,31 @@
     "choices": [
       {
         "text": "EXPLORIA SKILLSEDD",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "SOON LEE SENG",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "GAINTECH",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "KAIZE",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "VINNPOWER",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "SINCHOR",
-        "to": "next4"
+        "to": "next8"
       },
       {
         "text": "LAIN LAIN BUKAN ATAS",
-        "to": "next6"
+        "to": "next8855"
       },
       {
         "text": "KEMBALI SEBELUM",
@@ -200,7 +331,13 @@
       s.choices.forEach(x => {
         const b = document.createElement("button");
         b.textContent = x.text;
-        b.onclick = () => render(x.to);
+        b.onclick = () => {
+          if (x.link) {
+            window.open(x.link, "_blank");
+          } else if (x.to) {
+            render(x.to);
+          }
+        };
         c.appendChild(b);
       });
     }
