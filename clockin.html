@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI Training — Clock In</title>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; padding: 18px; max-width:720px; margin:auto; }
+    video, img { width:100%; max-height:420px; border-radius:8px; background:#111; }
+    button { padding:10px 14px; margin:6px; border-radius:8px; }
+    #main { display:none; }
+    .small { font-size:0.9rem; color:#444; }
+  </style>
+</head>
+<body>
+  <h2>📍 AI Training — Clock In</h2>
+  <div id="login"></div>
+
+  <div id="main">
+    <p>👤 <strong id="email">not signed</strong></p>
+    <p id="geo" class="small">定位中…</p>
+
+    <video id="video" autoplay playsinline></video>
+    <p>
+      <button id="snap">📸 拍照</button>
+      <button id="submit">✅ 提交打卡</button>
+    </p>
+    <p><textarea id="note" rows="2" style="width:100%" placeholder="备注（可选）"></textarea></p>
+  </div>
+
+  <script>
+  // ========== 填入你的 Apps Script Web App URL ==========
+  const SCRIPT_URL = 'YOUR_APPS_SCRIPT_WEBAPP_URL';
+  // ========== 填入你的 Google OAuth Client ID ==========
+  const CLIENT_ID = 'YOUR_GOOGLE_OAUTH_CLIENT_ID';
+
+  let email = '';
+  let lat = '';
+  let lng = '';
+  let photoData = '';
+
+  // Google One-tap / Sign-in 按钮初始化
+  window.onload = () => {
+    google.accounts.id.initialize({
+      client_id: CLIENT_ID,
+      callback: handleCredentialResponse
+    });
+    google.accounts.id.renderButton(document.getElementById('login'), { theme: 'outline', size: 'large' });
+    // optional: prompt one-tap
+    // google.accounts.id.prompt();
+  };
+
+  function handleCredentialResponse(response) {
+    const payload = parseJwt(response.credential);
+    email = payload.email || '';
+    document.getElementById('email').innerText = email;
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('main').style.display = 'block';
+    startCamera();
+    getLocation();
+  }
+
+  function parseJwt(token) {
+    try{
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      return JSON.parse(decodeURIComponent(escape(window.atob(base64))));
+    }catch(e){ return {}; }
+  }
+
+  // 定位
+  function getLocation(){
+    if (!navigator.geolocation) { document.getElementById('geo').innerText = '⚠️ 浏览器不支持地理定位'; return; }
+    navigator.geolocation.getCurrentPosition(p=>{
+      lat = p.coords.latitude; lng = p.coords.longitude;
+      document.getElementById('geo').innerHTML = `📍 ${lat.toFixed(6)}, ${lng.toFixed(6)} <small>（点击打开地图）</small>`;
+      // make link clickable
+      const el = document.getElementById('geo');
+      el.innerHTML = `📍 <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">${lat.toFixed(6)}, ${lng.toFixed(6)} (打开地图)</a>`;
+    }, err=>{ document.getElementById('geo').innerText = '⚠️ 无法获取位置（请启用定位）'; });
+  }
+
+  // 摄像头
+  let stream = null;
+  async function startCamera(){
+    try{
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio:false });
+      const video = document.getElementById('video');
+      video.srcObject = stream;
+      await video.play();
+    }catch(e){ alert('无法启动相机：' + e.message); }
+  }
+
+  // 拍照（当前摄像头）
+  document.getElementById('snap').addEventListener('click', async ()=>{
+    const video = document.getElementById('video');
+    if(!video || !video.videoWidth){ alert('相机尚未就绪'); return; }
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    // 在图片上打时间戳（可见）
+    ctx.drawImage(video,0,0);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(8, canvas.height - 36, 260, 28);
+    ctx.fillStyle = '#fff';
+    ctx.font = '16px sans-serif';
+    const now = new Date();
+    ctx.fillText(now.toLocaleString(), 12, canvas.height - 15);
+    photoData = canvas.toDataURL('image/jpeg', 0.85);
+    alert('已拍照（内含时间水印）');
+  });
+
+  // 提交
+  document.getElementById('submit').addEventListener('click', async ()=>{
+    if(!email){ alert('请先用 Google 登录'); return; }
+    if(!photoData){ alert('请先拍照'); return; }
+    const note = document.getElementById('note').value || '';
+    const form = new URLSearchParams();
+    form.append('email', email);
+    form.append('lat', lat);
+    form.append('lng', lng);
+    form.append('note', note);
+    form.append('photo', photoData);
+
+    try{
+      const resp = await fetch(SCRIPT_URL, { method:'POST', body: form });
+      const txt = await resp.text();
+      if(resp.ok){ alert('✅ 打卡成功'); location.reload(); }
+      else { alert('上传失败: ' + txt); }
+    }catch(e){ alert('网络错误: ' + e.message); }
+  });
+  </script>
+</body>
+</html>
