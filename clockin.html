@@ -1,189 +1,165 @@
 <!DOCTYPE html>
-<html lang="ms">
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AI Training — Clock In</title>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial; padding: 18px; max-width:720px; margin:auto; }
-    video { width:100%; max-height:420px; border-radius:8px; background:#111; }
-    button { padding:10px 14px; margin:6px; border-radius:8px; cursor:pointer; }
-    #main { display:none; }
-    #log { background:#f8f8f8; border:1px solid #ddd; border-radius:8px; padding:10px; font-size:0.9rem; max-height:180px; overflow:auto; white-space:pre-wrap; }
-    .small { font-size:0.9rem; color:#555; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📍 ClockIn — Attendance System</title>
+<style>
+body { font-family: Arial, sans-serif; text-align: center; padding: 20px; background: #f3f6fa; }
+h2 { color: #2c3e50; }
+#camera { width: 90%; max-width: 400px; margin: 10px auto; border: 2px solid #ccc; border-radius: 10px; }
+button { padding: 10px 16px; margin: 8px; border: none; border-radius: 8px; background: #1976d2; color: white; cursor: pointer; }
+button:disabled { background: #aaa; }
+#log { background: #fff; border-radius: 10px; padding: 10px; max-width: 400px; margin: 20px auto; text-align: left; height: 160px; overflow-y: auto; font-size: 14px; border: 1px solid #ccc; }
+#photo { width: 90%; max-width: 400px; display: none; margin: 10px auto; border: 2px solid #ccc; border-radius: 10px; }
+</style>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
-  <h2>📍 AI Training — Rekod Kehadiran</h2>
-  <div id="login"></div>
+<h2>📍 ClockIn — Attendance System</h2>
 
-  <div id="main">
-    <p>👤 <strong id="email">Belum log masuk</strong></p>
-    <p id="geo" class="small">📍 Sedang mengesan lokasi...</p>
+<div id="g_id_onload"
+  data-client_id="YOUR_GOOGLE_CLIENT_ID"
+  data-context="signin"
+  data-ux_mode="popup"
+  data-callback="onSignIn">
+</div>
+<div class="g_id_signin" data-type="standard"></div>
 
-    <video id="video" autoplay playsinline></video>
-    <p>
-      <button id="snap">📸 Ambil Gambar</button>
-      <button id="submit">✅ Hantar Kehadiran</button>
-    </p>
-    <p><textarea id="note" rows="2" style="width:100%" placeholder="Catatan (pilihan)"></textarea></p>
+<div id="main" style="display:none;">
+  <p>Signed in as: <b id="userEmail"></b></p>
+  <video id="camera" autoplay playsinline></video><br>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <img id="photo" alt="Captured photo"><br>
+  <textarea id="note" placeholder="Write a note..." rows="2" cols="30"></textarea><br>
+  <button id="btnCapture">📸 Capture</button>
+  <button id="btnSubmit" disabled>✅ Submit</button>
+</div>
 
-    <h3>🧾 Log</h3>
-    <div id="log"></div>
-  </div>
+<div id="log"></div>
 
-  <script>
-  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyH7MusGoS17l-b31cQaavJ5dgzQOpNjV4eBq7w0KCFfa_wjQ4gmGid_Rhpw6MDQ86Z3Q/exec';
-  const CLIENT_ID = '117751523765-l034timkav8017o0odm6fdpbuo50mmbq.apps.googleusercontent.com';
+<script>
+const SCRIPT_URL = "YOUR_APPS_SCRIPT_WEBAPP_URL";
 
-  let email = '';
-  let lat = '';
-  let lng = '';
-  let photoData = '';
+let userEmail = '';
+let lat = '', lng = '';
+let photoData = '';
 
-  const logEl = document.getElementById('log');
-  function log(msg){
-    const t = new Date().toLocaleTimeString();
-    logEl.textContent += `[${t}] ${msg}\n`;
-    logEl.scrollTop = logEl.scrollHeight;
-  }
+function log(msg){
+  const logBox = document.getElementById('log');
+  const time = new Date().toLocaleTimeString();
+  logBox.innerHTML += `[${time}] ${msg}<br>`;
+  logBox.scrollTop = logBox.scrollHeight;
+}
 
-  // --- Google Login ---
-  window.onload = () => {
-    google.accounts.id.initialize({
-      client_id: CLIENT_ID,
-      callback: handleCredentialResponse
+// Google Sign-In
+function onSignIn(response){
+  const credential = decodeJwtResponse(response.credential);
+  userEmail = credential.email;
+  document.getElementById('userEmail').textContent = userEmail;
+  document.getElementById('main').style.display = 'block';
+  log(`Signed in as ${userEmail}`);
+  startCamera();
+  getLocation();
+}
+
+function decodeJwtResponse(token){
+  const base64Url = token.split('.')[1];
+  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+  const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+    '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+  ).join(''));
+  return JSON.parse(jsonPayload);
+}
+
+// Start camera
+function startCamera(){
+  navigator.mediaDevices.getUserMedia({ video: true })
+    .then(stream => {
+      document.getElementById('camera').srcObject = stream;
+      log('Camera started.');
+    })
+    .catch(err => {
+      log('Camera error: ' + err);
     });
-    google.accounts.id.renderButton(document.getElementById('login'), { theme: 'outline', size: 'large' });
-  };
+}
 
-  function handleCredentialResponse(response) {
-    const payload = parseJwt(response.credential);
-    email = payload.email || '';
-    document.getElementById('email').innerText = email;
-    document.getElementById('login').style.display = 'none';
-    document.getElementById('main').style.display = 'block';
-    log(`✅ Log masuk berjaya: ${email}`);
-    startCamera();
-    getLocation();
+// Get location
+function getLocation(){
+  if(!navigator.geolocation){
+    log('Geolocation not supported.');
+    return;
   }
+  navigator.geolocation.getCurrentPosition(pos => {
+    lat = pos.coords.latitude;
+    lng = pos.coords.longitude;
+    log(`Location detected: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+  }, err => {
+    log('Location error: ' + err.message);
+  }, { enableHighAccuracy: true });
+}
 
-  function parseJwt(token) {
-    try {
-      const base64Url = token.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      return JSON.parse(decodeURIComponent(escape(window.atob(base64))));
-    } catch(e){ return {}; }
+// Capture photo
+document.getElementById('btnCapture').onclick = () => {
+  if(!lat || !lng){
+    log(⚠️ Please enable location before taking photo.');
+    return;
   }
+  const video = document.getElementById('camera');
+  const canvas = document.getElementById('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  photoData = canvas.toDataURL('image/jpeg');
+  document.getElementById('photo').src = photoData;
+  document.getElementById('photo').style.display = 'block';
+  document.getElementById('btnSubmit').disabled = false;
+  log('Photo captured.');
+};
 
-  // --- Lokasi ---
-  function getLocation() {
-    if (!navigator.geolocation) {
-      document.getElementById('geo').innerText = ⚠️ Pelayar tidak menyokong fungsi lokasi';
-      log('❌ Pelayar tidak menyokong fungsi geolokasi');
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      p => {
-        lat = p.coords.latitude;
-        lng = p.coords.longitude;
-        const el = document.getElementById('geo');
-        el.innerHTML = `📍 <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank">${lat.toFixed(6)}, ${lng.toFixed(6)} (Buka dalam Peta)</a>`;
-        log(`✅ Lokasi berjaya dikesan: ${lat}, ${lng}`);
-      },
-      err => {
-        document.getElementById('geo').innerText = '⚠️ Sila benarkan akses lokasi';
-        log('❌ Tidak dapat mengesan lokasi, sila benarkan akses lokasi.');
-      },
-      { enableHighAccuracy: true, timeout: 8000 }
-    );
-  }
+// Submit data
+document.getElementById('btnSubmit').onclick = async () => {
+  const note = document.getElementById('note').value.trim();
+  if(!photoData){ log('⚠️ Please capture a photo first.'); return; }
 
-  // --- Kamera ---
-  let stream = null;
-  async function startCamera() {
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
-      const video = document.getElementById('video');
-      video.srcObject = stream;
-      await video.play();
-      log('📷 Kamera telah diaktifkan');
-    } catch (e) {
-      alert('Tidak dapat mengaktifkan kamera: ' + e.message);
-      log('❌ Gagal mengaktifkan kamera: ' + e.message);
-    }
-  }
-
-  // --- Ambil Gambar ---
-  document.getElementById('snap').addEventListener('click', async () => {
-    if (!lat || !lng) {
-      alert('⚠️ Sila benarkan lokasi terlebih dahulu!');
-      log('❌ Gagal ambil gambar, lokasi belum diperoleh');
-      return;
-    }
-    const video = document.getElementById('video');
-    if (!video || !video.videoWidth) {
-      alert('Kamera belum bersedia');
-      return;
-    }
-    const canvas = document.createElement('canvas');
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0);
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
-    ctx.fillRect(8, canvas.height - 36, 260, 28);
-    ctx.fillStyle = '#fff';
-    ctx.font = '16px sans-serif';
-    const now = new Date();
-    ctx.fillText(now.toLocaleString(), 12, canvas.height - 15);
-    photoData = canvas.toDataURL('image/jpeg', 0.85);
-    log('📸 Gambar telah diambil dan ditanda masa');
-    alert('Gambar telah diambil ✅');
+  const data = new URLSearchParams({
+    email: userEmail,
+    lat, lng,
+    note,
+    photo: photoData
   });
 
-  // --- Hantar (dengan percubaan semula) ---
-  document.getElementById('submit').addEventListener('click', async () => {
-    if (!email) { alert('Sila log masuk dengan akaun Google dahulu'); return; }
-    if (!lat || !lng) { alert('Sila benarkan lokasi sebelum menghantar kehadiran'); return; }
-    if (!photoData) { alert('Sila ambil gambar dahulu'); return; }
-
-    const note = document.getElementById('note').value || '';
-    const form = new URLSearchParams();
-    form.append('email', email);
-    form.append('lat', lat);
-    form.append('lng', lng);
-    form.append('note', note);
-    form.append('photo', photoData);
-
-    let attempt = 0;
-    const maxAttempts = 3;
-
-    while (attempt < maxAttempts) {
-      attempt++;
-      try {
-        log(`📤 Sedang memuat naik... (Percubaan ke-${attempt})`);
-        const resp = await fetch(SCRIPT_URL, { method: 'POST', body: form });
-        const txt = await resp.text();
-        if (resp.ok) {
-          log('✅ Muat naik berjaya: ' + txt);
-          alert('✅ Kehadiran berjaya dihantar');
-          location.reload();
-          return;
-        } else {
-          log('⚠️ Muat naik gagal: ' + txt);
-        }
-      } catch (e) {
-        log('🌐 Ralat rangkaian: ' + e.message);
-      }
-      log('⏳ Mencuba semula...');
-      await new Promise(r => setTimeout(r, 3000));
+  log('Uploading...');
+  try{
+    const res = await fetch(SCRIPT_URL, { method: 'POST', body: data });
+    const text = await res.text();
+    if(text.includes('OK')){
+      log('✅ Upload successful!');
+      document.getElementById('btnSubmit').disabled = true;
+    }else{
+      log('❌ Upload failed, will retry...');
+      retrySubmit(data);
     }
+  }catch(err){
+    log('Network error: ' + err + ' Retrying...');
+    retrySubmit(data);
+  }
+};
 
-    alert('❌ Gagal selepas 3 percubaan, sila cuba lagi kemudian');
-    log('❌ Gagal menghantar kehadiran selepas 3 percubaan.');
-  });
-  </script>
+// Retry upload on failure
+function retrySubmit(data){
+  setTimeout(async () => {
+    try{
+      const res = await fetch(SCRIPT_URL, { method: 'POST', body: data });
+      const text = await res.text();
+      if(text.includes('OK')) log('✅ Retry successful!');
+      else retrySubmit(data);
+    }catch(e){
+      retrySubmit(data);
+    }
+  }, 5000);
+}
+</script>
 </body>
 </html>
+
