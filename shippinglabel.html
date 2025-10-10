@@ -10,11 +10,12 @@
       padding: 20px; 
       background: #f8f8f8;
     }
-    input, button { padding: 6px; margin: 4px; font-size: 15px; }
+    input, button, textarea { font-size: 15px; }
+    input, button { padding: 6px; margin: 4px; }
     button { cursor: pointer; }
     #results { margin-top: 20px; }
+
     .label {
-      border: 1px solid #333; 
       padding: 30px; 
       margin: 10px auto; 
       width: 90%;
@@ -22,32 +23,60 @@
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      border-radius: 10px;
       background: white;
-      box-shadow: 2px 2px 6px rgba(0,0,0,0.15);
+      box-sizing: border-box;
       page-break-after: always;
+    }
+
+    .vendor-info {
+      font-size: 20px;
+      line-height: 1.7;
+    }
+
+    .remark-area {
+      margin-top: 30px;
+      font-size: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .remark-left, .remark-right {
+      width: 48%;
+    }
+
+    textarea.remark-input {
+      width: 100%;
+      height: 60px;
+      margin-top: 6px;
+      padding: 5px;
+      font-size: 16px;
+      resize: none;
       box-sizing: border-box;
     }
-    .vendor-info {
-      font-size: 18px;
-      line-height: 1.6;
-    }
-    .remark-area {
-      margin-top: 20px;
+
+    .remark-right input {
+      width: 100%;
+      padding: 6px;
       font-size: 16px;
+      margin-top: 6px;
+      box-sizing: border-box;
     }
-    .remark-input {
-      width: 50%;
-      padding: 5px;
-      margin-left: 5px;
-      font-size: 16px;
+
+    .bottom-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: 50px;
     }
+
     .from-info {
       font-size: 13px;
       text-align: right;
       color: #333;
-      margin-top: 40px;
+      line-height: 1.5;
     }
+
     @media print {
       @page { 
         size: A4 landscape; 
@@ -56,9 +85,8 @@
       body { background: white; }
       #controls { display: none; }
       .label { 
-        border: 1px solid #000; 
-        box-shadow: none; 
         page-break-after: always;
+        box-shadow: none;
       }
     }
   </style>
@@ -116,24 +144,33 @@
         label.className = 'label';
         label.innerHTML = `
           <div class="vendor-info">
-            <strong style="font-size:22px;">${vendor}</strong><br>
+            <strong style="font-size:24px;">${vendor}</strong><br>
             ${address}<br>
             📞 ${phone}
           </div>
 
           <div class="remark-area">
-            <div>PR NO: <input class="remark-input" type="text" placeholder="Enter PR No..."></div>
-            <div>TOTAL BOX/CTN: <input class="remark-input" type="text" placeholder="Enter total..."></div>
+            <div class="remark-left">
+              <label><strong>PR NO:</strong></label><br>
+              <textarea class="remark-input" placeholder="Enter PR No..."></textarea>
+            </div>
+            <div class="remark-right">
+              <label><strong>TOTAL BOX/CTN:</strong></label><br>
+              <input type="text" placeholder="Enter total...">
+            </div>
           </div>
 
-          <div class="from-info">
-            FROM:<br>
-            <strong>MAKMUR MBS GROUP SDN BHD</strong><br>
-            LOT 26, JALAN IM 14/6<br>
-            KAWASAN PERINDUSTRIAN BANDAR INDERA MAHKOTA<br>
-            25200 KUANTAN<br>
-            PAHANG DARUL MAKMUR<br>
-            NO TEL : 09-5701096
+          <div class="bottom-info">
+            <div></div>
+            <div class="from-info">
+              FROM:<br>
+              <strong>MAKMUR MBS GROUP SDN BHD</strong><br>
+              LOT 26, JALAN IM 14/6<br>
+              KAWASAN PERINDUSTRIAN BANDAR INDERA MAHKOTA<br>
+              25200 KUANTAN<br>
+              PAHANG DARUL MAKMUR<br>
+              NO TEL : 09-5701096
+            </div>
           </div>
         `;
         resultsDiv.appendChild(label);
