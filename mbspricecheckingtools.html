@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>📱 Price Checking Machine</title>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://unpkg.com/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    text-align: center;
+  }
+  h2 {
+    color: #2c3e50;
+  }
+  input {
+    width: 90%;
+    padding: 10px;
+    font-size: 18px;
+    margin: 10px 0;
+  }
+  button {
+    padding: 10px 15px;
+    margin: 5px;
+    font-size: 16px;
+    cursor: pointer;
+  }
+  #reader {
+    width: 300px;
+    margin: 0 auto;
+  }
+  #result {
+    margin-top: 20px;
+    text-align: left;
+    font-size: 18px;
+    border: 2px solid #ccc;
+    border-radius: 8px;
+    padding: 15px;
+    background: #fafafa;
+    display: inline-block;
+    min-width: 280px;
+  }
+  .price {
+    font-size: 28px;
+    font-weight: bold;
+    color: #d6336c;
+  }
+</style>
+</head>
+<body>
+
+<h2>📱 Price Checking Machine</h2>
+
+<input type="text" id="searchInput" placeholder="Scan or enter ISBN / Description">
+<br>
+<button onclick="searchItem()">🔍 Search</button>
+<button onclick="startScan()">📷 Scan Barcode</button>
+
+<div id="reader" style="display:none;"></div>
+<div id="result"></div>
+
+<script>
+const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTwMwCwbtf-9Rj-fB1gaP5SMIvUeFA9jezzdPOckyhMQ6h-dZROofgLTRGbpc34AgzD3pc72096qS9I/pub?output=csv";
+let items = [];
+
+// 载入 Google Sheet 数据
+fetch(sheetUrl)
+  .then(r => r.text())
+  .then(csv => {
+    const parsed = Papa.parse(csv, { header: true });
+    items = parsed.data;
+    console.log("✅ Loaded items:", items.length);
+  });
+
+function searchItem(query) {
+  const input = query || document.getElementById("searchInput").value.trim().toLowerCase();
+  const resultDiv = document.getElementById("result");
+  resultDiv.innerHTML = "";
+
+  if (!input) {
+    resultDiv.innerHTML = "<p>Please enter or scan a barcode.</p>";
+    return;
+  }
+
+  const found = items.find(item =>
+    (item.IM_BARCODE || "").toLowerCase() === input ||
+    (item.IM_ITEMNO || "").toLowerCase() === input ||
+    (item.IM_DESCRIPTION || "").toLowerCase().includes(input)
+  );
+
+  if (!found) {
+    resultDiv.innerHTML = "<p>❌ Item not found.</p>";
+    return;
+  }
+
+  const status = (found.IM_NonDiscount_YN || "").trim().toLowerCase() === "true";
+  const price1 = parseFloat(found.IM_SALESPRICE || 0);
+  const price2 = parseFloat(found.IM_SalesPrice2 || 0);
+  const finalPrice = status ? price2 : price1 * 0.8;
+
+  resultDiv.innerHTML = `
+    <b>ISBN:</b> ${found.IM_ITEMNO || ""}<br>
+    <b>Description:</b> ${found.IM_DESCRIPTION || ""}<br>
+    <b>Barcode:</b> ${found.IM_BARCODE || ""}<br>
+    <b>Status:</b> ${found.IM_NonDiscount_YN || ""}<br><hr>
+    <div class="price">💰 Price: RM ${finalPrice.toFixed(2)}</div>
+  `;
+}
+
+// 启动扫码
+function startScan() {
+  const reader = document.getElementById("reader");
+  reader.style.display = "block";
+
+  const html5QrCode = new Html5Qrcode("reader");
+  html5QrCode.start(
+    { facingMode: "environment" },
+    { fps: 10, qrbox: { width: 250, height: 150 } },
+    (decodedText) => {
+      html5QrCode.stop();
+      reader.style.display = "none";
+      document.getElementById("searchInput").value = decodedText;
+      searchItem(decodedText);
+    },
+    (errorMessage) => { /* ignore scan errors */ }
+  );
+}
+</script>
+</body>
+</html>
