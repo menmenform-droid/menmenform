@@ -15,6 +15,10 @@
     #controls {
       padding: 20px;
       background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     input, button, textarea {
@@ -22,12 +26,25 @@
     }
 
     input, button {
-      padding: 6px;
+      padding: 6px 10px;
       margin: 4px;
     }
 
     button {
       cursor: pointer;
+    }
+
+    /* ✏️ 让 Edit Address 按钮更显眼 */
+    .edit-btn {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      transition: 0.2s;
+    }
+
+    .edit-btn:hover {
+      background-color: #0056b3;
     }
 
     #results {
@@ -130,10 +147,13 @@
 <body>
 
   <div id="controls">
-    <h2>Vendor Address Label Generator</h2>
+    <h2 style="margin-right: 10px;">Vendor Address Label Generator</h2>
     <input type="text" id="searchBar" placeholder="Search vendor name...">
     <button onclick="searchVendor()">🔍 Search</button>
     <button onclick="window.print()">🖨️ Print / Save PDF</button>
+
+    <!-- ✅ 新增按钮：打开 Google Sheet 编辑页面 -->
+    <button class="edit-btn" onclick="editAddress()">✏️ Edit Address</button>
   </div>
 
   <div id="results"></div>
@@ -210,7 +230,13 @@
         resultsDiv.appendChild(label);
       });
     }
+
+    // ✅ 新增函数：打开 Google Sheet 编辑页面
+    function editAddress() {
+      window.open("https://docs.google.com/spreadsheets/d/1_I-Fk81GABy_uC5rp0t67-hFBxLTKH4Ce3VhF9Z6cCQ/edit?usp=sharing", "_blank");
+    }
   </script>
 </body>
 </html>
+
 
