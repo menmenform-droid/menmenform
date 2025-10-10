@@ -5,26 +5,80 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Vendor Address Label Generator</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; background: #f8f8f8; }
-    input, button { padding: 6px; margin: 4px; font-size: 15px; }
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+      background: #f8f8f8;
+    }
+    input, button {
+      padding: 6px;
+      margin: 4px;
+      font-size: 15px;
+    }
     button { cursor: pointer; }
     #results { margin-top: 20px; }
+
+    /* 标签样式 */
     .label {
-      border: 1px solid #333; 
-      padding: 10px; 
-      margin: 10px; 
-      width: 260px;
+      border: 1px solid #333;
+      padding: 20px;
+      margin: 10px;
+      width: 45%;
       display: inline-block;
       vertical-align: top;
       border-radius: 8px;
       background: white;
       box-shadow: 1px 1px 4px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+      height: 420px;
+      position: relative;
     }
-    .remark { width: 90%; margin-top: 5px; }
+    .vendor {
+      font-size: 18px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    .address {
+      margin-top: 10px;
+      font-size: 15px;
+      line-height: 1.4em;
+    }
+    .phone {
+      margin-top: 6px;
+      font-size: 14px;
+    }
+    .remark-section {
+      margin-top: 20px;
+      font-size: 14px;
+    }
+    .remark-input {
+      width: 90%;
+      margin-top: 5px;
+      padding: 4px;
+      font-size: 14px;
+    }
+    .from-box {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      font-size: 11px;
+      text-align: right;
+      color: #333;
+      line-height: 1.2em;
+    }
+
     @media print {
-      #controls, input, button { display: none; }
+      @page {
+        size: A4 landscape;
+        margin: 10mm;
+      }
       body { background: white; }
-      .label { page-break-inside: avoid; box-shadow: none; border: 1px solid #000; }
+      #controls { display: none; }
+      .label {
+        page-break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #000;
+      }
     }
   </style>
 </head>
@@ -34,20 +88,16 @@
     <h2>Vendor Address Label Generator</h2>
     <input type="text" id="searchBar" placeholder="Search vendor name...">
     <button onclick="searchVendor()">🔍 Search</button>
-    <button onclick="window.print()">🖨️ Print / Save PDF</button>
+    <button onclick="preparePrint()">🖨️ Print / Save PDF</button>
   </div>
 
   <div id="results"></div>
 
-  <!-- 引入 PapaParse 处理 CSV（安全且兼容 Google Sheet） -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
-    // === 替换为你的 Google Sheet CSV 链接 ===
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vST6LJvLxnPd6jAKFvgzto8dudv2AQecCdTi1UtoObEaPfAihFYqhoFSkTa3S9yJbvvLn3b33cbxDo-/pub?output=csv";
-
     let data = [];
 
-    // 载入 Google Sheet 数据（支持中文、逗号、多行地址）
     fetch(sheetUrl)
       .then(response => response.arrayBuffer())
       .then(buffer => {
@@ -81,18 +131,48 @@
         const vendor = r.vendor || r.Vendor || "";
         const address = (r.address || r.Address || "").replace(/\n/g, "<br>");
         const phone = r.phone || r.Phone || "";
+
         const label = document.createElement('div');
         label.className = 'label';
         label.innerHTML = `
-          <strong>${vendor}</strong><br>
-          ${address}<br>
-          📞 ${phone}<br>
-          Remark: <input class="remark" type="text" placeholder="Add remark...">
+          <div class="vendor">${vendor}</div>
+          <div class="address">${address}</div>
+          <div class="phone">📞 ${phone}</div>
+
+          <div class="remark-section">
+            <div>PR NO: <input class="remark-input" type="text" placeholder="Enter PR No..."></div>
+            <div style="margin-top:8px;">TOTAL BOX/CTN: <input class="remark-input" type="text" placeholder="Enter Total Box/Ctn..."></div>
+          </div>
+
+          <div class="from-box">
+            FROM:<br>
+            <strong>MAKMUR MBS GROUP SDN BHD</strong><br>
+            LOT 26, JALAN IM 14/6<br>
+            KAWASAN PERINDUSTRIAN BANDAR INDERA MAHKOTA<br>
+            25200 KUANTAN<br>
+            PAHANG DARUL MAKMUR<br>
+            NO TEL: 09-5701096
+          </div>
         `;
         resultsDiv.appendChild(label);
       });
+    }
+
+    function preparePrint() {
+      const labels = document.querySelectorAll('.label');
+      labels.forEach(label => {
+        const inputs = label.querySelectorAll('.remark-input');
+        inputs.forEach(input => {
+          const text = input.value.trim() || "（未填写）";
+          const span = document.createElement('span');
+          span.textContent = text;
+          input.replaceWith(span);
+        });
+      });
+      window.print();
     }
   </script>
 
 </body>
 </html>
+
