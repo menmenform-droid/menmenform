@@ -79,8 +79,9 @@
 
   <h2>📦 MBS Price Checking Machine</h2>
 
-  <input type="text" id="searchInput" placeholder="输入条码或描述 (如 955 或 IK YELLOW)" />
-  <br />
+  <input type="text" id="searchInput" placeholder="输入条码或描述 (如 955 或 IK YELLOW)" /><br>
+  <input type="password" id="passwordInput" placeholder="🔑 输入密码（可选）" /><br>
+
   <button onclick="searchItem()">🔍 搜索</button>
   <button onclick="startScanner()">📷 扫码</button>
 
@@ -88,7 +89,7 @@
 
   <table id="resultTable" style="display:none;">
     <thead>
-      <tr>
+      <tr id="tableHeader">
         <th>ISBN</th>
         <th>Description</th>
         <th>UOM</th>
@@ -102,6 +103,7 @@
   <script>
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTwMwCwbtf-9Rj-fB1gaP5SMIvUeFA9jezzdPOckyhMQ6h-dZROofgLTRGbpc34AgzD3pc72096qS9I/pub?output=csv";
     let items = [];
+    const correctPassword = "albertcost123";
 
     // ✅ 加载 Google Sheet 数据
     fetch(sheetUrl)
@@ -117,8 +119,32 @@
       if (!keyword) keyword = document.getElementById("searchInput").value.trim();
       if (!keyword) return alert("请输入条码或描述！");
 
+      const password = document.getElementById("passwordInput").value.trim();
+      const isAuthorized = password === correctPassword;
+
       const tbody = document.querySelector("#resultTable tbody");
+      const thead = document.getElementById("tableHeader");
       tbody.innerHTML = "";
+
+      // ✅ 动态调整表头
+      if (isAuthorized) {
+        thead.innerHTML = `
+          <th>ISBN</th>
+          <th>Description</th>
+          <th>UOM</th>
+          <th>Normal Price</th>
+          <th>Final Price</th>
+          <th>Unit Cost</th>
+        `;
+      } else {
+        thead.innerHTML = `
+          <th>ISBN</th>
+          <th>Description</th>
+          <th>UOM</th>
+          <th>Normal Price</th>
+          <th>Final Price</th>
+        `;
+      }
 
       const keyUpper = keyword.toUpperCase();
 
@@ -142,17 +168,26 @@
         const normalPrice = parseFloat(row["IM_SALESPRICE"] || 0);
         const nonDiscount = (row["IM_NonDiscount_YN"] || "").toLowerCase() === "true";
         const price2 = parseFloat(row["IM_SalesPrice2"] || 0);
-
         const finalPrice = nonDiscount ? price2 : (normalPrice * 0.8);
+        const unitCost = row["IM_UnitCost"] || "";
 
         const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${isbn}</td>
-          <td>${desc}</td>
-          <td>${uom}</td>
-          <td>${normalPrice.toFixed(2)}</td>
-          <td>${finalPrice.toFixed(2)}</td>
-        `;
+        tr.innerHTML = isAuthorized
+          ? `
+            <td>${isbn}</td>
+            <td>${desc}</td>
+            <td>${uom}</td>
+            <td>${normalPrice.toFixed(2)}</td>
+            <td>${finalPrice.toFixed(2)}</td>
+            <td>${unitCost}</td>
+          `
+          : `
+            <td>${isbn}</td>
+            <td>${desc}</td>
+            <td>${uom}</td>
+            <td>${normalPrice.toFixed(2)}</td>
+            <td>${finalPrice.toFixed(2)}</td>
+          `;
         tbody.appendChild(tr);
       });
 
