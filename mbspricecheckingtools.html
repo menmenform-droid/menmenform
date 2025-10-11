@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>📱 Price Checking Machine</title>
+  <title>🔐 MBS Price Checking System</title>
 
   <!-- ✅ 扫码库 -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
@@ -12,14 +12,35 @@
 
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: "Segoe UI", Arial, sans-serif;
       background: #f5f5f5;
-      padding: 20px;
+      margin: 0;
+      padding: 0;
       text-align: center;
     }
 
-    h2 {
-      margin-bottom: 15px;
+    /* ===== 登录页样式 ===== */
+    #loginPage {
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0078d7, #00b4d8);
+    }
+
+    .login-box {
+      background: white;
+      padding: 30px 40px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      text-align: center;
+      width: 90%;
+      max-width: 360px;
+    }
+
+    .login-box h2 {
+      color: #0078d7;
+      margin-bottom: 20px;
     }
 
     input {
@@ -28,7 +49,7 @@
       font-size: 16px;
       border: 1px solid #ccc;
       border-radius: 5px;
-      margin-bottom: 15px;
+      margin-bottom: 12px;
     }
 
     button {
@@ -46,10 +67,17 @@
       background: #005ea3;
     }
 
-    #reader {
-      width: 280px;
-      margin: 10px auto;
+    .error {
+      color: red;
+      font-size: 14px;
+      margin-top: 8px;
       display: none;
+    }
+
+    /* ===== 查询机样式 ===== */
+    #priceChecker {
+      display: none;
+      padding: 20px;
     }
 
     table {
@@ -73,86 +101,128 @@
     tr:hover {
       background-color: #f1f1f1;
     }
+
+    #reader {
+      width: 280px;
+      margin: 10px auto;
+      display: none;
+    }
   </style>
 </head>
+
 <body>
 
-  <h2>📦 MBS Price Checking Machine</h2>
+  <!-- ✅ 登录页面 -->
+  <div id="loginPage">
+    <div class="login-box">
+      <h2>🔐 MBS USER LOGIN</h2>
+      <input type="text" id="username" placeholder="👤 username" required /><br>
+      <input type="password" id="password" placeholder="🔑 password" required /><br>
+      <button onclick="login()">Login</button>
+      <p id="errorMsg" class="error">❌ Username atau password salah</p>
+    </div>
+  </div>
 
-  <input type="text" id="searchInput" placeholder="输入条码或描述 (如 955 或 IK YELLOW)" /><br>
-  <input type="password" id="passwordInput" placeholder="🔑 输入密码（可选）" /><br>
+  <!-- ✅ 价格查询机页面 -->
+  <div id="priceChecker">
+    <h2>📦 MBS Price Checking Machine</h2>
+    <p>Welcome, <span id="userDisplay" style="font-weight:bold;color:#0078d7;"></span></p>
 
-  <button onclick="searchItem()">🔍 搜索</button>
-  <button onclick="startScanner()">📷 扫码</button>
+    <input type="text" id="searchInput" placeholder="输入条码或描述 (如 955 或 IK YELLOW)" /><br>
+    <input type="password" id="costPassword" placeholder="🔑 输入密码显示成本价（可选）" /><br>
 
-  <div id="reader"></div>
+    <button onclick="searchItem()">🔍 搜索</button>
+    <button onclick="startScanner()">📷 扫码</button>
+    <button onclick="logout()">🚪 登出</button>
 
-  <table id="resultTable" style="display:none;">
-    <thead>
-      <tr id="tableHeader">
-        <th>ISBN</th>
-        <th>Description</th>
-        <th>UOM</th>
-        <th>Normal Price</th>
-        <th>Final Price</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+    <div id="reader"></div>
+
+    <table id="resultTable" style="display:none;">
+      <thead>
+        <tr id="tableHeader">
+          <th>ISBN</th>
+          <th>Description</th>
+          <th>UOM</th>
+          <th>Normal Price</th>
+          <th>Final Price</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
 
   <script>
-    const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTwMwCwbtf-9Rj-fB1gaP5SMIvUeFA9jezzdPOckyhMQ6h-dZROofgLTRGbpc34AgzD3pc72096qS9I/pub?output=csv";
+    // ✅ Google Sheet 用户表 & 商品表
+    const userSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRLTFniNttqkAezltO31p7Jd0R4zvyoT3h6F6CJfS6tCx_fmpdna74k5skPigKjqUd1SmjDcKbdPn35/pub?output=csv";
+    const itemSheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTwMwCwbtf-9Rj-fB1gaP5SMIvUeFA9jezzdPOckyhMQ6h-dZROofgLTRGbpc34AgzD3pc72096qS9I/pub?output=csv";
+    const costPassword = "albertcost123";
+
+    let users = [];
     let items = [];
-    const correctPassword = "albertcost123";
+    let currentUser = null;
 
-    // ✅ 加载 Google Sheet 数据
-    fetch(sheetUrl)
+    // ✅ 加载用户
+    fetch(userSheetUrl)
       .then(res => res.text())
-      .then(csv => {
-        const parsed = Papa.parse(csv, { header: true });
-        items = parsed.data;
-        console.log("✅ 数据加载完成", items.length);
-      });
+      .then(csv => users = Papa.parse(csv, { header: true }).data);
 
-    // ✅ 搜索函数（点击按钮或扫码触发）
+    // ✅ 加载商品
+    fetch(itemSheetUrl)
+      .then(res => res.text())
+      .then(csv => items = Papa.parse(csv, { header: true }).data);
+
+    // ✅ 登录验证
+    function login() {
+      const user = document.getElementById("username").value.trim();
+      const pw = document.getElementById("password").value.trim();
+      const err = document.getElementById("errorMsg");
+
+      const match = users.find(u =>
+        u.username?.trim().toLowerCase() === user.toLowerCase() &&
+        u.password?.trim() === pw
+      );
+
+      if (match) {
+        currentUser = match.username;
+        document.getElementById("userDisplay").textContent = currentUser;
+        document.getElementById("loginPage").style.display = "none";
+        document.getElementById("priceChecker").style.display = "block";
+      } else {
+        err.style.display = "block";
+      }
+    }
+
+    // ✅ 登出
+    function logout() {
+      currentUser = null;
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+      document.getElementById("priceChecker").style.display = "none";
+      document.getElementById("loginPage").style.display = "flex";
+    }
+
+    // ✅ 搜索功能
     function searchItem(keyword) {
       if (!keyword) keyword = document.getElementById("searchInput").value.trim();
       if (!keyword) return alert("请输入条码或描述！");
 
-      const password = document.getElementById("passwordInput").value.trim();
-      const isAuthorized = password === correctPassword;
+      const pw = document.getElementById("costPassword").value.trim();
+      const showCost = pw === costPassword;
 
       const tbody = document.querySelector("#resultTable tbody");
       const thead = document.getElementById("tableHeader");
       tbody.innerHTML = "";
 
-      // ✅ 动态调整表头
-      if (isAuthorized) {
-        thead.innerHTML = `
-          <th>ISBN</th>
-          <th>Description</th>
-          <th>UOM</th>
-          <th>Normal Price</th>
-          <th>Final Price</th>
-          <th>Unit Cost</th>
-        `;
-      } else {
-        thead.innerHTML = `
-          <th>ISBN</th>
-          <th>Description</th>
-          <th>UOM</th>
-          <th>Normal Price</th>
-          <th>Final Price</th>
-        `;
-      }
+      // ✅ 动态表头
+      thead.innerHTML = showCost
+        ? `<th>ISBN</th><th>Description</th><th>UOM</th><th>Normal Price</th><th>Final Price</th><th>Unit Cost</th>`
+        : `<th>ISBN</th><th>Description</th><th>UOM</th><th>Normal Price</th><th>Final Price</th>`;
 
       const keyUpper = keyword.toUpperCase();
-
-      const results = items.filter(row => {
-        const desc = (row["IM_DESCRIPTION"] || "").toUpperCase();
-        const barcode = (row["IM_BARCODE"] || "").toUpperCase();
-        return desc.includes(keyUpper) || barcode.includes(keyUpper);
-      });
+      const results = items.filter(row =>
+        (row["IM_DESCRIPTION"] || "").toUpperCase().includes(keyUpper) ||
+        (row["IM_BARCODE"] || "").toUpperCase().includes(keyUpper)
+      );
 
       const table = document.getElementById("resultTable");
       if (results.length === 0) {
@@ -172,22 +242,9 @@
         const unitCost = row["IM_UnitCost"] || "";
 
         const tr = document.createElement("tr");
-        tr.innerHTML = isAuthorized
-          ? `
-            <td>${isbn}</td>
-            <td>${desc}</td>
-            <td>${uom}</td>
-            <td>${normalPrice.toFixed(2)}</td>
-            <td>${finalPrice.toFixed(2)}</td>
-            <td>${unitCost}</td>
-          `
-          : `
-            <td>${isbn}</td>
-            <td>${desc}</td>
-            <td>${uom}</td>
-            <td>${normalPrice.toFixed(2)}</td>
-            <td>${finalPrice.toFixed(2)}</td>
-          `;
+        tr.innerHTML = showCost
+          ? `<td>${isbn}</td><td>${desc}</td><td>${uom}</td><td>${normalPrice.toFixed(2)}</td><td>${finalPrice.toFixed(2)}</td><td>${unitCost}</td>`
+          : `<td>${isbn}</td><td>${desc}</td><td>${uom}</td><td>${normalPrice.toFixed(2)}</td><td>${finalPrice.toFixed(2)}</td>`;
         tbody.appendChild(tr);
       });
 
@@ -211,11 +268,10 @@
         },
         (errorMessage) => {}
       ).catch(err => {
-        alert("⚠️ 无法打开相机，请检查浏览器权限或使用 HTTPS 链接。");
+        alert("⚠️ 无法打开相机，请检查权限或使用 HTTPS。");
         console.error(err);
       });
     }
   </script>
 </body>
 </html>
-
