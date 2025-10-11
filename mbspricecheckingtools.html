@@ -4,11 +4,18 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>📱 Price Checking Machine</title>
+
+  <!-- ✅ 扫码库 -->
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <!-- ✅ CSV 解析库 -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #f5f5f5;
       padding: 20px;
+      text-align: center;
     }
 
     h2 {
@@ -16,7 +23,7 @@
     }
 
     input {
-      width: 100%;
+      width: 80%;
       padding: 10px;
       font-size: 16px;
       border: 1px solid #ccc;
@@ -24,10 +31,32 @@
       margin-bottom: 15px;
     }
 
+    button {
+      padding: 10px 16px;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+      background: #0078d7;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #005ea3;
+    }
+
+    #reader {
+      width: 280px;
+      margin: 10px auto;
+      display: none;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
-      background: #fff;
+      background: white;
+      margin-top: 20px;
     }
 
     th, td {
@@ -37,33 +66,36 @@
     }
 
     th {
-      background-color: #eee;
+      background-color: #0078d7;
+      color: white;
+    }
+
+    tr:hover {
+      background-color: #f1f1f1;
     }
 
     .edit-btn {
-      background: #007bff;
-      color: #fff;
-      border: none;
-      padding: 8px 12px;
-      border-radius: 5px;
-      cursor: pointer;
-      float: right;
+      background: #28a745;
     }
 
     .edit-btn:hover {
-      background: #0056b3;
+      background: #1e7e34;
     }
   </style>
 </head>
 <body>
 
-  <h2>📦 Price Checking Machine 
-    <button class="edit-btn" onclick="editSheet()">✏️ Edit Sheet</button>
-  </h2>
+  <h2>📦 MBS Price Checking Machine</h2>
 
-  <input type="text" id="searchInput" placeholder="输入条码或描述 (e.g. 9551234 或 IK YELLOW)" />
+  <input type="text" id="searchInput" placeholder="输入条码或描述 (如 955 或 IK YELLOW)" />
+  <br />
+  <button onclick="searchItem()">🔍 搜索</button>
+  <button onclick="startScanner()">📷 扫码</button>
+  <button class="edit-btn" onclick="editSheet()">✏️ 编辑数据</button>
 
-  <table id="resultTable">
+  <div id="reader"></div>
+
+  <table id="resultTable" style="display:none;">
     <thead>
       <tr>
         <th>ISBN</th>
@@ -76,37 +108,40 @@
     <tbody></tbody>
   </table>
 
-  <!-- 引入 PapaParse -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script>
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTwMwCwbtf-9Rj-fB1gaP5SMIvUeFA9jezzdPOckyhMQ6h-dZROofgLTRGbpc34AgzD3pc72096qS9I/pub?output=csv";
     let items = [];
 
-    // ✅ 载入 CSV 数据
+    // ✅ 加载 Google Sheet 数据
     fetch(sheetUrl)
       .then(res => res.text())
       .then(csv => {
         const parsed = Papa.parse(csv, { header: true });
         items = parsed.data;
+        console.log("✅ 数据加载完成", items.length);
       });
 
-    // ✅ 搜索函数
-    document.getElementById("searchInput").addEventListener("input", function() {
-      const keyword = this.value.trim().toUpperCase();
+    // ✅ 搜索函数（点击按钮或扫码触发）
+    function searchItem(keyword) {
+      if (!keyword) keyword = document.getElementById("searchInput").value.trim();
+      if (!keyword) return alert("请输入条码或描述！");
+
       const tbody = document.querySelector("#resultTable tbody");
       tbody.innerHTML = "";
 
-      if (!keyword) return;
+      const keyUpper = keyword.toUpperCase();
 
+      // ✅ 匹配逻辑（空格敏感，不模糊匹配）
       const results = items.filter(row => {
         const desc = (row["IM_DESCRIPTION"] || "").toUpperCase();
         const barcode = (row["IM_BARCODE"] || "").toUpperCase();
-        // ✅ 匹配逻辑：大小写不敏感，空格敏感
-        return desc.includes(keyword) || barcode.includes(keyword);
+        return desc.includes(keyUpper) || barcode.includes(keyUpper);
       });
 
+      const table = document.getElementById("resultTable");
       if (results.length === 0) {
-        tbody.innerHTML = "<tr><td colspan='5'>No matching records found.</td></tr>";
+        table.style.display = "none";
+        alert("❌ 没找到结果！");
         return;
       }
 
@@ -118,8 +153,7 @@
         const nonDiscount = (row["IM_NonDiscount_YN"] || "").toLowerCase() === "true";
         const price2 = parseFloat(row["IM_SalesPrice2"] || 0);
 
-        // ✅ 计算最终价格
-        const finalPrice = nonDiscount ? price2 : (normalPrice * 0.8).toFixed(2);
+        const finalPrice = nonDiscount ? price2 : (normalPrice * 0.8);
 
         const tr = document.createElement("tr");
         tr.innerHTML = `
@@ -127,17 +161,40 @@
           <td>${desc}</td>
           <td>${uom}</td>
           <td>${normalPrice.toFixed(2)}</td>
-          <td>${finalPrice}</td>
+          <td>${finalPrice.toFixed(2)}</td>
         `;
         tbody.appendChild(tr);
       });
-    });
+
+      table.style.display = "table";
+    }
+
+    // ✅ 扫码功能
+    function startScanner() {
+      const readerDiv = document.getElementById("reader");
+      readerDiv.style.display = "block";
+
+      const html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        (decodedText) => {
+          html5QrCode.stop();
+          readerDiv.style.display = "none";
+          document.getElementById("searchInput").value = decodedText;
+          searchItem(decodedText);
+        },
+        (errorMessage) => {}
+      ).catch(err => {
+        alert("⚠️ 无法打开相机，请检查浏览器权限或使用 HTTPS 链接。");
+        console.error(err);
+      });
+    }
 
     // ✅ 打开 Google Sheet 编辑页面
     function editSheet() {
       window.open("https://docs.google.com/spreadsheets/d/1_I-Fk81GABy_uC5rp0t67-hFBxLTKH4Ce3VhF9Z6cCQ/edit?usp=sharing", "_blank");
     }
   </script>
-
 </body>
 </html>
