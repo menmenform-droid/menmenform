@@ -128,12 +128,12 @@
     <h2>📦 MBS Price Checking Machine</h2>
     <p>Welcome, <span id="userDisplay" style="font-weight:bold;color:#0078d7;"></span></p>
 
-    <input type="text" id="searchInput" placeholder="输入条码或描述 (如 955 或 IK YELLOW)" /><br>
-    <input type="password" id="costPassword" placeholder="🔑 输入密码显示成本价（可选）" /><br>
+    <input type="text" id="searchInput" placeholder="barcode atau nama barang (contoh 955 atau IK YELLOW)" /><br>
+    <input type="password" id="costPassword" placeholder="🔑 secrectpw" /><br>
 
-    <button onclick="searchItem()">🔍 搜索</button>
-    <button onclick="startScanner()">📷 扫码</button>
-    <button onclick="logout()">🚪 登出</button>
+    <button onclick="searchItem()">🔍 cari</button>
+    <button onclick="startScanner()">📷 scanbarcode</button>
+    <button onclick="logout()">🚪 logout</button>
 
     <div id="reader"></div>
 
@@ -204,7 +204,7 @@
     // ✅ 搜索功能
     function searchItem(keyword) {
       if (!keyword) keyword = document.getElementById("searchInput").value.trim();
-      if (!keyword) return alert("请输入条码或描述！");
+      if (!keyword) return alert("sila masuk barcode atau nama！");
 
       const pw = document.getElementById("costPassword").value.trim();
       const showCost = pw === costPassword;
@@ -227,7 +227,7 @@
       const table = document.getElementById("resultTable");
       if (results.length === 0) {
         table.style.display = "none";
-        alert("❌ 没找到结果！");
+        alert("❌ noresult！");
         return;
       }
 
