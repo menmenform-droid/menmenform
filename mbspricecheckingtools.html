@@ -1,200 +1,151 @@
 <!DOCTYPE html>
 <html lang="zh">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>📱 Price Checking Machine</title>
-
-  <!-- ✅ 扫码库 -->
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-  <!-- ✅ CSV 解析库 -->
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
+  <title>📦 商品查询系统</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      padding: 20px;
-      text-align: center;
+      font-family: "Segoe UI", Arial, sans-serif;
+      margin: 20px;
+      background: #f8f9fa;
     }
-
     h2 {
-      margin-bottom: 15px;
+      text-align: center;
+      color: #333;
     }
-
-    input {
+    input[type="text"] {
       width: 80%;
       padding: 10px;
-      font-size: 16px;
+      margin: 10px 0;
       border: 1px solid #ccc;
-      border-radius: 5px;
-      margin-bottom: 15px;
+      border-radius: 8px;
+      font-size: 16px;
     }
-
     button {
-      padding: 10px 16px;
-      margin: 5px;
+      padding: 10px 15px;
+      font-size: 16px;
       border: none;
       border-radius: 8px;
-      background: #0078d7;
-      color: white;
-      font-size: 16px;
       cursor: pointer;
-    }
-
-    button:hover {
-      background: #005ea3;
-    }
-
-    #reader {
-      width: 280px;
-      margin: 10px auto;
-      display: none;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      background: white;
-      margin-top: 20px;
-    }
-
-    th, td {
-      padding: 8px;
-      border: 1px solid #ddd;
-      text-align: left;
-    }
-
-    th {
       background-color: #0078d7;
       color: white;
     }
-
-    tr:hover {
-      background-color: #f1f1f1;
+    button:hover {
+      background-color: #005ea6;
     }
-
-    .edit-btn {
-      background: #28a745;
+    #result {
+      margin-top: 20px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 15px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
     }
-
-    .edit-btn:hover {
-      background: #1e7e34;
+    .item {
+      border-bottom: 1px solid #eee;
+      padding: 10px 0;
+    }
+    .item:last-child {
+      border-bottom: none;
+    }
+    .label {
+      font-weight: bold;
+      color: #555;
     }
   </style>
 </head>
 <body>
 
-  <h2>📦 MBS Price Checking Machine</h2>
+  <h2>📦 商品查询系统</h2>
 
-  <input type="text" id="searchInput" placeholder="输入条码或描述 (如 955 或 IK YELLOW)" />
-  <br />
-  <button onclick="searchItem()">🔍 搜索</button>
-  <button onclick="startScanner()">📷 扫码</button>
-  <button class="edit-btn" onclick="editSheet()">✏️ 编辑数据</button>
+  <input type="text" id="searchInput" placeholder="🔍 输入条码或商品描述">
+  <button onclick="searchData()">查找</button>
+  <button onclick="startScan()">📷 扫码</button>
 
-  <div id="reader"></div>
+  <div id="result"></div>
 
-  <table id="resultTable" style="display:none;">
-    <thead>
-      <tr>
-        <th>ISBN</th>
-        <th>Description</th>
-        <th>UOM</th>
-        <th>Normal Price</th>
-        <th>Final Price</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/minified/html5-qrcode.min.js"></script>
   <script>
     const sheetUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTwMwCwbtf-9Rj-fB1gaP5SMIvUeFA9jezzdPOckyhMQ6h-dZROofgLTRGbpc34AgzD3pc72096qS9I/pub?output=csv";
-    let items = [];
+    let dataCache = [];
 
-    // ✅ 加载 Google Sheet 数据
+    // 载入数据
     fetch(sheetUrl)
       .then(res => res.text())
       .then(csv => {
-        const parsed = Papa.parse(csv, { header: true });
-        items = parsed.data;
-        console.log("✅ 数据加载完成", items.length);
+        const rows = csv.split("\n").map(r => r.split(","));
+        const headers = rows[0];
+        dataCache = rows.slice(1).map(r => {
+          const obj = {};
+          headers.forEach((h, i) => obj[h.trim()] = (r[i] || "").trim());
+          return obj;
+        });
+        console.log("数据已载入，共", dataCache.length, "行");
       });
 
-    // ✅ 搜索函数（点击按钮或扫码触发）
-    function searchItem(keyword) {
-      if (!keyword) keyword = document.getElementById("searchInput").value.trim();
-      if (!keyword) return alert("请输入条码或描述！");
+    function searchData(keyword) {
+      const input = keyword || document.getElementById("searchInput").value.trim();
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = "";
 
-      const tbody = document.querySelector("#resultTable tbody");
-      tbody.innerHTML = "";
+      if (!input) {
+        resultDiv.innerHTML = "<p>⚠️ 请输入条码或描述。</p>";
+        return;
+      }
 
-      const keyUpper = keyword.toUpperCase();
-
-      // ✅ 匹配逻辑（空格敏感，不模糊匹配）
-      const results = items.filter(row => {
-        const desc = (row["IM_DESCRIPTION"] || "").toUpperCase();
-        const barcode = (row["IM_BARCODE"] || "").toUpperCase();
-        return desc.includes(keyUpper) || barcode.includes(keyUpper);
+      const results = dataCache.filter(row => {
+        const barcode = row["IM_BARCODE"]?.toLowerCase() || "";
+        const desc = row["IM_DESCRIPTION"]?.toLowerCase() || "";
+        const query = input.toLowerCase();
+        return barcode === query || desc.includes(query); // 精确条码匹配 + 普通包含匹配
       });
 
-      const table = document.getElementById("resultTable");
       if (results.length === 0) {
-        table.style.display = "none";
-        alert("❌ 没找到结果！");
+        resultDiv.innerHTML = "<p>❌ 未找到匹配结果。</p>";
         return;
       }
 
       results.forEach(row => {
-        const isbn = row["IM_ITEMNO"] || "";
-        const desc = row["IM_DESCRIPTION"] || "";
-        const uom = row["IM_UOM"] || "";
-        const normalPrice = parseFloat(row["IM_SALESPRICE"] || 0);
-        const nonDiscount = (row["IM_NonDiscount_YN"] || "").toLowerCase() === "true";
+        const priceNormal = parseFloat(row["IM_SALESPRICE"] || 0);
         const price2 = parseFloat(row["IM_SalesPrice2"] || 0);
+        const nonDiscount = row["IM_NonDiscount_YN"]?.toLowerCase() === "true";
+        const finalPrice = nonDiscount ? price2 : (priceNormal * 0.8).toFixed(2);
 
-        const finalPrice = nonDiscount ? price2 : (normalPrice * 0.8);
-
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${isbn}</td>
-          <td>${desc}</td>
-          <td>${uom}</td>
-          <td>${normalPrice.toFixed(2)}</td>
-          <td>${finalPrice.toFixed(2)}</td>
+        resultDiv.innerHTML += `
+          <div class="item">
+            <div><span class="label">ISBN：</span>${row["IM_ITEMNO"]}</div>
+            <div><span class="label">描述：</span>${row["IM_DESCRIPTION"]}</div>
+            <div><span class="label">UOM：</span>${row["IM_UOM"]}</div>
+            <div><span class="label">Normal Price：</span>RM ${priceNormal.toFixed(2)}</div>
+            <div><span class="label">Final Price：</span>RM ${finalPrice}</div>
+          </div>
         `;
-        tbody.appendChild(tr);
       });
-
-      table.style.display = "table";
     }
 
-    // ✅ 扫码功能
-    function startScanner() {
-      const readerDiv = document.getElementById("reader");
-      readerDiv.style.display = "block";
-
-      const html5QrCode = new Html5Qrcode("reader");
-      html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        (decodedText) => {
-          html5QrCode.stop();
-          readerDiv.style.display = "none";
-          document.getElementById("searchInput").value = decodedText;
-          searchItem(decodedText);
-        },
-        (errorMessage) => {}
-      ).catch(err => {
-        alert("⚠️ 无法打开相机，请检查浏览器权限或使用 HTTPS 链接。");
+    // 启动扫码
+    function startScan() {
+      const html5QrCode = new Html5Qrcode("result");
+      Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length) {
+          const cameraId = devices[0].id;
+          html5QrCode.start(
+            cameraId,
+            { fps: 10, qrbox: 250 },
+            decodedText => {
+              html5QrCode.stop();
+              document.getElementById("searchInput").value = decodedText;
+              searchData(decodedText);
+            },
+            error => { console.warn(error); }
+          );
+        }
+      }).catch(err => {
+        alert("⚠️ 无法访问相机，请检查浏览器权限。");
         console.error(err);
       });
     }
-
-    // ✅ 打开 Google Sheet 编辑页面
-    function editSheet() {
-      window.open("https://docs.google.com/spreadsheets/d/1_I-Fk81GABy_uC5rp0t67-hFBxLTKH4Ce3VhF9Z6cCQ/edit?usp=sharing", "_blank");
-    }
   </script>
+
 </body>
 </html>
