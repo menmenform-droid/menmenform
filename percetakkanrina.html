@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>📄 Document Generator</title>
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      background: #f3f4f6;
+      padding: 40px;
+      text-align: center;
+    }
+    .card {
+      background: white;
+      max-width: 420px;
+      margin: 0 auto;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    input, textarea, button {
+      width: 100%;
+      margin: 10px 0;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 15px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      background: #1e40af;
+    }
+    .result {
+      margin-top: 20px;
+      background: #e0f2fe;
+      padding: 10px;
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>📑 Document Generator</h2>
+    <input type="date" id="date">
+    <input type="text" id="customer" placeholder="Customer Name" required>
+    <textarea id="address" placeholder="Address (optional)"></textarea>
+    <button onclick="confirmGenerate()">Generate Document</button>
+
+    <div class="result" id="result" style="display:none;"></div>
+  </div>
+
+  <script>
+    function confirmGenerate() {
+      if (!document.getElementById('customer').value.trim()) {
+        alert("Please enter customer name.");
+        return;
+      }
+      if (confirm("Are you sure you want to generate the document?")) {
+        generateDocument();
+      }
+    }
+
+    function generateDocument() {
+      const data = {
+        date: document.getElementById('date').value,
+        customerName: document.getElementById('customer').value,
+        address: document.getElementById('address').value,
+      };
+
+      document.getElementById('result').style.display = 'block';
+      document.getElementById('result').innerHTML = '⏳ Generating... Please wait...';
+
+      google.script.run.withSuccessHandler(function(res) {
+        document.getElementById('result').innerHTML = `
+          ✅ Document Created Successfully!<br>
+          <strong>Document Number:</strong> ${res.documentNumber}<br>
+          <a href="${res.link}" target="_blank">📂 Open Document</a>
+        `;
+      }).createDocument(data);
+    }
+  </script>
+</body>
+</html>
+
