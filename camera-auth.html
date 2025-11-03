@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>相机授权</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body{font-family: system-ui;background:#1976d2;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;padding:20px;text-align:center}
+    h1{font-size:28px;margin:0 0 20px}
+    p{font-size:18px;margin:15px 0}
+    .success{color:#a8ffab}
+    .fail{color:#ff6b6b}
+    button{padding:16px 32px;font-size:18px;border:none;border-radius:50px;background:#fff;color:#1976d2;margin-top:20px;cursor:pointer}
+  </style>
+</head>
+<body>
+  <h1>相机授权</h1>
+  <p id="msg">点击按钮授权相机，扫码秒开</p>
+  <button id="authBtn">授权本地相机</button>
+
+  <script>
+    const urlParams = new URLSearchParams(location.search);
+    const parentOrigin = urlParams.get('parent'); // 父页面来源
+
+    document.getElementById('authBtn').onclick = async () => {
+      const btn = document.getElementById('authBtn');
+      const msg = document.getElementById('msg');
+      btn.disabled = true;
+      btn.textContent = "授权中...";
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "environment" }
+        });
+        stream.getTracks().forEach(t => t.stop());
+
+        // 成功！通知父页面
+        if (parentOrigin) {
+          parent.postMessage({ type: 'CAMERA_AUTH_SUCCESS' }, parentOrigin);
+        }
+        localStorage.setItem('cameraAuthorized', 'true');
+        localStorage.setItem('cameraAuthTime', new Date().toLocaleString());
+
+        msg.innerHTML = "授权成功！<br>可以关闭此页面";
+        msg.className = "success";
+        btn.style.background = "#43a047";
+        btn.style.color = "#fff";
+        btn.textContent = "已授权";
+
+      } catch (err) {
+        msg.innerHTML = "授权失败<br>请点击“允许”后重试";
+        msg.className = "fail";
+        btn.disabled = false;
+        btn.textContent = "重试";
+      }
+    };
+
+    // 页面加载时检查是否已授权
+    if (localStorage.getItem('cameraAuthorized') === 'true') {
+      document.getElementById('msg').innerHTML = "已授权<br>可以关闭此页面";
+      document.getElementById('msg').className = "success";
+      document.getElementById('authBtn').style.display = "none";
+      if (parentOrigin) {
+        parent.postMessage({ type: 'CAMERA_ALREADY_AUTH' }, parentOrigin);
+      }
+    }
+  </script>
+</body>
+</html>
