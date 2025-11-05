@@ -1,40 +1,50 @@
 <!DOCTYPE html>
 <html><head>
 <meta charset="UTF-8">
-<title>Ultimate Offline Inventory</title>
+<title>终极离线库存 v3</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
   body{font-family:Arial;margin:15px;background:#f9f9f9}
-  input,button{padding:12px;margin:8px 0;width:100%;font-size:16px;box-sizing:border-box}
-  button{background:#0066cc;color:#fff;border:none;border-radius:6px}
+  input,button{padding:12px;margin:8px 0;width:100%;font-size:16px;box-sizing:border-box;border-radius:6px}
+  button{background:#0066cc;color:#fff;border:none;cursor:pointer}
   button:active{background:#004488}
   #clearAllBtn{background:#d9534f}
   table{width:100%;border-collapse:collapse;margin-top:15px;background:#fff}
   th,td{border:1px solid #ccc;padding:10px;text-align:center}
   th{background:#0066cc;color:#fff}
-  .qty{width:70px;padding:6px;text-align:center}
-  .del{background:#d9534f;color:#fff;border:none;padding:6px 10px;border-radius:4px}
+  .qty{width:70px;padding:8px;text-align:center;font-size:16px}
+  .del{background:#d9534f;color:#fff;padding:6px 12px;border:none;border-radius:4px;cursor:pointer}
   #v{width:100%;max-height:300px;display:none;border:3px solid #0066cc;border-radius:8px}
-  .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;z-index:9}
-  .popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:25px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.4);z-index:10;display:none;max-width:90%}
-  .popup button{width:30%;margin:5px 1.5%}
+  .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.6);display:none;z-index:9}
+  .popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:30px;border-radius:16px;box-shadow:0 15px 40px rgba(0,0,0,.5);z-index:10;display:none;max-width:90%;width:320px;text-align:center}
+  .popup input{width:80%;padding:12px;font-size:20px;margin:15px 0;text-align:center}
+  .popup button{width:28%;margin:5px;font-size:16px}
 </style>
 </head><body>
 
-<h2>Ultimate Offline Inventory</h2>
-<input id="i" placeholder="Enter or Scan Barcode" autofocus>
+<h2>终极离线库存 v3</h2>
+<input id="i" placeholder="输入或扫描条码" autofocus>
 <button id="scan">Scan with Camera</button>
 <video id="v" playsinline></video>
 
 <div class="overlay" id="o"></div>
+
+<!-- 新的美观弹窗 -->
 <div class="popup" id="p">
-  <p id="t" style="font-size:18px;margin:0 0 20px"></p>
-  <button id="x">Ignore</button>
-  <button id="+">+1</button>
-  <button id="e">Edit Quantity</button>
+  <h3 id="t">Barcode: 12345</h3>
+  <div style="font-size:48px;font-weight:bold;color:#0066cc;margin:20px 0" id="qtyDisplay">1</div>
+  <div style="margin:15px 0">
+    <button style="font-size:30px;padding:10px 20px" onclick="adj(-1)">-</button>
+    <button style="font-size:30px;padding:10px 20px" onclick="adj(1)">+</button>
+  </div>
+  <input id="qtyInput" type="number" min="0" placeholder="输入数量">
+  <div>
+    <button id="saveQty" style="background:#28a745">Save</button>
+    <button id="cancelQty">Cancel</button>
+  </div>
 </div>
 
-<div style="display:flex;gap:10px">
+<div style="display:flex;gap:10px;margin:15px 0">
   <button id="export">Export CSV</button>
   <button id="clearAllBtn">Clear All</button>
 </div>
@@ -44,12 +54,12 @@
 <script>
 const $ = s => document.querySelector(s);
 let inv = JSON.parse(localStorage.getItem("inv")||"{}");
-let scanning = false, last = "";
+let scanning = false, last = "", currentCode = "";
 
-// Prevent Enter key restarting page
-$("#i").addEventListener("keydown", e => e.key=="Enter" && e.preventDefault());
+// 防止回车刷新
+$("#i").addEventListener("keydown", e => e.key==="Enter" && e.preventDefault());
 
-// Refresh table
+// 渲染表格
 const render = () => {
   $("#tbl tbody").innerHTML = "";
   for (let c in inv) {
@@ -57,61 +67,86 @@ const render = () => {
       <tr>
         <td>${c}</td>
         <td><input class="qty" type="number" min="0" value="${inv[c]}"
-                   oninput="set('${c}',this.value)"
-                   onkeydown="if(event.key=='Enter')event.preventDefault()"></td>
+                   oninput="set('${c}',this.valueAsNumber)"
+                   onkeydown="if(event.key==='Enter')this.blur()"></td>
         <td><button class="del" onclick="del('${c}')">Delete</button></td>
       </tr>`;
   }
 };
 render();
 
-// Save
+// 保存
 const save = () => { localStorage.setItem("inv", JSON.stringify(inv)); render(); };
 
-// Edit quantity
-window.set = (c,v) => {
-  v = +v;
-  if (isNaN(v)||v<0) return render();
-  if (v==0) { if(confirm("Delete this item?")) delete inv[c]; else inv[c]=1; }
-  else inv[c]=v;
+// 表格内编辑（允许 0，不跳确认）
+window.set = (c, v) => {
+  if (v === "" || isNaN(v) || v < 0) return;
+  inv[c] = v === 0 ? 0 : Math.floor(v);  // 允许 0
   save();
 };
 
-// Delete row
-window.del = (c) => { if(confirm("Delete "+c+" ?")) {delete inv[c]; save();} };
+// 删除
+window.del = (c) => {
+  if (confirm(`Delete ${c}？`)) { delete inv[c]; save(); }
+};
 
-// Process barcode logic
+// 处理条码
 const proc = code => {
   code = code.trim();
   if (!code) return;
-  $("#i").value = "";
-  $("#i").focus();
-  if (inv[code]) popup(code);
-  else { inv[code]=1; save(); stopScan(); }
+  $("#i").value = ""; $("#i").focus();
+  currentCode = code;
+  if (inv[code]) { showEditPopup(code); }
+  else { inv[code] = 1; save(); stopScan(); }
 };
 
-// Popup for duplicates
-const popup = code => {
+// 美观编辑弹窗
+const showEditPopup = code => {
+  currentCode = code;
+  $("#qtyDisplay").innerText = inv[code];
+  $("#qtyInput").value = inv[code];
+  $("#t").innerText = `Barcode: ${code}`;
   $("#o").style.display = "block";
   $("#p").style.display = "block";
-  $("#t").innerText = `Barcode: ${code}\nCurrent Qty: ${inv[code]}`;
-  const close = () => { $("#p").style.display=$("#o").style.display="none"; };
-  $("#x").onclick = close;
-  $("#+").onclick = () => { inv[code]++; save(); close(); stopScan(); };
-  $("#e").onclick = () => {
-    let n = prompt("Enter new quantity:", inv[code]);
-    if (n!==null && !isNaN(n) && n>=0) {
-      inv[code] = +n || 1;
-      if (n==0) delete inv[code];
-      save(); close(); stopScan();
-    }
-  };
+  $("#qtyInput").focus();
 };
 
-// Manual input
+// ±1
+window.adj = delta => {
+  let n = (inv[currentCode] || 0) + delta;
+  if (n < 0) n = 0;
+  inv[currentCode] = n;
+  $("#qtyDisplay").innerText = n;
+  $("#qtyInput").value = n;
+};
+
+// 保存
+$("#saveQty").onclick = () => {
+  let v = $("#qtyInput").valueAsNumber;
+  if (isNaN(v) || v < 0) v = 1;
+  if (v === 0) {
+    if (confirm("数量为0，是否删除此商品？")) {
+      delete inv[currentCode];
+    } else {
+      v = 1;
+    }
+  }
+  inv[currentCode] = v;
+  save();
+  closePopup();
+  stopScan();
+};
+
+// 取消
+$("#cancelQty").onclick = closePopup;
+function closePopup() {
+  $("#p").style.display = $("#o").style.display = "none";
+}
+
+// 手动输入
 $("#i").addEventListener("change", () => proc($("#i").value));
 
-// Camera scanner
+// 摄像头
 $("#scan").onclick = async () => {
   if (scanning) return;
   scanning = true; last = "";
@@ -119,7 +154,7 @@ $("#scan").onclick = async () => {
   try {
     const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
     $("#v").srcObject = s; $("#v").play();
-    const d = new BarcodeDetector({formats:["ean_13","ean_8","code_128","code_39","qr_code"]});
+    const d = new BarcodeDetector();
     const loop = async () => {
       if (!scanning) return;
       try {
@@ -127,40 +162,39 @@ $("#scan").onclick = async () => {
         if (b[0] && b[0].rawValue !== last) {
           last = b[0].rawValue;
           proc(last);
-          await new Promise(r=>setTimeout(r,1200));
+          await new Promise(r => setTimeout(r, 1000));
           last = "";
         }
       } catch{}
       requestAnimationFrame(loop);
     };
     loop();
-  } catch { alert("Camera access failed"); stopScan(); }
+  } catch { alert("Camera failed"); stopScan(); }
 };
 
-// Tap video to stop scanning
 $("#v").onclick = stopScan;
 function stopScan() {
   scanning = false;
   if ($("#v").srcObject) {
-    $("#v").srcObject.getTracks().forEach(t=>t.stop());
+    $("#v").srcObject.getTracks().forEach(t => t.stop());
     $("#v").srcObject = null;
   }
   $("#v").style.display = "none";
 }
 
-// Export CSV
+// 导出
 $("#export").onclick = () => {
   let csv = "\uFEFFbarcode,quantity\n";
   for (let c in inv) csv += `${c},${inv[c]}\n`;
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv;charset=utf-8"}));
-  a.download = `inventory_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `库存_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
 };
 
-// Clear all
+// 清空
 $("#clearAllBtn").onclick = () => {
-  if (confirm("Clear all inventory?")) {
+  if (confirm("Clear all data?")) {
     inv = {}; localStorage.removeItem("inv"); render();
   }
 };
@@ -168,4 +202,3 @@ $("#clearAllBtn").onclick = () => {
 window.onunload = stopScan;
 </script>
 </body></html>
-
