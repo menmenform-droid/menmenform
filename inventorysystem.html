@@ -1,141 +1,171 @@
 <!DOCTYPE html>
-<html>
-<head>
+<html><head>
 <meta charset="UTF-8">
-<title>Offline Stock Inventory</title>
+<title>Ultimate Offline Inventory</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
-  body { font-family: Arial, sans-serif; margin: 15px; }
-  h2 { margin-bottom: 10px; }
-  input, button { padding: 10px; margin: 5px 0; width: 100%; }
-  table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-  th, td { border: 1px solid #888; padding: 8px; text-align: center; }
-  #previewVideo { width: 100%; display: none; margin-top: 10px; }
-  .popup {
-    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    background: white; border: 1px solid #333; padding: 20px; display:none;
-  }
-  .popup button { width: 30%; margin: 5px; }
+  body{font-family:Arial;margin:15px;background:#f9f9f9}
+  input,button{padding:12px;margin:8px 0;width:100%;font-size:16px;box-sizing:border-box}
+  button{background:#0066cc;color:#fff;border:none;border-radius:6px}
+  button:active{background:#004488}
+  #clearAllBtn{background:#d9534f}
+  table{width:100%;border-collapse:collapse;margin-top:15px;background:#fff}
+  th,td{border:1px solid #ccc;padding:10px;text-align:center}
+  th{background:#0066cc;color:#fff}
+  .qty{width:70px;padding:6px;text-align:center}
+  .del{background:#d9534f;color:#fff;border:none;padding:6px 10px;border-radius:4px}
+  #v{width:100%;max-height:300px;display:none;border:3px solid #0066cc;border-radius:8px}
+  .overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);display:none;z-index:9}
+  .popup{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;padding:25px;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.4);z-index:10;display:none;max-width:90%}
+  .popup button{width:30%;margin:5px 1.5%}
 </style>
-</head>
-<body>
+</head><body>
 
-<h2>Offline Stock Inventory System</h2>
+<h2>Ultimate Offline Inventory</h2>
+<input id="i" placeholder="Enter or Scan Barcode" autofocus>
+<button id="scan">Scan with Camera</button>
+<video id="v" playsinline></video>
 
-<input type="text" id="barcodeInput" placeholder="Enter or Scan Barcode">
-<button id="scanBtn">Scan with Camera</button>
-
-<video id="previewVideo" playsinline></video>
-
-<!-- Popup when same barcode appears -->
-<div class="popup" id="popupBox">
-  <p id="popupText"></p>
-  <button id="ignoreBtn">Ignore</button>
-  <button id="plusOneBtn">+1</button>
-  <button id="editQtyBtn">Edit Qty</button>
+<div class="overlay" id="o"></div>
+<div class="popup" id="p">
+  <p id="t" style="font-size:18px;margin:0 0 20px"></p>
+  <button id="x">Ignore</button>
+  <button id="+">+1</button>
+  <button id="e">Edit Quantity</button>
 </div>
 
-<button id="exportBtn">Export CSV</button>
+<div style="display:flex;gap:10px">
+  <button id="export">Export CSV</button>
+  <button id="clearAllBtn">Clear All</button>
+</div>
 
-<table id="inventoryTable">
-  <thead>
-    <tr><th>Barcode</th><th>Quantity</th></tr>
-  </thead>
-  <tbody></tbody>
-</table>
+<table id="tbl"><thead><tr><th>Barcode</th><th>Qty</th><th></th></tr></thead><tbody></tbody></table>
 
 <script>
-let inventory = JSON.parse(localStorage.getItem("inventory") || "{}");
-const tableBody = document.querySelector("#inventoryTable tbody");
+const $ = s => document.querySelector(s);
+let inv = JSON.parse(localStorage.getItem("inv")||"{}");
+let scanning = false, last = "";
 
-// Load table on start
-function refreshTable() {
-  tableBody.innerHTML = "";
-  for (let code in inventory) {
-    let row = `<tr><td>${code}</td><td>${inventory[code]}</td></tr>`;
-    tableBody.insertAdjacentHTML("beforeend", row);
+// Prevent Enter key restarting page
+$("#i").addEventListener("keydown", e => e.key=="Enter" && e.preventDefault());
+
+// Refresh table
+const render = () => {
+  $("#tbl tbody").innerHTML = "";
+  for (let c in inv) {
+    $("#tbl tbody").innerHTML += `
+      <tr>
+        <td>${c}</td>
+        <td><input class="qty" type="number" min="0" value="${inv[c]}"
+                   oninput="set('${c}',this.value)"
+                   onkeydown="if(event.key=='Enter')event.preventDefault()"></td>
+        <td><button class="del" onclick="del('${c}')">Delete</button></td>
+      </tr>`;
   }
-}
-refreshTable();
+};
+render();
 
-// Handle barcode input
-document.getElementById("barcodeInput").addEventListener("change", () => {
-  processBarcode(document.getElementById("barcodeInput").value.trim());
-  document.getElementById("barcodeInput").value = "";
-});
+// Save
+const save = () => { localStorage.setItem("inv", JSON.stringify(inv)); render(); };
 
-// Process scanned or typed barcode
-function processBarcode(code) {
+// Edit quantity
+window.set = (c,v) => {
+  v = +v;
+  if (isNaN(v)||v<0) return render();
+  if (v==0) { if(confirm("Delete this item?")) delete inv[c]; else inv[c]=1; }
+  else inv[c]=v;
+  save();
+};
+
+// Delete row
+window.del = (c) => { if(confirm("Delete "+c+" ?")) {delete inv[c]; save();} };
+
+// Process barcode logic
+const proc = code => {
+  code = code.trim();
   if (!code) return;
-  if (inventory[code]) {
-    showPopup(code);
-  } else {
-    inventory[code] = 1;
-    save();
-  }
-}
+  $("#i").value = "";
+  $("#i").focus();
+  if (inv[code]) popup(code);
+  else { inv[code]=1; save(); stopScan(); }
+};
 
-// Save and update UI
-function save() {
-  localStorage.setItem("inventory", JSON.stringify(inventory));
-  refreshTable();
-}
-
-// Popup for duplicate barcode
-function showPopup(code) {
-  let popup = document.getElementById("popupBox");
-  document.getElementById("popupText").innerText = 
-    `Barcode: ${code}\nCurrent Qty: ${inventory[code]}`;
-  popup.style.display = "block";
-
-  document.getElementById("ignoreBtn").onclick = () => { popup.style.display = "none"; };
-  document.getElementById("plusOneBtn").onclick = () => { inventory[code]++; save(); popup.style.display = "none"; };
-  document.getElementById("editQtyBtn").onclick = () => {
-    let newQty = prompt("Enter new quantity:", inventory[code]);
-    if (newQty !== null) { inventory[code] = Number(newQty); save(); }
-    popup.style.display = "none";
+// Popup for duplicates
+const popup = code => {
+  $("#o").style.display = "block";
+  $("#p").style.display = "block";
+  $("#t").innerText = `Barcode: ${code}\nCurrent Qty: ${inv[code]}`;
+  const close = () => { $("#p").style.display=$("#o").style.display="none"; };
+  $("#x").onclick = close;
+  $("#+").onclick = () => { inv[code]++; save(); close(); stopScan(); };
+  $("#e").onclick = () => {
+    let n = prompt("Enter new quantity:", inv[code]);
+    if (n!==null && !isNaN(n) && n>=0) {
+      inv[code] = +n || 1;
+      if (n==0) delete inv[code];
+      save(); close(); stopScan();
+    }
   };
-}
+};
 
-/* Barcode Scanner */
-const video = document.getElementById("previewVideo");
-document.getElementById("scanBtn").addEventListener("click", async () => {
-  if (!("BarcodeDetector" in window)) {
-    alert("Your browser does not support BarcodeDetector. Use Chrome/Edge.");
-    return;
+// Manual input
+$("#i").addEventListener("change", () => proc($("#i").value));
+
+// Camera scanner
+$("#scan").onclick = async () => {
+  if (scanning) return;
+  scanning = true; last = "";
+  $("#v").style.display = "block";
+  try {
+    const s = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+    $("#v").srcObject = s; $("#v").play();
+    const d = new BarcodeDetector({formats:["ean_13","ean_8","code_128","code_39","qr_code"]});
+    const loop = async () => {
+      if (!scanning) return;
+      try {
+        const b = await d.detect($("#v"));
+        if (b[0] && b[0].rawValue !== last) {
+          last = b[0].rawValue;
+          proc(last);
+          await new Promise(r=>setTimeout(r,1200));
+          last = "";
+        }
+      } catch{}
+      requestAnimationFrame(loop);
+    };
+    loop();
+  } catch { alert("Camera access failed"); stopScan(); }
+};
+
+// Tap video to stop scanning
+$("#v").onclick = stopScan;
+function stopScan() {
+  scanning = false;
+  if ($("#v").srcObject) {
+    $("#v").srcObject.getTracks().forEach(t=>t.stop());
+    $("#v").srcObject = null;
   }
-
-  video.style.display = "block";
-  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }});
-  video.srcObject = stream;
-  video.play();
-
-  const detector = new BarcodeDetector({ formats: ["ean_13", "code_128", "qr_code"] });
-
-  const scanLoop = async () => {
-    try {
-      const barcodes = await detector.detect(video);
-      if (barcodes.length > 0) {
-        processBarcode(barcodes[0].rawValue);
-      }
-    } catch (e) {}
-    requestAnimationFrame(scanLoop);
-  };
-  scanLoop();
-});
+  $("#v").style.display = "none";
+}
 
 // Export CSV
-document.getElementById("exportBtn").addEventListener("click", () => {
-  let csv = "barcode,quantity\n";
-  for (let code in inventory) csv += `${code},${inventory[code]}\n`;
+$("#export").onclick = () => {
+  let csv = "\uFEFFbarcode,quantity\n";
+  for (let c in inv) csv += `${c},${inv[c]}\n`;
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], {type:"text/csv;charset=utf-8"}));
+  a.download = `inventory_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+};
 
-  let blob = new Blob([csv], { type: "text/csv" });
-  let link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "inventory.csv";
-  link.click();
-});
+// Clear all
+$("#clearAllBtn").onclick = () => {
+  if (confirm("Clear all inventory?")) {
+    inv = {}; localStorage.removeItem("inv"); render();
+  }
+};
+
+window.onunload = stopScan;
 </script>
-</body>
-</html>
+</body></html>
 
