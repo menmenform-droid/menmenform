@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Offline Stock Inventory</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body { font-family: Arial; padding: 15px; }
+button { padding: 10px 15px; margin: 5px 0; }
+#video { width: 100%; border:1px solid #ccc; margin-top:10px; }
+table { width:100%; border-collapse: collapse; margin-top:10px; }
+th,td { border:1px solid #aaa; padding:5px; text-align:center; }
+</style>
+
+</head>
+<body>
+
+<h2>📦 Offline Stock Inventory</h2>
+
+<button onclick="startScan()">📷 Scan Barcode</button>
+<video id="video"></video>
+
+<table id="stockTable">
+<thead><tr><th>Barcode</th><th>Quantity</th></tr></thead>
+<tbody></tbody>
+</table>
+
+<button onclick="downloadCSV()">⬇️ Export CSV</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+<script>
+let stock = JSON.parse(localStorage.getItem("stockData") || "{}");
+
+function save() {
+  localStorage.setItem("stockData", JSON.stringify(stock));
+  renderTable();
+}
+
+function renderTable() {
+  const tbody = document.querySelector("#stockTable tbody");
+  tbody.innerHTML = "";
+  for (let code in stock) {
+    tbody.innerHTML += `<tr><td>${code}</td><td>${stock[code]}</td></tr>`;
+  }
+}
+renderTable();
+
+function startScan() {
+  Quagga.init({
+    inputStream: { name: "Live", type: "LiveStream", target: document.querySelector("#video") },
+    decoder: { readers: ["ean_reader", "code_128_reader", "upc_reader"] }
+  }, function (err) {
+    if (err) return alert(err);
+    Quagga.start();
+  });
+
+  Quagga.onDetected(function (res) {
+    let code = res.codeResult.code;
+    Quagga.stop();
+    handleScan(code);
+  });
+}
+
+function handleScan(code) {
+  if (stock[code]) {
+    let act = prompt(`Barcode: ${code}\nCurrent qty: ${stock[code]}\n\nChoose:\nIGNORE = leave\n+1 = add 1\nEDIT = input new qty`, "IGNORE");
+    if (act === "+1") stock[code]++;
+    else if (act === "EDIT") stock[code] = Number(prompt("New Qty:", stock[code]));
+  } else {
+    stock[code] = 1;
+  }
+  save();
+}
+
+function downloadCSV() {
+  let csv = "barcode,quantity\n";
+  for (let code in stock) {
+    csv += `${code},${stock[code]}\n`;
+  }
+  let blob = new Blob([csv], { type: "text/csv" });
+  let url = URL.createObjectURL(blob);
+  let a = document.createElement("a");
+  a.href = url;
+  a.download = "stock_inventory.csv";
+  a.click();
+}
+</script>
+
+</body>
+</html>
