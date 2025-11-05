@@ -4,88 +4,138 @@
 <meta charset="UTF-8">
 <title>Offline Stock Inventory</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
-body { font-family: Arial; padding: 15px; }
-button { padding: 10px 15px; margin: 5px 0; }
-#video { width: 100%; border:1px solid #ccc; margin-top:10px; }
-table { width:100%; border-collapse: collapse; margin-top:10px; }
-th,td { border:1px solid #aaa; padding:5px; text-align:center; }
+  body { font-family: Arial, sans-serif; margin: 15px; }
+  h2 { margin-bottom: 10px; }
+  input, button { padding: 10px; margin: 5px 0; width: 100%; }
+  table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+  th, td { border: 1px solid #888; padding: 8px; text-align: center; }
+  #previewVideo { width: 100%; display: none; margin-top: 10px; }
+  .popup {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    background: white; border: 1px solid #333; padding: 20px; display:none;
+  }
+  .popup button { width: 30%; margin: 5px; }
 </style>
-
 </head>
 <body>
 
-<h2>📦 Offline Stock Inventory</h2>
+<h2>Offline Stock Inventory System</h2>
 
-<button onclick="startScan()">📷 Scan Barcode</button>
-<video id="video"></video>
+<input type="text" id="barcodeInput" placeholder="Enter or Scan Barcode">
+<button id="scanBtn">Scan with Camera</button>
 
-<table id="stockTable">
-<thead><tr><th>Barcode</th><th>Quantity</th></tr></thead>
-<tbody></tbody>
+<video id="previewVideo" playsinline></video>
+
+<!-- Popup when same barcode appears -->
+<div class="popup" id="popupBox">
+  <p id="popupText"></p>
+  <button id="ignoreBtn">Ignore</button>
+  <button id="plusOneBtn">+1</button>
+  <button id="editQtyBtn">Edit Qty</button>
+</div>
+
+<button id="exportBtn">Export CSV</button>
+
+<table id="inventoryTable">
+  <thead>
+    <tr><th>Barcode</th><th>Quantity</th></tr>
+  </thead>
+  <tbody></tbody>
 </table>
 
-<button onclick="downloadCSV()">⬇️ Export CSV</button>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
 <script>
-let stock = JSON.parse(localStorage.getItem("stockData") || "{}");
+let inventory = JSON.parse(localStorage.getItem("inventory") || "{}");
+const tableBody = document.querySelector("#inventoryTable tbody");
 
-function save() {
-  localStorage.setItem("stockData", JSON.stringify(stock));
-  renderTable();
-}
-
-function renderTable() {
-  const tbody = document.querySelector("#stockTable tbody");
-  tbody.innerHTML = "";
-  for (let code in stock) {
-    tbody.innerHTML += `<tr><td>${code}</td><td>${stock[code]}</td></tr>`;
+// Load table on start
+function refreshTable() {
+  tableBody.innerHTML = "";
+  for (let code in inventory) {
+    let row = `<tr><td>${code}</td><td>${inventory[code]}</td></tr>`;
+    tableBody.insertAdjacentHTML("beforeend", row);
   }
 }
-renderTable();
+refreshTable();
 
-function startScan() {
-  Quagga.init({
-    inputStream: { name: "Live", type: "LiveStream", target: document.querySelector("#video") },
-    decoder: { readers: ["ean_reader", "code_128_reader", "upc_reader"] }
-  }, function (err) {
-    if (err) return alert(err);
-    Quagga.start();
-  });
+// Handle barcode input
+document.getElementById("barcodeInput").addEventListener("change", () => {
+  processBarcode(document.getElementById("barcodeInput").value.trim());
+  document.getElementById("barcodeInput").value = "";
+});
 
-  Quagga.onDetected(function (res) {
-    let code = res.codeResult.code;
-    Quagga.stop();
-    handleScan(code);
-  });
-}
-
-function handleScan(code) {
-  if (stock[code]) {
-    let act = prompt(`Barcode: ${code}\nCurrent qty: ${stock[code]}\n\nChoose:\nIGNORE = leave\n+1 = add 1\nEDIT = input new qty`, "IGNORE");
-    if (act === "+1") stock[code]++;
-    else if (act === "EDIT") stock[code] = Number(prompt("New Qty:", stock[code]));
+// Process scanned or typed barcode
+function processBarcode(code) {
+  if (!code) return;
+  if (inventory[code]) {
+    showPopup(code);
   } else {
-    stock[code] = 1;
+    inventory[code] = 1;
+    save();
   }
-  save();
 }
 
-function downloadCSV() {
+// Save and update UI
+function save() {
+  localStorage.setItem("inventory", JSON.stringify(inventory));
+  refreshTable();
+}
+
+// Popup for duplicate barcode
+function showPopup(code) {
+  let popup = document.getElementById("popupBox");
+  document.getElementById("popupText").innerText = 
+    `Barcode: ${code}\nCurrent Qty: ${inventory[code]}`;
+  popup.style.display = "block";
+
+  document.getElementById("ignoreBtn").onclick = () => { popup.style.display = "none"; };
+  document.getElementById("plusOneBtn").onclick = () => { inventory[code]++; save(); popup.style.display = "none"; };
+  document.getElementById("editQtyBtn").onclick = () => {
+    let newQty = prompt("Enter new quantity:", inventory[code]);
+    if (newQty !== null) { inventory[code] = Number(newQty); save(); }
+    popup.style.display = "none";
+  };
+}
+
+/* Barcode Scanner */
+const video = document.getElementById("previewVideo");
+document.getElementById("scanBtn").addEventListener("click", async () => {
+  if (!("BarcodeDetector" in window)) {
+    alert("Your browser does not support BarcodeDetector. Use Chrome/Edge.");
+    return;
+  }
+
+  video.style.display = "block";
+  const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }});
+  video.srcObject = stream;
+  video.play();
+
+  const detector = new BarcodeDetector({ formats: ["ean_13", "code_128", "qr_code"] });
+
+  const scanLoop = async () => {
+    try {
+      const barcodes = await detector.detect(video);
+      if (barcodes.length > 0) {
+        processBarcode(barcodes[0].rawValue);
+      }
+    } catch (e) {}
+    requestAnimationFrame(scanLoop);
+  };
+  scanLoop();
+});
+
+// Export CSV
+document.getElementById("exportBtn").addEventListener("click", () => {
   let csv = "barcode,quantity\n";
-  for (let code in stock) {
-    csv += `${code},${stock[code]}\n`;
-  }
-  let blob = new Blob([csv], { type: "text/csv" });
-  let url = URL.createObjectURL(blob);
-  let a = document.createElement("a");
-  a.href = url;
-  a.download = "stock_inventory.csv";
-  a.click();
-}
-</script>
+  for (let code in inventory) csv += `${code},${inventory[code]}\n`;
 
+  let blob = new Blob([csv], { type: "text/csv" });
+  let link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "inventory.csv";
+  link.click();
+});
+</script>
 </body>
 </html>
+
