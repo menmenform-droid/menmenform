@@ -64,10 +64,9 @@
 </div>
 
 <script>
-    // GANTIKAN URL DI BAWAH DENGAN URL WEB APP DARI GOOGLE APPS SCRIPT
+    // URL Web App anda
     const scriptURL = 'https://script.google.com/macros/s/AKfycbxSQILLf9u9Jt8-wwVZwdiyk9z0v3NTQBIxjA6CVjgj_B9hw3wW-ccbvvIfFeU1y1Nrqw/exec';
 
-    // Proses Submit Form
     document.getElementById('repairForm').addEventListener('submit', function(e) {
         e.preventDefault();
         const btn = e.target.querySelector('button');
@@ -93,13 +92,11 @@
             btn.innerText = "SIMPAN DATA & CETAK PDF";
         })
         .catch(error => {
-            console.error('Error!', error.message);
+            alert('Ralat sistem. Sila cuba lagi.');
             btn.disabled = false;
-            btn.innerText = "SIMPAN DATA & CETAK PDF";
         });
     });
 
-    // Fungsi Carian
     function searchData() {
         const id = document.getElementById('searchId').value;
         const resDiv = document.getElementById('searchResult');
@@ -125,53 +122,18 @@
         });
     }
 
-    // Fungsi Generate PDF (A4 Landscape - Double Kiri Kanan)
-function generatePDF(id, branch, staff, name, phone, address, model, status) {
-
-    const wrapper = document.createElement("div");
-    wrapper.style.width = "297mm";
-    wrapper.style.height = "210mm";
-    wrapper.style.display = "flex";
-    wrapper.style.background = "white";
-    wrapper.style.fontFamily = "Arial, sans-serif";
-
-    wrapper.innerHTML = `
-        ${createCopy("CUSTOMER COPY")}
-        ${createCopy("OFFICE COPY")}
-    `;
-
-    document.body.appendChild(wrapper);
-
-    const opt = {
-        margin: 0,
-        filename: `${id}_MBS_REPAIR.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-    };
-
-    html2pdf().set(opt).from(wrapper).save()
-        .then(() => document.body.removeChild(wrapper));
-
-    function createCopy(type) {
-        return `
-            <div style="
-                width: 50%;
-                padding: 15mm;
-                box-sizing: border-box;
-                border-right: ${type === "CUSTOMER COPY" ? "2px dashed #000" : "none"};
-            ">
+    function generatePDF(id, branch, staff, name, phone, address, model, status) {
+        const wrapper = document.createElement("div");
+        
+        const createCopyHtml = (type) => `
+            <div style="width: 50%; padding: 15mm; box-sizing: border-box; border-right: ${type === "CUSTOMER COPY" ? "1px dashed #000" : "none"};">
                 <center>
-                    <h2 style="margin:0;">MBS BOOKS & STATIONERY</h2>
-                    <p style="margin:4px 0; font-size:12px;">
-                        CASIO REPAIR SERVICES FORM<br>
-                        <b>${type}</b>
-                    </p>
+                    <h2 style="margin:0; font-size:18px;">MBS BOOKS & STATIONERY</h2>
+                    <p style="margin:4px 0; font-size:12px;">CASIO REPAIR SERVICES FORM<br><b>${type}</b></p>
                 </center>
                 <hr>
-
-                <table style="width:100%; font-size:13px; line-height:1.8;">
-                    <tr><td width="40%"><b>RSF NUMBER</b></td><td>: ${id}</td></tr>
+                <table style="width:100%; font-size:13px; line-height:1.8; border-collapse: collapse;">
+                    <tr><td width="40%"><b>RSF NUMBER</b></td><td>: <b style="font-size:16px;">${id}</b></td></tr>
                     <tr><td><b>BRANCH</b></td><td>: ${branch}</td></tr>
                     <tr><td><b>STAFF</b></td><td>: ${staff}</td></tr>
                     <tr><td colspan="2"><hr></td></tr>
@@ -179,24 +141,29 @@ function generatePDF(id, branch, staff, name, phone, address, model, status) {
                     <tr><td><b>PHONE</b></td><td>: ${phone}</td></tr>
                     <tr><td><b>MODEL</b></td><td>: ${model}</td></tr>
                     <tr><td><b>STATUS</b></td><td>: ${status}</td></tr>
-                    <tr>
-                        <td valign="top"><b>ADDRESS</b></td>
-                        <td>: ${address || "-"}</td>
-                    </tr>
+                    <tr><td valign="top"><b>ADDRESS</b></td><td>: ${address || "-"}</td></tr>
                 </table>
-
-                <div style="margin-top:20px; font-size:10px; border-top:1px solid #ccc; padding-top:5px;">
+                <div style="margin-top:30px; font-size:10px; border-top:1px solid #ccc; padding-top:10px;">
                     Tarikh Cetak: ${new Date().toLocaleString("ms-MY")}<br>
-                    * Sila bawa salinan ini semasa tuntutan.
+                    * Sila simpan resit ini untuk tuntutan barang.
                 </div>
-            </div>
-        `;
+            </div>`;
+
+        wrapper.style.width = "297mm";
+        wrapper.style.display = "flex";
+        wrapper.style.background = "white";
+        wrapper.innerHTML = createCopyHtml("CUSTOMER COPY") + createCopyHtml("OFFICE COPY");
+
+        const opt = {
+            margin: 0,
+            filename: `${id}_MBS_REPAIR.pdf`,
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        };
+
+        html2pdf().set(opt).from(wrapper).save();
     }
-}
+</script>
 
 </body>
 </html>
-</body>
-</html>
-
-
