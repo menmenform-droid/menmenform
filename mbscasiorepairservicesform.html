@@ -58,7 +58,7 @@ input, textarea {
     margin-top: 5px;
     border-radius: 6px;
     border: 1px solid #ccc;
-    box-sizing: border-box; /* Pastikan padding tidak merosakkan lebar */
+    box-sizing: border-box;
 }
 
 button {
@@ -123,16 +123,19 @@ button {
             <input id="staff" type="text" placeholder="Nama staff" required>
 
             <label>Model Kalkulator</label>
-            <input id="model" type="text" placeholder="Contoh: fx-570MS" required>
+            <input id="model" type="text" placeholder="Contoh: fx-570MS / fx-991CW" required>
 
             <label>Nama Pelanggan</label>
-            <input id="name" type="text" placeholder="Nama penuh" required>
+            <input id="name" type="text" placeholder="Nama penuh pelanggan" required>
 
             <label>No Telefon</label>
             <input id="phone" type="text" placeholder="Contoh: 0123456789" required>
 
+            <label>Masalah Spesifik (Kerosakan)</label>
+            <textarea id="issue" rows="2" placeholder="Contoh: Skrin pudar, Butang 'ON' tak berfungsi, No 5 tak boleh tekan" required></textarea>
+
             <label>Alamat Lengkap</label>
-            <textarea id="address" rows="3" placeholder="Alamat pelanggan" required></textarea>
+            <textarea id="address" rows="2" placeholder="Alamat untuk rujukan" required></textarea>
 
             <button type="submit" class="btn-submit" id="submitBtn">SIMPAN & CETAK</button>
         </form>
@@ -151,6 +154,7 @@ button {
 </div>
 
 <script>
+// Pastikan URL scriptURL ini adalah yang terkini dari Deployment Apps Script anda
 const scriptURL = "https://script.google.com/macros/s/AKfycbxSQILLf9u9Jt8-wwVZwdiyk9z0v3NTQBIxjA6CVjgj_B9hw3wW-ccbvvIfFeU1y1Nrqw/exec";
 
 document.getElementById("repairForm").addEventListener("submit", e => {
@@ -158,23 +162,21 @@ document.getElementById("repairForm").addEventListener("submit", e => {
     
     const btn = document.getElementById("submitBtn");
     
-    // Ambil nilai dan buang space di depan/belakang
     const data = {
         branch: document.getElementById("branch").value.trim(),
         staff: document.getElementById("staff").value.trim(),
         model: document.getElementById("model").value.trim(),
         name: document.getElementById("name").value.trim(),
         phone: document.getElementById("phone").value.trim(),
+        issue: document.getElementById("issue").value.trim(),
         address: document.getElementById("address").value.trim()
     };
 
-    // Double check: Pastikan tiada data kosong
     if (Object.values(data).some(value => value === "")) {
         alert("Sila isi semua ruangan dengan lengkap!");
         return;
     }
 
-    // Tukar status butang
     btn.disabled = true;
     btn.innerText = "Sila Tunggu, Sedang Menyimpan...";
 
@@ -201,12 +203,12 @@ document.getElementById("repairForm").addEventListener("submit", e => {
 function buildCopy(type, d) {
     return `
         <div style="text-align:center;">
-            <h2 style="margin:0; font-size:20px;">MBS BOOKS & STATIONERY</h2>
-            <p style="margin:5px 0; font-size:14px;">CASIO REPAIR FORM<br><b>${type}</b></p>
+            <h2 style="margin:0; font-size:18px;">MBS BOOKS & STATIONERY</h2>
+            <p style="margin:5px 0; font-size:13px;">CASIO REPAIR FORM<br><b>${type}</b></p>
         </div>
         <hr>
-        <table style="width:100%; font-size:14px; line-height:2.0; border-collapse:collapse;">
-            <tr><td style="width:35%;"><b>RSF NUMBER</b></td><td>: <b style="font-size:18px;">${d.id}</b></td></tr>
+        <table style="width:100%; font-size:13px; line-height:1.8; border-collapse:collapse;">
+            <tr><td style="width:38%;"><b>RSF NUMBER</b></td><td>: <b style="font-size:16px;">${d.id}</b></td></tr>
             <tr><td><b>BRANCH</b></td><td>: ${d.branch}</td></tr>
             <tr><td><b>STAFF</b></td><td>: ${d.staff}</td></tr>
             <tr><td colspan="2"><hr></td></tr>
@@ -214,9 +216,10 @@ function buildCopy(type, d) {
             <tr><td><b>PHONE</b></td><td>: ${d.phone}</td></tr>
             <tr><td><b>MODEL</b></td><td>: ${d.model}</td></tr>
             <tr><td><b>STATUS</b></td><td>: ${d.status}</td></tr>
-            <tr><td valign="top"><b>ADDRESS</b></td><td>: ${d.address}</td></tr>
+            <tr><td valign="top"><b>ISSUE</b></td><td>: <b style="color:#d32f2f;">${d.issue}</b></td></tr>
+            <tr><td valign="top"><b>ADDRESS</b></td><td style="font-size:11px;">: ${d.address}</td></tr>
         </table>
-        <div style="margin-top:30px; font-size:10px; border-top: 1px solid #ccc; padding-top:10px;">
+        <div style="margin-top:20px; font-size:10px; border-top: 1px solid #ccc; padding-top:10px;">
             Dicetak pada: ${new Date().toLocaleString("ms-MY")}<br>
             * Sila bawa salinan ini semasa menuntut barang anda.
         </div>
@@ -227,10 +230,9 @@ function printReceipt(d) {
     document.getElementById("customerCopy").innerHTML = buildCopy("CUSTOMER COPY", d);
     document.getElementById("officeCopy").innerHTML = buildCopy("OFFICE COPY", d);
     
-    // Pastikan print preview muncul selepas HTML diisi
     setTimeout(() => {
         window.print();
-    }, 500);
+    }, 600);
 }
 
 function searchData() {
@@ -255,6 +257,7 @@ function searchData() {
                 model: d.model,
                 name: d.name,
                 phone: d.phone,
+                issue: d.issue, // Data masalah dari carian
                 address: d.address,
                 status: d.status
             });
