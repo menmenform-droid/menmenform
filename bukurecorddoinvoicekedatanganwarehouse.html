@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rekod Invois/DO Gudang</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
+    <style>
+        body { background-color: #f0f2f5; padding: 20px; font-family: sans-serif; }
+        .container { max-width: 600px; background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .header-title { text-align: center; margin-bottom: 25px; color: #007bff; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        #preview { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
+        #preview img { width: 80px; height: 110px; object-fit: cover; border-radius: 5px; border: 1px solid #ddd; }
+        .loading-overlay { display: none; text-align: center; margin-top: 15px; }
+        .btn-submit { font-weight: bold; padding: 12px; font-size: 1.1em; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h3 class="header-title">Warehouse Receiving Record</h3>
+    
+    <form id="recordForm">
+        <div class="form-group">
+            <label>Nama Staff</label>
+            <input type="text" id="staff" name="staff" class="form-control" placeholder="Nama anda" required>
+        </div>
+
+        <div class="form-group">
+            <label>Nama Vendor / Pembekal</label>
+            <input type="text" id="vendor" name="vendor" class="form-control" placeholder="Nama syarikat pembekal" required>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label>Jenis Dokumen</label>
+                <select id="docType" name="docType" class="form-control">
+                    <option value="DO">Delivery Order (DO)</option>
+                    <option value="Invoice">Invois</option>
+                </select>
+            </div>
+            <div class="form-group col-md-6">
+                <label>No. Dokumen</label>
+                <input type="text" id="docNo" name="docNo" class="form-control" placeholder="Cth: INV12345" required>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group col-md-4">
+                <label>Jenis Barang</label>
+                <select id="itemType" name="itemType" class="form-control">
+                    <option value="Stationery">Stationery</option>
+                    <option value="Buku">Buku</option>
+                </select>
+            </div>
+            <div class="form-group col-md-4">
+                <label>Kuantiti</label>
+                <input type="number" id="qty" name="qty" class="form-control" required>
+            </div>
+            <div class="form-group col-md-4">
+                <label>Unit</label>
+                <select id="unit" name="unit" class="form-control">
+                    <option value="Carton">Carton</option>
+                    <option value="Pallet">Pallet</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group mt-3">
+            <label><b>Ambil Gambar Dokumen (Multiple Pages)</b></label>
+            <input type="file" id="files" accept="image/*" multiple capture="environment" class="form-control-file">
+            <small class="text-muted">Boleh pilih/ambil sehingga 50 keping gambar.</small>
+            <div id="preview"></div>
+        </div>
+
+        <hr>
+
+        <button type="button" onclick="uploadData()" class="btn btn-primary btn-block btn-submit" id="btnSubmit">
+            Hantar & Simpan Rekod
+        </button>
+
+        <div id="loading" class="loading-overlay">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Sedang mengecilkan gambar & memproses data...</p>
+        </div>
+    </form>
+</div>
+
+<script>
+    // GANTIKAN URL DI BAWAH DENGAN URL WEB APP GOOGLE APPS SCRIPT ANDA
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRlNe2kmKGxITL6KlUb8tkYCDKHmlliliaGVZ6x-7IfEXJ-AUyyyOouBKVFK2e2y8i/exec";
+
+    // Preview Gambar
+    document.getElementById('files').addEventListener('change', function(e) {
+        const preview = document.getElementById('preview');
+        preview.innerHTML = "";
+        const files = e.target.files;
+        for (let i = 0; i < files.length; i++) {
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = document.createElement('img');
+                img.src = event.target.result;
+                preview.appendChild(img);
+            }
+            reader.readAsDataURL(files[i]);
+        }
+    });
+
+    async function uploadData() {
+        const btn = document.getElementById('btnSubmit');
+        const loading = document.getElementById('loading');
+        const form = document.getElementById('recordForm');
+        const fileInput = document.getElementById('files');
+        const files = fileInput.files;
+
+        if (form.docNo.value === "" || form.vendor.value === "") {
+            alert("Sila lengkapkan maklumat vendor dan nombor dokumen!");
+            return;
+        }
+
+        if (files.length === 0) {
+            alert("Sila ambil sekurang-kurangnya satu gambar dokumen!");
+            return;
+        }
+
+        // Tunjuk loading
+        btn.disabled = true;
+        loading.style.display = "block";
+
+        try {
+            // Proses Compress Gambar (WhatsApp Style)
+            const promises = Array.from(files).map(file => compressImage(file));
+            const fileData = await Promise.all(promises);
+
+            const payload = {
+                staff: document.getElementById('staff').value,
+                vendor: document.getElementById('vendor').value,
+                docType: document.getElementById('docType').value,
+                docNo: document.getElementById('docNo').value,
+                itemType: document.getElementById('itemType').value,
+                qty: document.getElementById('qty').value,
+                unit: document.getElementById('unit').value,
+                files: fileData
+            };
+
+            // Hantar ke Google Apps Script
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                mode: 'no-cors', // Penting untuk Apps Script
+                body: JSON.stringify(payload)
+            });
+
+            alert("Rekod telah dihantar! Sila semak Google Sheet anda.");
+            form.reset();
+            document.getElementById('preview').innerHTML = "";
+
+        } catch (error) {
+            console.error(error);
+            alert("Ralat berlaku: " + error.message);
+        } finally {
+            btn.disabled = false;
+            loading.style.display = "none";
+        }
+    }
+
+    // Fungsi Kecilkan Gambar
+    function compressImage(file) {
+        return new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = event => {
+                const img = new Image();
+                img.src = event.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 1200; // Lebar maksima untuk dokumen
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > MAX_WIDTH) {
+                        height *= MAX_WIDTH / width;
+                        width = MAX_WIDTH;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // 0.7 = 70% kualiti (Sekitar 100kb-200kb)
+                    const dataurl = canvas.toDataURL('image/jpeg', 0.7);
+                    
+                    resolve({
+                        data: dataurl,
+                        name: file.name.split('.')[0] + ".jpg",
+                        type: 'image/jpeg'
+                    });
+                };
+            };
+        });
+    }
+</script>
+
+</body>
+</html>
