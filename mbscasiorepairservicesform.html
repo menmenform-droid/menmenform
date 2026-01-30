@@ -126,49 +126,77 @@
     }
 
     // Fungsi Generate PDF (A4 Landscape - Double Kiri Kanan)
-    function generatePDF(id, branch, staff, name, phone, address, model, status) {
-        const template = `
-            <div style="display: flex; width: 277mm; font-family: Arial, sans-serif; padding: 10px; background: white;">
-                ${[1, 2].map(i => `
-                    <div style="flex: 1; border: 2px dashed #000; margin: 5px; padding: 15px; position: relative;">
-                        <center>
-                            <h2 style="margin:0; font-size:18px;">MBS BOOKS & STATIONERY</h2>
-                            <p style="margin:2px; font-size:12px;">REPAIR SERVICES FORM (${i === 1 ? 'CUSTOMER COPY' : 'SHOP COPY'})</p>
-                        </center>
-                        <hr>
-                        <table style="width:100%; font-size:13px; line-height:1.6;">
-                            <tr><td width="35%"><strong>RSF NUMBER</strong></td><td>: <span style="font-size:16px; font-weight:bold;">${id}</span></td></tr>
-                            <tr><td><strong>CAWANGAN</strong></td><td>: ${branch}</td></tr>
-                            <tr><td><strong>STAFF</strong></td><td>: ${staff}</td></tr>
-                            <tr><td colspan="2"><hr></td></tr>
-                            <tr><td><strong>CUSTOMER NAME</strong></td><td>: ${name}</td></tr>
-                            <tr><td><strong>PHONE NO</strong></td><td>: ${phone}</td></tr>
-                            <tr><td><strong>MODEL</strong></td><td>: ${model}</td></tr>
-                            <tr><td><strong>STATUS</strong></td><td>: ${status}</td></tr>
-                            <tr><td valign="top"><strong>ADDRESS</strong></td><td>: ${address}</td></tr>
-                        </table>
-                        <br><br>
-                        <div style="font-size:10px; border-top: 1px solid #ccc; padding-top:5px;">
-                            Tarikh Cetak: ${new Date().toLocaleString('ms-MY')}<br>
-                            * Sila bawa resit ini semasa menuntut barang.
-                        </div>
-                    </div>
-                `).join('')}
+function generatePDF(id, branch, staff, name, phone, address, model, status) {
+
+    const wrapper = document.createElement("div");
+    wrapper.style.width = "297mm";
+    wrapper.style.height = "210mm";
+    wrapper.style.display = "flex";
+    wrapper.style.background = "white";
+    wrapper.style.fontFamily = "Arial, sans-serif";
+
+    wrapper.innerHTML = `
+        ${createCopy("CUSTOMER COPY")}
+        ${createCopy("OFFICE COPY")}
+    `;
+
+    document.body.appendChild(wrapper);
+
+    const opt = {
+        margin: 0,
+        filename: `${id}_MBS_REPAIR.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+    };
+
+    html2pdf().set(opt).from(wrapper).save()
+        .then(() => document.body.removeChild(wrapper));
+
+    function createCopy(type) {
+        return `
+            <div style="
+                width: 50%;
+                padding: 15mm;
+                box-sizing: border-box;
+                border-right: ${type === "CUSTOMER COPY" ? "2px dashed #000" : "none"};
+            ">
+                <center>
+                    <h2 style="margin:0;">MBS BOOKS & STATIONERY</h2>
+                    <p style="margin:4px 0; font-size:12px;">
+                        CASIO REPAIR SERVICES FORM<br>
+                        <b>${type}</b>
+                    </p>
+                </center>
+                <hr>
+
+                <table style="width:100%; font-size:13px; line-height:1.8;">
+                    <tr><td width="40%"><b>RSF NUMBER</b></td><td>: ${id}</td></tr>
+                    <tr><td><b>BRANCH</b></td><td>: ${branch}</td></tr>
+                    <tr><td><b>STAFF</b></td><td>: ${staff}</td></tr>
+                    <tr><td colspan="2"><hr></td></tr>
+                    <tr><td><b>CUSTOMER NAME</b></td><td>: ${name}</td></tr>
+                    <tr><td><b>PHONE</b></td><td>: ${phone}</td></tr>
+                    <tr><td><b>MODEL</b></td><td>: ${model}</td></tr>
+                    <tr><td><b>STATUS</b></td><td>: ${status}</td></tr>
+                    <tr>
+                        <td valign="top"><b>ADDRESS</b></td>
+                        <td>: ${address || "-"}</td>
+                    </tr>
+                </table>
+
+                <div style="margin-top:20px; font-size:10px; border-top:1px solid #ccc; padding-top:5px;">
+                    Tarikh Cetak: ${new Date().toLocaleString("ms-MY")}<br>
+                    * Sila bawa salinan ini semasa tuntutan.
+                </div>
             </div>
         `;
-
-        const opt = {
-            margin: 0,
-            filename: id + '_MBS.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
-        };
-
-        html2pdf().from(template).set(opt).save();
     }
-</script>
+}
 
 </body>
 </html>
+</body>
+</html>
+
 
