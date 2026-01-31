@@ -6,45 +6,66 @@
     <title>China Order System</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        .preview-img { width: 100%; max-height: 300px; object-fit: contain; display: none; margin-bottom: 10px; }
-        .loader { display: none; }
+        body { background-color: #f4f7f6; }
+        .preview-img { width: 100%; max-height: 350px; object-fit: contain; display: none; border-radius: 8px; margin-bottom: 15px; }
+        .card { border-radius: 12px; border: none; }
+        .nav-pills .nav-link.active { background-color: #0d6efd; }
+        #saveLoader { display: none; }
+        .img-card { height: 160px; object-fit: cover; border-radius: 8px 8px 0 0; }
     </style>
 </head>
-<body class="bg-light">
-    <div class="container py-4">
-        <h3 class="text-center mb-4">China Order System</h3>
+<body class="py-4">
+
+    <div class="container">
+        <h3 class="text-center fw-bold mb-4">🇨🇳 China Order System</h3>
         
-        <ul class="nav nav-pills nav-fill mb-4" id="pills-tab">
-            <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-snap">Ambil Gambar</button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-list" onclick="fetchList()">Check List</button></li>
+        <ul class="nav nav-pills nav-fill mb-4 p-1 bg-white shadow-sm rounded-pill" id="pills-tab">
+            <li class="nav-item">
+                <button class="nav-link active rounded-pill" data-bs-toggle="pill" data-bs-target="#tab-snap">📸 Snap Photo</button>
+            </li>
+            <li class="nav-item">
+                <button class="nav-link rounded-pill" data-bs-toggle="pill" data-bs-target="#tab-list" onclick="fetchList()">📋 Check List</button>
+            </li>
         </ul>
 
         <div class="tab-content">
             <div class="tab-pane fade show active" id="tab-snap">
-                <div class="card p-3 shadow-sm">
+                <div class="card p-4 shadow-sm">
+                    <label class="form-label fw-bold">Ambil Gambar Barang:</label>
                     <input type="file" id="cameraInput" accept="image/*" capture="camera" class="form-control mb-3">
-                    <img id="itemPreview" class="preview-img img-thumbnail">
-                    <textarea id="remarkInput" class="form-control mb-3" placeholder="Masukkan Remark / Info Barang"></textarea>
-                    <button id="btnSave" onclick="saveData()" class="btn btn-primary w-100">SIMPAN KE GOOGLE SHEET</button>
-                    <div id="saveLoader" class="text-center mt-2 loader text-primary">Menyimpan... Sila tunggu.</div>
+                    
+                    <img id="itemPreview" class="preview-img img-thumbnail shadow-sm">
+                    
+                    <label class="form-label fw-bold">Remark:</label>
+                    <textarea id="remarkInput" class="form-control mb-3" rows="3" placeholder="Contoh: Barang A, Supplier B, 10 unit"></textarea>
+                    
+                    <button id="btnSave" onclick="saveData()" class="btn btn-primary btn-lg w-100 fw-bold">SIMPAN DATA</button>
+                    
+                    <div id="saveLoader" class="text-center mt-3">
+                        <div class="spinner-border spinner-border-sm text-primary"></div>
+                        <span class="ms-2">Sedang menyimpan... Sila tunggu.</span>
+                    </div>
                 </div>
             </div>
 
             <div class="tab-pane fade" id="tab-list">
                 <div id="listArea" class="row g-3">
-                    <p class="text-center">Klik 'Check List' untuk muat turun data.</p>
+                    <p class="text-center text-muted mt-5">Klik butang 'Check List' di atas untuk memuatkan data.</p>
                 </div>
             </div>
         </div>
     </div>
 
     <script>
+        // GANTIKAN URL DI BAWAH DENGAN URL WEB APP GOOGLE ANDA
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyKseOaWXl9GECVNfKUij0s6o3Fj4rfGFXriwdmkBFi8p0PPJ4hPTK8IK2Hxar2GhVg/exec";
         let base64Image = "";
 
-        // Handle Kamera & Image Compression (~100kb)
+        // 1. HANDLE CAMERA & COMPRESSION (~100kb WhatsApp Style)
         document.getElementById('cameraInput').addEventListener('change', function(e) {
             const file = e.target.files[0];
+            if(!file) return;
+
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();
@@ -53,68 +74,108 @@
                     const canvas = document.createElement('canvas');
                     let width = img.width;
                     let height = img.height;
-                    const max = 800;
-                    if (width > height) { if (width > max) { height *= max / width; width = max; } }
-                    else { if (height > max) { width *= max / height; height = max; } }
-                    canvas.width = width; canvas.height = height;
+                    const max_size = 800; // Saiz imej maksimum 800px
+
+                    if (width > height) {
+                        if (width > max_size) { height *= max_size / width; width = max_size; }
+                    } else {
+                        if (height > max_size) { width *= max_size / height; height = max_size; }
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
                     const ctx = canvas.getContext("2d");
                     ctx.drawImage(img, 0, 0, width, height);
-                    base64Image = canvas.toDataURL("image/jpeg", 0.7); // 0.7 quality = ~100kb
-                    document.getElementById('itemPreview').src = base64Image;
-                    document.getElementById('itemPreview').style.display = "block";
+                    
+                    // Kualiti 0.7 mengecilkan saiz fail kepada ~100kb
+                    base64Image = canvas.toDataURL("image/jpeg", 0.7);
+                    
+                    const preview = document.getElementById('itemPreview');
+                    preview.src = base64Image;
+                    preview.style.display = "block";
                 }
             };
             reader.readAsDataURL(file);
         });
 
-        // Fungsi Simpan (POST)
+        // 2. FUNGSI SIMPAN DATA (POST)
         async function saveData() {
             const remark = document.getElementById('remarkInput').value;
-            if (!base64Image) return alert("Sila ambil gambar dulu!");
+            if (!base64Image) return alert("⚠️ Ambil gambar dulu sebelum simpan!");
             
             document.getElementById('btnSave').disabled = true;
             document.getElementById('saveLoader').style.display = "block";
 
             try {
-                const response = await fetch(WEB_APP_URL, {
+                // Gunakan fetch mode no-cors untuk Google Apps Script
+                await fetch(WEB_APP_URL, {
                     method: "POST",
-                    mode: "no-cors", // Penting untuk Google Apps Script
+                    mode: "no-cors",
+                    headers: { "Content-Type": "text/plain" },
                     body: JSON.stringify({ image: base64Image, remark: remark })
                 });
-                alert("Data dihantar! Sila semak Google Sheet.");
-                location.reload();
+                
+                alert("✅ BERJAYA! Data telah dihantar ke Google Sheet.");
+                location.reload(); // Refresh untuk cuci form
             } catch (err) {
-                alert("Ralat: " + err);
+                alert("❌ RALAT: " + err.message);
                 document.getElementById('btnSave').disabled = false;
+                document.getElementById('saveLoader').style.display = "none";
             }
         }
 
-        // Fungsi Ambil Data (GET)
-        async function fetchList() {
+        // 3. FUNGSI AMBIL DATA (JSONP METHOD - UNTUK GITHUB PAGES)
+        function fetchList() {
             const listArea = document.getElementById('listArea');
-            listArea.innerHTML = "Memuatkan data...";
-            try {
-                const response = await fetch(WEB_APP_URL);
-                const data = await response.json();
+            listArea.innerHTML = `
+                <div class="text-center mt-5">
+                    <div class="spinner-grow text-primary"></div>
+                    <p>Memuatkan data dari Google Sheets...</p>
+                </div>`;
+
+            // Teknik JSONP untuk elak sekatan CORS browser
+            const callbackName = 'jsonpCallback_' + Math.round(100000 * Math.random());
+            
+            window[callbackName] = function(data) {
+                delete window[callbackName];
+                const scripts = document.querySelectorAll('script[data-jsonp]');
+                scripts.forEach(s => s.remove());
+
+                if (!data || data.length <= 1) {
+                    listArea.innerHTML = "<p class='text-center mt-5'>📭 Tiada data ditemui dalam Sheet.</p>";
+                    return;
+                }
+
                 let html = "";
+                // Skip baris pertama (Header), tunjuk yang terbaru dulu (reverse)
                 data.slice(1).reverse().forEach(row => {
+                    const timeStr = row[0] ? new Date(row[0]).toLocaleString('ms-MY') : "Tiada Tarikh";
+                    const imgUrl = row[1] || "https://placehold.co/400x300?text=Imej+Rosak";
+                    const remark = row[2] || "Tiada Remark";
+
                     html += `
                         <div class="col-6 col-md-4">
-                            <div class="card h-100 shadow-sm">
-                                <img src="${row[1]}" class="card-img-top" style="height:150px; object-fit:cover;">
+                            <div class="card h-100 shadow-sm overflow-hidden">
+                                <a href="${imgUrl}" target="_blank">
+                                    <img src="${imgUrl}" class="img-card w-100" onerror="this.src='https://placehold.co/400x300?text=Error'">
+                                </a>
                                 <div class="card-body p-2">
-                                    <small class="text-muted" style="font-size:10px;">${new Date(row[0]).toLocaleString()}</small>
-                                    <p class="card-text small fw-bold">${row[2] || 'Tiada Remark'}</p>
+                                    <p class="card-text small fw-bold mb-1 text-truncate" title="${remark}">${remark}</p>
+                                    <p class="text-muted mb-0" style="font-size: 10px;">📅 ${timeStr}</p>
                                 </div>
                             </div>
                         </div>`;
                 });
-                listArea.innerHTML = html || "Tiada data ditemui.";
-            } catch (err) {
-                listArea.innerHTML = "Gagal memuatkan data.";
-            }
+                listArea.innerHTML = html;
+            };
+
+            const script = document.createElement('script');
+            script.src = WEB_APP_URL + "?callback=" + callbackName + "&t=" + new Date().getTime();
+            script.setAttribute('data-jsonp', 'true');
+            document.body.appendChild(script);
         }
     </script>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
