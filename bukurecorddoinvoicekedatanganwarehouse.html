@@ -153,6 +153,7 @@
                 lastSavedData = {
                     vendor: payload.vendor,
                     qty: payload.qty,
+                    docNo: payload.docNo,
                     unit: payload.unit,
                     itemType: payload.itemType,
                     folderUrl: result.folderUrl,
@@ -181,7 +182,7 @@
             tags = "@60129289909 @60125979393 @601116396177";
         }
 
-        const ayat = `[${lastSavedData.timestamp}]: warehouse terima dari [${lastSavedData.vendor}] total [${lastSavedData.qty}] [${lastSavedData.unit}], view [${lastSavedData.folderUrl}] ${tags}`;
+        const ayat = `[${lastSavedData.timestamp}]: warehouse terima dari [${lastSavedData.vendor}] nombor doc [${lastSavedData.docNo}] total [${lastSavedData.qty}] [${lastSavedData.unit}], view [${lastSavedData.folderUrl}] ${tags}`;
         
         const url = "https://wa.me/?text=" + encodeURIComponent(ayat);
         window.open(url, '_blank');
@@ -224,4 +225,5 @@
 
 </body>
 </html>
+
 
