@@ -12,6 +12,8 @@
         #preview { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
         #preview img { width: 70px; height: 90px; object-fit: cover; border-radius: 5px; border: 1px solid #ddd; }
         .loading { display: none; text-align: center; margin-top: 20px; font-weight: bold; color: #007bff; }
+        #whatsappBtn { display: none; margin-top: 15px; background-color: #25d366; border-color: #25d366; color: white; }
+        #whatsappBtn:hover { background-color: #128c7e; border-color: #128c7e; }
     </style>
 </head>
 <body>
@@ -48,8 +50,8 @@
             <div class="form-group col-4">
                 <label>Jenis Barang</label>
                 <select id="itemType" class="form-control">
-                    <option>Stationery</option>
-                    <option>Buku</option>
+                    <option value="Stationery">Stationery</option>
+                    <option value="Buku">Buku</option>
                 </select>
             </div>
             <div class="form-group col-4">
@@ -77,6 +79,10 @@
 
         <button type="button" id="submitBtn" onclick="hantarData()" class="btn btn-primary btn-lg btn-block">SIMPAN REKOD</button>
         
+        <button type="button" id="whatsappBtn" onclick="shareWhatsApp()" class="btn btn-lg btn-block">
+            📲 SHARE TO WHATSAPP GROUP
+        </button>
+        
         <div id="loading" class="loading">
             <div class="spinner-border spinner-border-sm"></div> Memproses & Menyemak Duplicate...
         </div>
@@ -84,12 +90,11 @@
 </div>
 
 <script>
-    // MASUKKAN URL WEB APP ANDA DI SINI
     const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRlNe2kmKGxITL6KlUb8tkYCDKHmlliliaGVZ6x-7IfEXJ-AUyyyOouBKVFK2e2y8i/exec";
     
     let imageArray = [];
+    let lastSavedData = null;
 
-    // Fungsi tangkap gambar dan compress
     document.getElementById('fileInput').addEventListener('change', async function(e) {
         const files = e.target.files;
         if (files.length === 0) return;
@@ -98,18 +103,18 @@
             const compressed = await compressImage(file);
             imageArray.push(compressed);
             
-            // Tampil preview
             const img = document.createElement('img');
             img.src = compressed.data;
             document.getElementById('preview').appendChild(img);
         }
         document.getElementById('count').innerText = imageArray.length;
-        this.value = ""; // Reset supaya boleh guna butang yang sama
+        this.value = ""; 
     });
 
     async function hantarData() {
         const btn = document.getElementById('submitBtn');
         const load = document.getElementById('loading');
+        const waBtn = document.getElementById('whatsappBtn');
         
         if (!document.getElementById('docNo').value || imageArray.length === 0) {
             alert("Lengkapkan No. Dokumen dan ambil gambar!");
@@ -135,19 +140,54 @@
                 method: "POST",
                 body: JSON.stringify(payload)
             });
-            const text = await response.text();
             
-            if (text.includes("REJECTED")) {
-                alert(text);
+            const result = await response.json();
+            
+            if (result.status === "REJECTED") {
+                alert("REJECTED: " + result.message);
+                btn.disabled = false;
             } else {
                 alert("Berjaya Disimpan!");
-                location.reload(); // Reset form
+                
+                // Simpan data untuk dikongsi ke WhatsApp
+                lastSavedData = {
+                    vendor: payload.vendor,
+                    qty: payload.qty,
+                    unit: payload.unit,
+                    itemType: payload.itemType,
+                    folderUrl: result.folderUrl,
+                    timestamp: result.timestamp
+                };
+
+                // Tukar butang
+                btn.style.display = "none";
+                waBtn.style.display = "block";
             }
         } catch (err) {
-            alert("Ralat atau Duplicate: Semak Google Sheet anda.");
-        } finally {
+            alert("Ralat sambungan atau Duplicate: Sila semak Google Sheet.");
             btn.disabled = false;
+        } finally {
             load.style.display = "none";
+        }
+    }
+
+    function shareWhatsApp() {
+        if (!lastSavedData) return;
+
+        let tags = "";
+        if (lastSavedData.itemType === "Stationery") {
+            tags = "@+60 12-928 9909 @+60 19-952 9393 @+60 16-939 2765 @+60 11-2616 9563 @+60 11-1194 5520";
+        } else {
+            tags = "@+60 12-928 9909 @+60 12-597 9393 @+60 11-1639 6177";
+        }
+
+        const ayat = `[${lastSavedData.timestamp}]: warehouse terima dari [${lastSavedData.vendor}] total [${lastSavedData.qty}] [${lastSavedData.unit}], view [${lastSavedData.folderUrl}] ${tags}`;
+        
+        const url = "https://wa.me/?text=" + encodeURIComponent(ayat);
+        window.open(url, '_blank');
+        
+        if(confirm("Maklumat telah dihantar ke WhatsApp. Adakah anda ingin buat rekod baru?")) {
+            location.reload();
         }
     }
 
