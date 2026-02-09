@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>High-Speed Dashboard</title>
+    <title>High-Speed Dashboard v3.5.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .loading-overlay { display: none; background: rgba(0,0,0,0.8); position: fixed; inset: 0; z-index: 9999; justify-content: center; align-items: center; color: white; }
@@ -41,18 +41,18 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="relative">
                     <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Carian Pantas</label>
-                    <input type="text" id="filterGeneral" oninput="fastFilter()" placeholder="Sekolah / Nickname / Doc..." class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:border-blue-500 outline-none transition">
+                    <input type="text" id="filterGeneral" oninput="fastFilter()" placeholder="Sekolah / Nickname / Doc..." class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:border-blue-500 outline-none transition font-bold">
                 </div>
                 <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Cawangan</label>
-                    <input type="text" id="filterBranch" oninput="fastFilter()" placeholder="Semua Cawangan..." class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:border-blue-500 outline-none transition">
+                    <input type="text" id="filterBranch" oninput="fastFilter()" placeholder="Semua Cawangan..." class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:border-blue-500 outline-none transition font-bold">
                 </div>
                 <div>
                     <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Salesman</label>
-                    <input type="text" id="filterSalesman" oninput="fastFilter()" placeholder="Nama Salesman..." class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:border-blue-500 outline-none transition">
+                    <input type="text" id="filterSalesman" oninput="fastFilter()" placeholder="Nama Salesman..." class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:border-blue-500 outline-none transition font-bold">
                 </div>
             </div>
-            <div id="countDisplay" class="mt-3 text-[10px] font-bold text-slate-400 uppercase italic">Memaparkan: -- rekod</div>
+            <div id="countDisplay" class="mt-3 text-[10px] font-bold text-slate-400 uppercase italic tracking-wider">Memaparkan: -- rekod</div>
         </div>
 
         <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200">
@@ -61,9 +61,9 @@
                     <thead class="bg-slate-100 border-b">
                         <tr>
                             <th class="p-4 text-[10px] font-black uppercase text-slate-500">Transaksi</th>
-                            <th class="p-4 text-[10px] font-black uppercase text-slate-500">Butiran</th>
+                            <th class="p-4 text-[10px] font-black uppercase text-slate-500">Butiran & Info</th>
                             <th class="p-4 text-[10px] font-black uppercase text-slate-500">Dokumen</th>
-                            <th class="p-4 text-[10px] font-black uppercase text-slate-500">Tindakan Log</th>
+                            <th class="p-4 text-[10px] font-black uppercase text-slate-500">Tindakan & Remark</th>
                         </tr>
                     </thead>
                     <tbody id="dashBody" class="divide-y divide-slate-100">
@@ -77,28 +77,24 @@
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxreXhv__TCtjnyxFqhCrRbjyqSlGytoTxJh6KN8QkTwDk2xY8ysOKfMmpBCJfvFyUV/exec";
         let LOCAL_DATA = [];
 
-        // --- 1. LOCAL STORAGE SYSTEM (CACHE) ---
+        // --- 1. DATA FETCHING ---
         async function fetchData(forceRefresh = false) {
             const cachedData = localStorage.getItem('sales_data_cache');
             const cacheTime = localStorage.getItem('sales_data_time');
             const now = new Date().getTime();
 
-            // Jika ada cache & tak sampai 5 minit & bukan force refresh, guna cache
             if (!forceRefresh && cachedData && cacheTime && (now - cacheTime < 300000)) {
                 LOCAL_DATA = JSON.parse(cachedData);
-                console.log("Using Cached Data");
                 renderTable(LOCAL_DATA);
                 updateAuthUI();
                 return;
             }
 
-            // Jika tiada cache atau force refresh, tarik dari Google Script
             document.getElementById('loader').style.display = 'flex';
             try {
                 const r = await fetch(WEB_APP_URL + "?action=getData");
                 LOCAL_DATA = await r.json();
                 
-                // Simpan ke LocalStorage
                 localStorage.setItem('sales_data_cache', JSON.stringify(LOCAL_DATA));
                 localStorage.setItem('sales_data_time', now.toString());
                 
@@ -111,7 +107,7 @@
             }
         }
 
-        // --- 2. FAST FILTER (CLIENT SIDE) ---
+        // --- 2. FAST FILTER ---
         function fastFilter() {
             const gen = document.getElementById('filterGeneral').value.toLowerCase();
             const br = document.getElementById('filterBranch').value.toLowerCase();
@@ -145,49 +141,51 @@
             const role = localStorage.getItem("myAppRole") || "GUEST";
 
             if (!data || data.length === 0) {
-                body.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-slate-400">Tiada rekod pending ditemukan.</td></tr>';
+                body.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-slate-400 italic">Tiada rekod ditemukan.</td></tr>';
                 return;
             }
 
             body.innerHTML = data.map(item => {
                 return `
-                <tr data-branch="${item.branch}" data-salesman="${item.salesman}" class="hover:bg-blue-50/40">
+                <tr data-branch="${item.branch}" data-salesman="${item.salesman}" class="hover:bg-blue-50/40 transition-colors">
                     <td class="p-4">
-                        <div class="text-[9px] font-black text-blue-600 uppercase">${item.branch}</div>
+                        <div class="text-[9px] font-black text-blue-600 uppercase tracking-tighter">${item.branch}</div>
                         <div class="text-sm font-bold text-slate-800">${item.salesman}</div>
-                        <div class="text-[9px] text-slate-400">${new Date(item.datetime).toLocaleDateString()}</div>
+                        <div class="text-[9px] text-slate-400 font-bold tracking-widest">${item.datetime ? new Date(item.datetime).toLocaleDateString('ms-MY') : '-'}</div>
                     </td>
-                    <td class="p-4 text-sm">
-                        <div class="font-bold text-slate-700">${item.school}</div>
+                    <td class="p-4">
+                        <div class="text-sm font-black text-slate-700 uppercase tracking-tight">${item.school}</div>
                         <div class="text-xs text-blue-500 font-bold">${item.nickname}</div>
+                        <div class="text-[10px] text-slate-400 font-bold mt-1">${item.phone || '-'}</div>
                     </td>
                     <td class="p-4">
-                        <div class="font-mono text-xs font-black">${item.docNo}</div>
-                        ${item.link !== 'tiada' ? `<a href="${item.link}" target="_blank" class="text-[9px] font-bold text-blue-600 underline">BUKA FOLDER</a>` : ''}
+                        <div class="font-mono text-xs font-black text-slate-600 bg-slate-100 px-2 py-1 rounded inline-block mb-1">${item.docNo}</div>
+                        <br>
+                        ${item.link !== 'tiada' ? `<a href="${item.link}" target="_blank" class="text-[9px] font-black text-blue-600 underline hover:text-blue-800 uppercase tracking-widest">Buka Folder 📂</a>` : ''}
                     </td>
                     <td class="p-4">
-                        <div class="flex flex-col gap-2">
-                            <div class="text-[10px]">
-                                <span class="font-bold text-slate-400 uppercase">S:</span> 
-                                <span class="text-slate-600">${item.salesmanAction || '-'}</span>
+                        <div class="flex flex-col gap-1.5">
+                            <div class="text-[10px] leading-tight">
+                                <span class="font-black text-slate-400 uppercase mr-1">S:</span> 
+                                <span class="text-slate-700 font-bold">${item.salesmanAction || '-'}</span>
                             </div>
-                            <div class="text-[10px]">
-                                <span class="font-bold text-slate-400 uppercase">A:</span> 
-                                <span class="text-slate-600">${item.adminAction || '-'}</span>
+                            <div class="text-[10px] leading-tight">
+                                <span class="font-black text-slate-400 uppercase mr-1">A:</span> 
+                                <span class="text-slate-700 font-bold">${item.adminAction || '-'}</span>
                             </div>
-                            <button onclick="updateStatus(${item.row}, '${role}', '${item.salesmanAction}')" class="text-[10px] font-black text-blue-600 uppercase hover:underline text-left">
-                                ${role !== 'GUEST' ? '📝 Edit Remark' : ''}
+                            <button onclick="updateStatus(${item.row}, '${role}', '${item.salesmanAction}')" class="text-[10px] font-black text-blue-600 uppercase hover:underline text-left mt-1">
+                                ${role !== 'GUEST' ? '📝 Kemaskini Remark' : ''}
                             </button>
                         </div>
                     </td>
                 </tr>`;
             }).join('');
-            fastFilter(); // Re-apply filter after render
+            fastFilter(); 
         }
 
-        // --- 4. AUTH & LOGIN ---
+        // --- 4. AUTHENTICATION ---
         async function loginStaff() {
-            const id = prompt("User ID:");
+            const id = prompt("Masukkan User ID:");
             if (!id) return;
             document.getElementById('loader').style.display = 'flex';
             try {
@@ -204,8 +202,10 @@
         }
 
         function logoutStaff() {
-            localStorage.clear();
-            location.reload();
+            if(confirm("Log keluar sekarang?")) {
+                localStorage.clear();
+                location.reload();
+            }
         }
 
         function updateAuthUI() {
@@ -213,19 +213,26 @@
             const name = localStorage.getItem("myAppName") || "";
             const statusDiv = document.getElementById('authStatus');
             if(role !== "GUEST") {
-                statusDiv.innerHTML = `<span class="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded border border-green-200 uppercase tracking-tighter">👤 ${name} (${role})</span>`;
+                statusDiv.innerHTML = `<span class="text-[10px] font-black text-green-700 bg-green-100 px-2 py-1 rounded-lg border border-green-200 uppercase tracking-tighter italic">👤 ${name} (${role})</span>`;
                 document.getElementById('loginBtn').classList.add('hidden');
                 document.getElementById('logoutBtn').classList.remove('hidden');
             } else {
-                statusDiv.innerHTML = `<span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Mode: Lihat Sahaja</span>`;
+                statusDiv.innerHTML = `<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">Mode: Read-Only</span>`;
             }
         }
 
-        // --- 5. UPDATE DATA ---
+        // --- 5. UPDATE REMARK ---
         async function updateStatus(row, role, oldRemark) {
             if (role === "GUEST") return;
             const myName = localStorage.getItem("myAppName");
-            const newR = prompt("Remark Baru:", oldRemark.split(': ')[1] || oldRemark);
+            
+            // Bersihkan teks remark lama untuk dipaparkan dalam input
+            let cleanOldRemark = oldRemark;
+            if (oldRemark.includes(': ')) {
+                cleanOldRemark = oldRemark.split(': ')[1];
+            }
+
+            const newR = prompt("Masukkan Remark Baru:", cleanOldRemark === '-' ? "" : cleanOldRemark);
             if (newR === null) return;
 
             document.getElementById('loader').style.display = 'flex';
@@ -236,9 +243,9 @@
                     mode: 'no-cors',
                     body: JSON.stringify({ method: "UPDATE_REMARK", row: row, role: role, remark: finalRemark })
                 });
-                alert("Berjaya! Sila tekan Sync Data untuk kemaskini senarai.");
-                fetchData(true); // Auto sync selepas update
-            } catch (e) { alert("Gagal update."); }
+                alert("Berjaya dihantar! Sila tunggu sebentar dan tekan Sync Data.");
+                setTimeout(() => fetchData(true), 1500); 
+            } catch (e) { alert("Ralat penghantaran."); }
             finally { document.getElementById('loader').style.display = 'none'; }
         }
 
