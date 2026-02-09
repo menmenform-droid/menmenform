@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Speed Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .loading-overlay { display: none; background: rgba(0,0,0,0.8); position: fixed; inset: 0; z-index: 9999; justify-content: center; align-items: center; color: white; }
+        .pending-blink { animation: blinker 1.5s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0.3; } }
+        tr { transition: all 0.2s ease-in-out; }
+        .hidden-row { display: none; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen p-4 pb-10 font-sans">
+    
+    <div id="loader" class="loading-overlay">
+        <div class="flex flex-col items-center">
+            <div class="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
+            <p class="mt-4 font-bold tracking-widest text-xs uppercase">Mengemaskini Data...</p>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+            <div>
+                <h1 class="text-3xl font-black text-slate-800 tracking-tighter italic uppercase">Live Tracking</h1>
+                <div id="authStatus" class="flex items-center gap-2 mt-1"></div>
+            </div>
+            <div class="flex gap-2 w-full md:w-auto">
+                <button id="loginBtn" onclick="loginStaff()" class="flex-1 md:flex-none bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-black shadow-md transition">Login 🔑</button>
+                <button id="logoutBtn" onclick="logoutStaff()" class="hidden flex-1 md:flex-none bg-red-100 text-red-600 px-4 py-2 rounded-xl text-xs font-bold border border-red-200">Logout</button>
+                <button onclick="fetchData(true)" class="flex-1 md:flex-none bg-blue-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                    <span>Sync Data</span> 🔄
+                </button>
+            </div>
+        </header>
+
+        <div class="bg-white p-5 rounded-2xl shadow-sm mb-6 border-b-4 border-slate-200">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="relative">
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Carian Pantas</label>
+                    <input type="text" id="filterGeneral" oninput="fastFilter()" placeholder="Sekolah / Nickname / Doc..." class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:border-blue-500 outline-none transition">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Cawangan</label>
+                    <input type="text" id="filterBranch" oninput="fastFilter()" placeholder="Semua Cawangan..." class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:border-blue-500 outline-none transition">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Salesman</label>
+                    <input type="text" id="filterSalesman" oninput="fastFilter()" placeholder="Nama Salesman..." class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:border-blue-500 outline-none transition">
+                </div>
+            </div>
+            <div id="countDisplay" class="mt-3 text-[10px] font-bold text-slate-400 uppercase italic">Memaparkan: -- rekod</div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead class="bg-slate-100 border-b">
+                        <tr>
+                            <th class="p-4 text-[10px] font-black uppercase text-slate-500">Transaksi</th>
+                            <th class="p-4 text-[10px] font-black uppercase text-slate-500">Butiran</th>
+                            <th class="p-4 text-[10px] font-black uppercase text-slate-500">Dokumen</th>
+                            <th class="p-4 text-[10px] font-black uppercase text-slate-500">Tindakan Log</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dashBody" class="divide-y divide-slate-100">
+                        </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxreXhv__TCtjnyxFqhCrRbjyqSlGytoTxJh6KN8QkTwDk2xY8ysOKfMmpBCJfvFyUV/exec";
+        let LOCAL_DATA = [];
+
+        // --- 1. LOCAL STORAGE SYSTEM (CACHE) ---
+        async function fetchData(forceRefresh = false) {
+            const cachedData = localStorage.getItem('sales_data_cache');
+            const cacheTime = localStorage.getItem('sales_data_time');
+            const now = new Date().getTime();
+
+            // Jika ada cache & tak sampai 5 minit & bukan force refresh, guna cache
+            if (!forceRefresh && cachedData && cacheTime && (now - cacheTime < 300000)) {
+                LOCAL_DATA = JSON.parse(cachedData);
+                console.log("Using Cached Data");
+                renderTable(LOCAL_DATA);
+                updateAuthUI();
+                return;
+            }
+
+            // Jika tiada cache atau force refresh, tarik dari Google Script
+            document.getElementById('loader').style.display = 'flex';
+            try {
+                const r = await fetch(WEB_APP_URL + "?action=getData");
+                LOCAL_DATA = await r.json();
+                
+                // Simpan ke LocalStorage
+                localStorage.setItem('sales_data_cache', JSON.stringify(LOCAL_DATA));
+                localStorage.setItem('sales_data_time', now.toString());
+                
+                renderTable(LOCAL_DATA);
+                updateAuthUI();
+            } catch (e) {
+                alert('Gagal Sync Data. Periksa Internet anda.');
+            } finally {
+                document.getElementById('loader').style.display = 'none';
+            }
+        }
+
+        // --- 2. FAST FILTER (CLIENT SIDE) ---
+        function fastFilter() {
+            const gen = document.getElementById('filterGeneral').value.toLowerCase();
+            const br = document.getElementById('filterBranch').value.toLowerCase();
+            const sl = document.getElementById('filterSalesman').value.toLowerCase();
+
+            const rows = document.querySelectorAll('#dashBody tr');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                const branch = row.getAttribute('data-branch').toLowerCase();
+                const salesman = row.getAttribute('data-salesman').toLowerCase();
+
+                const matchGen = text.includes(gen);
+                const matchBr = branch.includes(br);
+                const matchSl = salesman.includes(sl);
+
+                if (matchGen && matchBr && matchSl) {
+                    row.classList.remove('hidden-row');
+                    visibleCount++;
+                } else {
+                    row.classList.add('hidden-row');
+                }
+            });
+            document.getElementById('countDisplay').innerText = `Memaparkan: ${visibleCount} rekod`;
+        }
+
+        // --- 3. RENDER TABLE ---
+        function renderTable(data) {
+            const body = document.getElementById('dashBody');
+            const role = localStorage.getItem("myAppRole") || "GUEST";
+
+            if (!data || data.length === 0) {
+                body.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-slate-400">Tiada rekod pending ditemukan.</td></tr>';
+                return;
+            }
+
+            body.innerHTML = data.map(item => {
+                return `
+                <tr data-branch="${item.branch}" data-salesman="${item.salesman}" class="hover:bg-blue-50/40">
+                    <td class="p-4">
+                        <div class="text-[9px] font-black text-blue-600 uppercase">${item.branch}</div>
+                        <div class="text-sm font-bold text-slate-800">${item.salesman}</div>
+                        <div class="text-[9px] text-slate-400">${new Date(item.datetime).toLocaleDateString()}</div>
+                    </td>
+                    <td class="p-4 text-sm">
+                        <div class="font-bold text-slate-700">${item.school}</div>
+                        <div class="text-xs text-blue-500 font-bold">${item.nickname}</div>
+                    </td>
+                    <td class="p-4">
+                        <div class="font-mono text-xs font-black">${item.docNo}</div>
+                        ${item.link !== 'tiada' ? `<a href="${item.link}" target="_blank" class="text-[9px] font-bold text-blue-600 underline">BUKA FOLDER</a>` : ''}
+                    </td>
+                    <td class="p-4">
+                        <div class="flex flex-col gap-2">
+                            <div class="text-[10px]">
+                                <span class="font-bold text-slate-400 uppercase">S:</span> 
+                                <span class="text-slate-600">${item.salesmanAction || '-'}</span>
+                            </div>
+                            <div class="text-[10px]">
+                                <span class="font-bold text-slate-400 uppercase">A:</span> 
+                                <span class="text-slate-600">${item.adminAction || '-'}</span>
+                            </div>
+                            <button onclick="updateStatus(${item.row}, '${role}', '${item.salesmanAction}')" class="text-[10px] font-black text-blue-600 uppercase hover:underline text-left">
+                                ${role !== 'GUEST' ? '📝 Edit Remark' : ''}
+                            </button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join('');
+            fastFilter(); // Re-apply filter after render
+        }
+
+        // --- 4. AUTH & LOGIN ---
+        async function loginStaff() {
+            const id = prompt("User ID:");
+            if (!id) return;
+            document.getElementById('loader').style.display = 'flex';
+            try {
+                const r = await fetch(WEB_APP_URL + "?action=checkUser&id=" + encodeURIComponent(id));
+                const res = await r.text();
+                if (res !== "GUEST|NONE") {
+                    const [role, name] = res.split("|");
+                    localStorage.setItem("myAppRole", role);
+                    localStorage.setItem("myAppName", name);
+                    location.reload();
+                } else { alert("ID Salah!"); }
+            } catch (e) { alert("Ralat Server."); }
+            finally { document.getElementById('loader').style.display = 'none'; }
+        }
+
+        function logoutStaff() {
+            localStorage.clear();
+            location.reload();
+        }
+
+        function updateAuthUI() {
+            const role = localStorage.getItem("myAppRole") || "GUEST";
+            const name = localStorage.getItem("myAppName") || "";
+            const statusDiv = document.getElementById('authStatus');
+            if(role !== "GUEST") {
+                statusDiv.innerHTML = `<span class="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded border border-green-200 uppercase tracking-tighter">👤 ${name} (${role})</span>`;
+                document.getElementById('loginBtn').classList.add('hidden');
+                document.getElementById('logoutBtn').classList.remove('hidden');
+            } else {
+                statusDiv.innerHTML = `<span class="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Mode: Lihat Sahaja</span>`;
+            }
+        }
+
+        // --- 5. UPDATE DATA ---
+        async function updateStatus(row, role, oldRemark) {
+            if (role === "GUEST") return;
+            const myName = localStorage.getItem("myAppName");
+            const newR = prompt("Remark Baru:", oldRemark.split(': ')[1] || oldRemark);
+            if (newR === null) return;
+
+            document.getElementById('loader').style.display = 'flex';
+            try {
+                const finalRemark = `${myName}: ${newR.toUpperCase()}`;
+                await fetch(WEB_APP_URL, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({ method: "UPDATE_REMARK", row: row, role: role, remark: finalRemark })
+                });
+                alert("Berjaya! Sila tekan Sync Data untuk kemaskini senarai.");
+                fetchData(true); // Auto sync selepas update
+            } catch (e) { alert("Gagal update."); }
+            finally { document.getElementById('loader').style.display = 'none'; }
+        }
+
+        window.onload = () => fetchData();
+    </script>
+</body>
+</html>
