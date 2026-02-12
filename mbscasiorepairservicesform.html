@@ -201,46 +201,60 @@ document.getElementById("repairForm").addEventListener("submit", e => {
 });
 
 function buildCopy(type, d) {
-    // Direct Link (Raw) untuk QR Code
-    const qrLink = "https://raw.githubusercontent.com/mbsprojectcalculator-source/MBSCASIOREPAIR/main/CASIOSTATUSQR.png";
+
+    // 同目录 QR + 防缓存 + 首次加载稳定
+    const qrLink = "CASIOSTATUSQR.png?v=" + Date.now();
 
     return `
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
             <div style="text-align:left;">
-                <h2 style="margin:0; font-size:18px; color: #004085;">MBS BOOKS & STATIONERY</h2>
-                <p style="margin:5px 0; font-size:13px;">CASIO REPAIR FORM<br><b style="color:#d32f2f;">${type}</b></p>
+                <h2 style="margin:0;font-size:18px;color:#004085;">
+                    MBS BOOKS & STATIONERY
+                </h2>
+                <p style="margin:5px 0;font-size:13px;">
+                    CASIO REPAIR FORM<br>
+                    <b style="color:#d32f2f;">${type}</b>
+                </p>
             </div>
+
             <div style="text-align:right;">
-                <img src="${qrLink}" style="width:75px; height:75px; border: 1px solid #ddd; padding: 2px;" alt="QR Status">
-                <p style="margin:0; font-size:9px; color: #555;">Semak Status</p>
+                <img 
+                    src="${qrLink}"
+                    loading="eager"
+                    decoding="sync"
+                    fetchpriority="high"
+                    style="width:75px;height:75px;border:1px solid #ddd;padding:2px;"
+                    alt="QR Status"
+                >
+                <p style="margin:0;font-size:9px;color:#555;">Semak Status</p>
             </div>
         </div>
         
-        <hr style="border: 0; border-top: 1px solid #000; margin: 10px 0;">
+        <hr style="border:0;border-top:1px solid #000;margin:10px 0;">
         
-        <table style="width:100%; font-size:13px; line-height:1.6; border-collapse:collapse;">
+        <table style="width:100%;font-size:13px;line-height:1.6;border-collapse:collapse;">
             <tr>
                 <td style="width:35%;"><b>RSF NUMBER</b></td>
-                <td>: <b style="font-size:16px; background: #eee; padding: 2px 5px;">${d.id}</b></td>
+                <td>: <b style="font-size:16px;background:#eee;padding:2px 5px;">${d.id}</b></td>
             </tr>
             <tr><td><b>CAWANGAN</b></td><td>: ${d.branch}</td></tr>
             <tr><td><b>STAFF</b></td><td>: ${d.staff}</td></tr>
-            <tr><td colspan="2" style="padding: 5px 0;"><div style="border-top: 1px dashed #ccc;"></div></td></tr>
+            <tr><td colspan="2" style="padding:5px 0;"><div style="border-top:1px dashed #ccc;"></div></td></tr>
             <tr><td><b>PELANGGAN</b></td><td>: ${d.name}</td></tr>
             <tr><td><b>NO. TELEFON</b></td><td>: ${d.phone}</td></tr>
             <tr><td><b>MODEL</b></td><td>: ${d.model}</td></tr>
-            <tr><td><b>STATUS</b></td><td>: <span style="color: blue; font-weight: bold;">${d.status}</span></td></tr>
+            <tr><td><b>STATUS</b></td><td>: <span style="color:blue;font-weight:bold;">${d.status}</span></td></tr>
             <tr>
                 <td valign="top"><b>KEROSAKAN</b></td>
                 <td>: <b style="color:#d32f2f;">${d.issue}</b></td>
             </tr>
             <tr>
                 <td valign="top"><b>ALAMAT</b></td>
-                <td style="font-size:11px; line-height:1.2;">: ${d.address}</td>
+                <td style="font-size:11px;line-height:1.2;">: ${d.address}</td>
             </tr>
         </table>
         
-        <div style="margin-top:20px; font-size:10px; border-top: 1px solid #000; padding-top:10px; font-style: italic;">
+        <div style="margin-top:20px;font-size:10px;border-top:1px solid #000;padding-top:10px;font-style:italic;">
             Dicetak pada: ${new Date().toLocaleString("ms-MY")}<br>
             * Sila bawa salinan ini semasa menuntut barang anda.<br>
             * Barang yang tidak dituntut melebihi 3 bulan akan dilupuskan.
@@ -297,5 +311,6 @@ function searchData() {
 
 </body>
 </html>
+
 
 
