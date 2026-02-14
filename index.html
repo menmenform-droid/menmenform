@@ -1,125 +1,168 @@
 <!DOCTYPE html>
 <html lang="ms">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MBS PUSAT (Staff Portal)</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="icon-192.png">
-    <link rel="icon" type="image/png" href="icon-192.png">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MBS Staff Portal</title>
 
-    <style>
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            display: flex; justify-content: center; align-items: center;
-            background-color: #f8fafc; font-family: sans-serif; overflow: hidden;
-        }
-        .container { text-align: center; animation: fadeIn 1.2s ease-out; padding: 20px; }
-        .logo { 
-            width: 120px; height: 120px; border-radius: 20%; 
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-bottom: 20px; 
-            animation: pulse 2s infinite ease-in-out; 
-        }
-        h1 { color: #1e3a8a; font-size: 1.5rem; margin-bottom: 5px; }
-        p { color: #64748b; font-size: 1rem; margin-bottom: 20px; }
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 
-        /* Gaya Butang Install */
-        #installBtn {
-            display: none; /* Sembunyi secara default */
-            background-color: #1e3a8a;
-            color: white;
-            border: none;
-            padding: 12px 25px;
-            border-radius: 50px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(30, 58, 138, 0.3);
-            transition: transform 0.2s;
-        }
-        #installBtn:active { transform: scale(0.95); }
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-        .loader {
-            border: 3px solid #e2e8f0; border-top: 3px solid #1e3a8a;
-            border-radius: 50%; width: 18px; height: 18px;
-            animation: spin 1s linear infinite; display: inline-block;
-        }
+<style>
+body{
+margin:0;
+font-family:system-ui,-apple-system,sans-serif;
+background:linear-gradient(135deg,#0f172a,#1e3a8a);
+height:100vh;
+display:flex;
+align-items:center;
+justify-content:center;
+color:white;
+}
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
+.card{
+background:white;
+color:#0f172a;
+padding:35px;
+border-radius:22px;
+width:320px;
+text-align:center;
+box-shadow:0 20px 60px rgba(0,0,0,0.25);
+animation:fade 0.6s ease;
+}
+
+.logo{
+width:110px;
+border-radius:18px;
+margin-bottom:18px;
+box-shadow:0 8px 25px rgba(0,0,0,0.15);
+}
+
+h1{
+margin:0 0 8px;
+font-size:1.4rem;
+}
+
+p{
+color:#64748b;
+font-size:0.95rem;
+margin-bottom:18px;
+}
+
+button{
+display:none;
+background:#1e3a8a;
+border:none;
+color:white;
+padding:12px 22px;
+border-radius:40px;
+font-weight:600;
+cursor:pointer;
+box-shadow:0 6px 18px rgba(30,58,138,0.35);
+}
+
+.loader{
+border:3px solid #e2e8f0;
+border-top:3px solid #1e3a8a;
+border-radius:50%;
+width:20px;
+height:20px;
+display:inline-block;
+animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+0%{transform:rotate(0)}
+100%{transform:rotate(360deg)}
+}
+
+@keyframes fade{
+from{opacity:0;transform:translateY(15px)}
+to{opacity:1;transform:translateY(0)}
+}
+</style>
 </head>
+
 <body>
 
-    <div class="container">
-        <img src="icon-192.png" alt="MBS Logo" class="logo">
-        <h1>MBS PUSAT</h1>
-        
-        <div id="setup-area">
-            <p id="status-text">Menyediakan portal...</p>
-            <button id="installBtn">Pasang App MBS</button>
-        </div>
+<div class="card">
 
-        <div id="loading-area" style="display:none;">
-            <p><span class="loader"></span> Membuka Staff Portal...</p>
-        </div>
-    </div>
+<img src="icon-192.png" class="logo">
 
-    <script>
-        let deferredPrompt;
-        const installBtn = document.getElementById('installBtn');
-        const statusText = document.getElementById('status-text');
-        const loadingArea = document.getElementById('loading-area');
-        const setupArea = document.getElementById('setup-area');
+<h1>MBS Staff Portal</h1>
 
-        // 1. Semak jika sudah di-install
-        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-            showLoadingAndRedirect();
-        }
+<div id="setupArea">
+<p id="statusText">Menyediakan aplikasi...</p>
+<button id="installBtn">Pasang Aplikasi</button>
+</div>
 
-        // 2. Event untuk Android (Chrome) - Tangkap prompt install
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            // Tunjukkan butang install
-            installBtn.style.display = 'inline-block';
-            statusText.innerText = "Pasang aplikasi untuk akses pantas";
-        });
+<div id="loadingArea" style="display:none">
+<p><span class="loader"></span> Membuka Portal...</p>
+</div>
 
-        installBtn.addEventListener('click', async () => {
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                const { outcome } = await deferredPrompt.userChoice;
-                if (outcome === 'accepted') {
-                    console.log('User accepted the install prompt');
-                }
-                deferredPrompt = null;
-                installBtn.style.display = 'none';
-            }
-        });
+</div>
 
-        // 3. Logika untuk iOS (Safari)
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-        if (isIOS && !window.navigator.standalone) {
-            statusText.innerHTML = "Sila tekan butang <b>Share</b> <img src='https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/IPhone_Identify_Share_Icon.svg/1200px-IPhone_Identify_Share_Icon.svg.png' width='15'> dan pilih <b>'Add to Home Screen'</b>";
-        }
+<script>
 
-        function showLoadingAndRedirect() {
-            setupArea.style.display = 'none';
-            loadingArea.style.display = 'block';
-            setTimeout(() => {
-                window.location.replace("https://sites.google.com/view/mbsbooksandstationery/pengenalan");
-            }, 3000);
-        }
+// ===== Service Worker (WAJIB untuk PWA) =====
+if('serviceWorker' in navigator){
+navigator.serviceWorker.register('sw.js');
+}
 
-        // Jika user baru lepas install, terus redirect
-        window.addEventListener('appinstalled', () => {
-            showLoadingAndRedirect();
-        });
-    </script>
+let deferredPrompt;
+const installBtn=document.getElementById('installBtn');
+const statusText=document.getElementById('statusText');
+const setupArea=document.getElementById('setupArea');
+const loadingArea=document.getElementById('loadingArea');
+
+// ===== 如果已安装 → 秒进 =====
+if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone){
+openPortal();
+}
+
+// ===== Android Install Event =====
+window.addEventListener('beforeinstallprompt',e=>{
+e.preventDefault();
+deferredPrompt=e;
+installBtn.style.display='inline-block';
+statusText.innerText="Pasang aplikasi untuk akses pantas";
+});
+
+installBtn.onclick=async()=>{
+if(!deferredPrompt) return;
+deferredPrompt.prompt();
+await deferredPrompt.userChoice;
+deferredPrompt=null;
+installBtn.style.display='none';
+};
+
+// ===== 安装完成 =====
+window.addEventListener('appinstalled',()=>{
+openPortal();
+});
+
+// ===== iOS 教学 =====
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+if(isIOS && !window.navigator.standalone){
+statusText.innerHTML=
+"Tekan <b>Share</b> lalu pilih <b>Add to Home Screen</b>";
+}
+
+// ===== 打开 Portal =====
+function openPortal(){
+setupArea.style.display='none';
+loadingArea.style.display='block';
+
+window.location.replace(
+"https://sites.google.com/view/mbsbooksandstationery/pengenalan"
+);
+}
+
+</script>
+
 </body>
 </html>
