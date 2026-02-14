@@ -11,95 +11,58 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <meta http-equiv="refresh" content="3; url=https://sites.google.com/view/mbsbooksandstationery/pengenalan">
-
     <style>
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #f8fafc; /* Warna latar lembut */
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            overflow: hidden;
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            display: flex; justify-content: center; align-items: center;
+            background-color: #f8fafc; font-family: sans-serif; overflow: hidden;
         }
-
-        .container {
-            text-align: center;
-            animation: fadeIn 1.2s ease-out;
+        .container { text-align: center; animation: fadeIn 1.2s ease-out; }
+        .logo { 
+            width: 120px; height: 120px; border-radius: 20%; 
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-bottom: 20px; 
+            animation: pulse 2s infinite ease-in-out; 
         }
-
-        .logo {
-            width: 120px;
-            height: 120px;
-            border-radius: 20%;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            animation: pulse 2s infinite ease-in-out;
-        }
-
         .loader {
-            border: 3px solid #e2e8f0;
-            border-top: 3px solid #1e3a8a; /* Warna korporat biru */
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            vertical-align: middle;
-            margin-right: 10px;
+            border: 3px solid #e2e8f0; border-top: 3px solid #1e3a8a;
+            border-radius: 50%; width: 18px; height: 18px;
+            animation: spin 1s linear infinite; display: inline-block;
+            vertical-align: middle; margin-right: 8px;
         }
-
-        h1 {
-            color: #1e3a8a;
-            font-size: 1.2rem;
-            letter-spacing: 1px;
-            margin-bottom: 10px;
-            font-weight: 600;
-        }
-
-        p {
-            color: #64748b;
-            font-size: 0.9rem;
-        }
-
-        /* Animasi Muncul */
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Animasi Logo Bernafas */
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-            100% { transform: scale(1); }
-        }
-
-        /* Animasi Spinner */
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        h1 { color: #1e3a8a; font-size: 1.2rem; margin-bottom: 5px; }
+        p { color: #64748b; font-size: 0.9rem; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
-
-    <script type="text/javascript">
-        // Redirect guna JS selepas 3 saat (sebagai backup meta refresh)
-        setTimeout(function(){
-            window.location.replace("https://sites.google.com/view/mbsbooksandstationery/pengenalan");
-        }, 3000);
-    </script>
 </head>
 <body>
 
     <div class="container">
         <img src="icon-192.png" alt="MBS Logo" class="logo">
         <h1>MBS PUSAT</h1>
-        <p><span class="loader"></span> Sila tunggu sebentar...</p>
+        <p id="status-container">
+            <span id="loader-icon" class="loader"></span> 
+            <span id="status-text">Sila tunggu sebentar...</span>
+        </p>
     </div>
 
+    <script type="text/javascript">
+        function isInstalled() {
+            // Semak jika dibuka sebagai PWA (Home Screen)
+            return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+        }
+
+        if (isInstalled()) {
+            // JIKA APP: Tunggu 3 saat baru redirect
+            setTimeout(function(){
+                window.location.replace("https://sites.google.com/view/mbsbooksandstationery/pengenalan");
+            }, 3000);
+        } else {
+            // JIKA BROWSER: Berhenti dan minta user install
+            document.getElementById("status-text").innerHTML = "Tekan menu browser & pilih <b>'Add to Home Screen'</b>";
+            document.getElementById("loader-icon").style.display = "none";
+        }
+    </script>
 </body>
 </html>
