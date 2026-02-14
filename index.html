@@ -17,20 +17,37 @@
             display: flex; justify-content: center; align-items: center;
             background-color: #f8fafc; font-family: sans-serif; overflow: hidden;
         }
-        .container { text-align: center; animation: fadeIn 1.2s ease-out; }
+        .container { text-align: center; animation: fadeIn 1.2s ease-out; padding: 20px; }
         .logo { 
             width: 120px; height: 120px; border-radius: 20%; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.1); margin-bottom: 20px; 
             animation: pulse 2s infinite ease-in-out; 
         }
+        h1 { color: #1e3a8a; font-size: 1.5rem; margin-bottom: 5px; }
+        p { color: #64748b; font-size: 1rem; margin-bottom: 20px; }
+
+        /* Gaya Butang Install */
+        #installBtn {
+            display: none; /* Sembunyi secara default */
+            background-color: #1e3a8a;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 50px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(30, 58, 138, 0.3);
+            transition: transform 0.2s;
+        }
+        #installBtn:active { transform: scale(0.95); }
+
         .loader {
             border: 3px solid #e2e8f0; border-top: 3px solid #1e3a8a;
             border-radius: 50%; width: 18px; height: 18px;
             animation: spin 1s linear infinite; display: inline-block;
-            vertical-align: middle; margin-right: 8px;
         }
-        h1 { color: #1e3a8a; font-size: 1.2rem; margin-bottom: 5px; }
-        p { color: #64748b; font-size: 0.9rem; }
+
         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
@@ -41,28 +58,68 @@
     <div class="container">
         <img src="icon-192.png" alt="MBS Logo" class="logo">
         <h1>MBS PUSAT</h1>
-        <p id="status-container">
-            <span id="loader-icon" class="loader"></span> 
-            <span id="status-text">Sila tunggu sebentar...</span>
-        </p>
+        
+        <div id="setup-area">
+            <p id="status-text">Menyediakan portal...</p>
+            <button id="installBtn">Pasang App MBS</button>
+        </div>
+
+        <div id="loading-area" style="display:none;">
+            <p><span class="loader"></span> Membuka Staff Portal...</p>
+        </div>
     </div>
 
-    <script type="text/javascript">
-        function isInstalled() {
-            // Semak jika dibuka sebagai PWA (Home Screen)
-            return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+    <script>
+        let deferredPrompt;
+        const installBtn = document.getElementById('installBtn');
+        const statusText = document.getElementById('status-text');
+        const loadingArea = document.getElementById('loading-area');
+        const setupArea = document.getElementById('setup-area');
+
+        // 1. Semak jika sudah di-install
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            showLoadingAndRedirect();
         }
 
-        if (isInstalled()) {
-            // JIKA APP: Tunggu 3 saat baru redirect
-            setTimeout(function(){
+        // 2. Event untuk Android (Chrome) - Tangkap prompt install
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            // Tunjukkan butang install
+            installBtn.style.display = 'inline-block';
+            statusText.innerText = "Pasang aplikasi untuk akses pantas";
+        });
+
+        installBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') {
+                    console.log('User accepted the install prompt');
+                }
+                deferredPrompt = null;
+                installBtn.style.display = 'none';
+            }
+        });
+
+        // 3. Logika untuk iOS (Safari)
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIOS && !window.navigator.standalone) {
+            statusText.innerHTML = "Sila tekan butang <b>Share</b> <img src='https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/IPhone_Identify_Share_Icon.svg/1200px-IPhone_Identify_Share_Icon.svg.png' width='15'> dan pilih <b>'Add to Home Screen'</b>";
+        }
+
+        function showLoadingAndRedirect() {
+            setupArea.style.display = 'none';
+            loadingArea.style.display = 'block';
+            setTimeout(() => {
                 window.location.replace("https://sites.google.com/view/mbsbooksandstationery/pengenalan");
             }, 3000);
-        } else {
-            // JIKA BROWSER: Berhenti dan minta user install
-            document.getElementById("status-text").innerHTML = "Tekan menu browser & pilih <b>'Add to Home Screen'</b>";
-            document.getElementById("loader-icon").style.display = "none";
         }
+
+        // Jika user baru lepas install, terus redirect
+        window.addEventListener('appinstalled', () => {
+            showLoadingAndRedirect();
+        });
     </script>
 </body>
 </html>
