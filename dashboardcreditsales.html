@@ -3,253 +3,930 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>High-Speed Dashboard v3.5.2</title>
+    <title>CreditSales Enterprise v4.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .loading-overlay { display: none; background: rgba(0,0,0,0.8); position: fixed; inset: 0; z-index: 9999; justify-content: center; align-items: center; color: white; }
+        /* ── Loading Overlay ── */
+        .loading-overlay {
+            display: none;
+            background: rgba(15,23,42,0.85);
+            backdrop-filter: blur(4px);
+            position: fixed; inset: 0; z-index: 9999;
+            justify-content: center; align-items: center; color: white;
+        }
+        /* ── Blink Animation ── */
         .pending-blink { animation: blinker 1.5s linear infinite; }
         @keyframes blinker { 50% { opacity: 0.3; } }
-        tr { transition: all 0.2s ease-in-out; }
-        .hidden-row { display: none; }
+
+        /* ── Table Row Transition ── */
+        tr { transition: background 0.15s ease; }
+        .hidden-row { display: none !important; }
+
+        /* ── Skeleton Loader ── */
+        .skeleton { background: linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 6px; }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+        /* ── Modal ── */
+        .modal-overlay { display: none; position: fixed; inset: 0; z-index: 8000; background: rgba(15,23,42,0.7); backdrop-filter: blur(4px); justify-content: center; align-items: center; padding: 1rem; }
+        .modal-overlay.active { display: flex; }
+        .modal-box { background: white; border-radius: 1.25rem; padding: 2rem; width: 100%; max-width: 440px; box-shadow: 0 25px 60px rgba(0,0,0,0.25); animation: modalIn 0.2s ease; }
+        @keyframes modalIn { from{opacity:0;transform:scale(0.95) translateY(8px)} to{opacity:1;transform:scale(1) translateY(0)} }
+
+        /* ── Status Badge ── */
+        .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 9999px; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+        .badge-green  { background:#dcfce7; color:#15803d; }
+        .badge-yellow { background:#fef9c3; color:#a16207; }
+        .badge-red    { background:#fee2e2; color:#b91c1c; }
+        .badge-blue   { background:#dbeafe; color:#1d4ed8; }
+        .badge-gray   { background:#f1f5f9; color:#64748b; }
+
+        /* ── Pagination ── */
+        .page-btn { min-width: 36px; height: 36px; border-radius: 8px; font-size: 13px; font-weight: 700; border: 1.5px solid #e2e8f0; background: white; color: #475569; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; justify-content: center; }
+        .page-btn:hover { background: #1e40af; color: white; border-color: #1e40af; }
+        .page-btn.active { background: #1e3a8a; color: white; border-color: #1e3a8a; }
+        .page-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+        /* ── Sidebar / Top Nav ── */
+        .topbar { background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%); }
+
+        /* ── Stat Card ── */
+        .stat-card { background: white; border-radius: 1rem; padding: 1.25rem 1.5rem; border: 1px solid #e2e8f0; transition: box-shadow 0.2s; }
+        .stat-card:hover { box-shadow: 0 8px 24px rgba(30,58,138,0.10); }
+
+        /* ── Custom Scrollbar ── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+        /* ── Toast Notification ── */
+        #toast { position: fixed; bottom: 24px; right: 24px; z-index: 9998; transition: all 0.3s; transform: translateY(80px); opacity: 0; }
+        #toast.show { transform: translateY(0); opacity: 1; }
+
+        /* ── Table sticky header ── */
+        thead th { position: sticky; top: 0; z-index: 10; }
+
+        /* ── Table Grid Borders (Excel-style) ── */
+        table.grid-table { border-collapse: collapse; }
+        table.grid-table thead tr { border-bottom: 2px solid #cbd5e1; }
+        table.grid-table th,
+        table.grid-table td {
+            border: 1px solid #e2e8f0;
+        }
+        table.grid-table tbody tr:nth-child(even) { background-color: #f8fafc; }
+        table.grid-table tbody tr:nth-child(even):hover { background-color: #eff6ff; }
+
+        /* ── Sort Header ── */
+        th.sortable { cursor: pointer; user-select: none; white-space: nowrap; }
+        th.sortable:hover { background: #e2e8f0 !important; }
+        .sort-icon { display: inline-flex; flex-direction: column; gap: 1px; margin-left: 5px; vertical-align: middle; opacity: 0.35; }
+        .sort-icon span { display: block; width: 0; height: 0; }
+        .sort-icon .arr-up   { border-left: 4px solid transparent; border-right: 4px solid transparent; border-bottom: 5px solid #475569; }
+        .sort-icon .arr-down { border-left: 4px solid transparent; border-right: 4px solid transparent; border-top:    5px solid #475569; }
+        th.sort-asc  .sort-icon { opacity: 1; }
+        th.sort-asc  .sort-icon .arr-up   { border-bottom-color: #1e40af; }
+        th.sort-asc  .sort-icon .arr-down { border-top-color: #cbd5e1; }
+        th.sort-desc .sort-icon { opacity: 1; }
+        th.sort-desc .sort-icon .arr-up   { border-bottom-color: #cbd5e1; }
+        th.sort-desc .sort-icon .arr-down { border-top-color: #1e40af; }
+
+        /* ── Input Focus ── */
+        input:focus, select:focus, textarea:focus { outline: none; border-color: #3b82f6 !important; box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen p-4 pb-10 font-sans">
-    
+<body class="bg-slate-100 min-h-screen font-sans">
+
+    <!-- ══════════════════════════════════════════════
+         LOADING OVERLAY
+    ══════════════════════════════════════════════ -->
     <div id="loader" class="loading-overlay">
-        <div class="flex flex-col items-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent"></div>
-            <p class="mt-4 font-bold tracking-widest text-xs uppercase">Mengemaskini Data...</p>
+        <div class="flex flex-col items-center gap-4">
+            <div class="animate-spin rounded-full h-14 w-14 border-4 border-blue-400 border-t-transparent"></div>
+            <p class="font-bold tracking-widest text-xs uppercase text-blue-200">Memproses Data...</p>
         </div>
     </div>
 
-    <div class="max-w-6xl mx-auto">
-        <header class="mb-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-            <div>
-                <h1 class="text-3xl font-black text-slate-800 tracking-tighter italic uppercase">Live Tracking</h1>
-                <div id="authStatus" class="flex items-center gap-2 mt-1"></div>
+    <!-- ══════════════════════════════════════════════
+         TOAST NOTIFICATION
+    ══════════════════════════════════════════════ -->
+    <div id="toast">
+        <div id="toastContent" class="flex items-center gap-3 bg-slate-800 text-white px-5 py-3 rounded-2xl shadow-2xl text-sm font-semibold min-w-[240px]">
+            <span id="toastIcon">✅</span>
+            <span id="toastMsg">Berjaya!</span>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         MODAL: LOGIN
+    ══════════════════════════════════════════════ -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="flex items-center gap-3 mb-6">
+                <div class="w-10 h-10 rounded-xl bg-blue-900 flex items-center justify-center text-white text-lg">🔐</div>
+                <div>
+                    <h2 class="text-lg font-black text-slate-800">Staff Authentication</h2>
+                    <p class="text-xs text-slate-400">Masukkan ID kakitangan anda</p>
+                </div>
             </div>
-            <div class="flex gap-2 w-full md:w-auto">
-                <button id="loginBtn" onclick="loginStaff()" class="flex-1 md:flex-none bg-slate-800 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-black shadow-md transition">Login 🔑</button>
-                <button id="logoutBtn" onclick="logoutStaff()" class="hidden flex-1 md:flex-none bg-red-100 text-red-600 px-4 py-2 rounded-xl text-xs font-bold border border-red-200">Logout</button>
-                <button onclick="fetchData(true)" class="flex-1 md:flex-none bg-blue-600 text-white px-6 py-2 rounded-xl font-bold shadow-lg hover:bg-blue-700 transition flex items-center justify-center gap-2">
-                    <span>Sync Data</span> 🔄
+            <div class="mb-4">
+                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">User ID</label>
+                <input type="password" id="loginInput" placeholder="Masukkan ID anda..."
+                    class="w-full p-3 border-2 border-slate-200 rounded-xl text-sm font-bold focus:border-blue-500 transition"
+                    onkeydown="if(event.key==='Enter') submitLogin()">
+            </div>
+            <div id="loginError" class="hidden mb-3 text-xs font-bold text-red-600 bg-red-50 px-3 py-2 rounded-lg border border-red-200">
+                ❌ ID tidak sah. Sila cuba lagi.
+            </div>
+            <div class="flex gap-2 mt-2">
+                <button onclick="closeModal('loginModal')" class="flex-1 py-2.5 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition">Batal</button>
+                <button onclick="submitLogin()" class="flex-1 py-2.5 rounded-xl bg-blue-900 text-white text-sm font-bold hover:bg-blue-800 transition">Log Masuk</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         MODAL: UPDATE REMARK
+    ══════════════════════════════════════════════ -->
+    <div id="remarkModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="flex items-center gap-3 mb-5">
+                <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 text-lg">📝</div>
+                <div>
+                    <h2 class="text-lg font-black text-slate-800">Kemaskini Remark</h2>
+                    <p class="text-xs text-slate-400" id="remarkSubtitle">Dokumen: —</p>
+                </div>
+            </div>
+            <div class="mb-2">
+                <label class="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1 block">Remark Baru</label>
+                <textarea id="remarkInput" rows="3" placeholder="Masukkan remark..."
+                    class="w-full p-3 border-2 border-slate-200 rounded-xl text-sm font-bold resize-none transition"></textarea>
+            </div>
+            <p class="text-[10px] text-slate-400 mb-4">Remark akan disimpan sebagai: <span id="remarkPreview" class="font-black text-slate-600">—</span></p>
+            <div class="flex gap-2">
+                <button onclick="closeModal('remarkModal')" class="flex-1 py-2.5 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition">Batal</button>
+                <button onclick="submitRemark()" class="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 transition">Hantar Remark</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         MODAL: LOGOUT CONFIRM
+    ══════════════════════════════════════════════ -->
+    <div id="logoutModal" class="modal-overlay">
+        <div class="modal-box max-w-sm">
+            <div class="text-center mb-5">
+                <div class="w-14 h-14 rounded-2xl bg-red-100 flex items-center justify-center text-red-500 text-2xl mx-auto mb-3">👋</div>
+                <h2 class="text-lg font-black text-slate-800">Log Keluar?</h2>
+                <p class="text-sm text-slate-400 mt-1">Anda akan kembali ke mod baca sahaja.</p>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="closeModal('logoutModal')" class="flex-1 py-2.5 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-600 hover:bg-slate-50 transition">Batal</button>
+                <button onclick="confirmLogout()" class="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 transition">Log Keluar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════
+         TOP NAVIGATION BAR
+    ══════════════════════════════════════════════ -->
+    <nav class="topbar sticky top-0 z-50 shadow-xl">
+        <div class="max-w-screen-xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+            <!-- Brand -->
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="w-9 h-9 rounded-xl bg-blue-500/20 border border-blue-400/30 flex items-center justify-center text-blue-300 text-base flex-shrink-0">📊</div>
+                <div class="min-w-0">
+                    <div class="text-white font-black text-sm tracking-tight leading-none truncate">CreditSales <span class="text-blue-300">Enterprise</span></div>
+                    <div class="text-blue-300/70 text-[10px] font-semibold tracking-widest uppercase">v4.0 · Live Tracking</div>
+                </div>
+            </div>
+
+            <!-- Auth Status + Actions -->
+            <div class="flex items-center gap-2 flex-shrink-0">
+                <div id="authStatus"></div>
+                <button id="loginBtn" onclick="openModal('loginModal')"
+                    class="bg-blue-500/20 border border-blue-400/40 text-blue-200 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-500/30 transition flex items-center gap-1.5">
+                    🔑 <span class="hidden sm:inline">Log Masuk</span>
+                </button>
+                <button id="logoutBtn" onclick="openModal('logoutModal')"
+                    class="hidden bg-red-500/20 border border-red-400/40 text-red-300 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-500/30 transition flex items-center gap-1.5">
+                    👋 <span class="hidden sm:inline">Log Keluar</span>
+                </button>
+                <button onclick="fetchData(true)"
+                    class="bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-emerald-500/30 transition flex items-center gap-1.5">
+                    🔄 <span class="hidden sm:inline">Sync</span>
+                </button>
+                <button onclick="exportCSV()"
+                    class="bg-violet-500/20 border border-violet-400/40 text-violet-300 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-violet-500/30 transition flex items-center gap-1.5">
+                    📥 <span class="hidden sm:inline">Export</span>
                 </button>
             </div>
-        </header>
+        </div>
+    </nav>
 
-        <div class="bg-white p-5 rounded-2xl shadow-sm mb-6 border-b-4 border-slate-200">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="relative">
-                    <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Carian Pantas</label>
-                    <input type="text" id="filterGeneral" oninput="fastFilter()" placeholder="Sekolah / Nickname / Doc..." class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:border-blue-500 outline-none transition font-bold">
-                </div>
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Cawangan</label>
-                    <input type="text" id="filterBranch" oninput="fastFilter()" placeholder="Semua Cawangan..." class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:border-blue-500 outline-none transition font-bold">
-                </div>
-                <div>
-                    <label class="text-[10px] font-black text-slate-400 uppercase ml-1">Salesman</label>
-                    <input type="text" id="filterSalesman" oninput="fastFilter()" placeholder="Nama Salesman..." class="w-full p-3 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm focus:border-blue-500 outline-none transition font-bold">
-                </div>
-            </div>
-            <div id="countDisplay" class="mt-3 text-[10px] font-bold text-slate-400 uppercase italic tracking-wider">Memaparkan: -- rekod</div>
+    <!-- ══════════════════════════════════════════════
+         MAIN CONTENT
+    ══════════════════════════════════════════════ -->
+    <main class="max-w-screen-xl mx-auto px-4 py-6">
+
+        <!-- ── STAT CARDS ── -->
+        <div id="statCards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <!-- Skeleton placeholders -->
+            <div class="stat-card"><div class="skeleton h-4 w-16 mb-2"></div><div class="skeleton h-8 w-24"></div></div>
+            <div class="stat-card"><div class="skeleton h-4 w-16 mb-2"></div><div class="skeleton h-8 w-24"></div></div>
+            <div class="stat-card"><div class="skeleton h-4 w-16 mb-2"></div><div class="skeleton h-8 w-24"></div></div>
+            <div class="stat-card"><div class="skeleton h-4 w-16 mb-2"></div><div class="skeleton h-8 w-24"></div></div>
         </div>
 
-        <div class="bg-white rounded-2xl shadow-sm overflow-hidden border border-slate-200">
+        <!-- ── FILTER PANEL ── -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 mb-5">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-sm font-black text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                    🔍 Panel Carian & Penapis
+                </h2>
+                <button onclick="clearFilters()" class="text-[10px] font-bold text-slate-400 hover:text-red-500 uppercase tracking-wider transition">
+                    ✕ Kosongkan
+                </button>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                <!-- General Search -->
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">Carian Pantas</label>
+                    <input type="text" id="filterGeneral" oninput="applyFilters()" placeholder="Sekolah / Nickname / Doc..."
+                        class="w-full p-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm font-semibold transition">
+                </div>
+                <!-- Branch Dropdown -->
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">Cawangan</label>
+                    <select id="filterBranch" onchange="applyFilters()"
+                        class="w-full p-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm font-semibold transition cursor-pointer">
+                        <option value="">Semua Cawangan</option>
+                    </select>
+                </div>
+                <!-- Salesman Dropdown -->
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">Salesman</label>
+                    <select id="filterSalesman" onchange="applyFilters()"
+                        class="w-full p-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm font-semibold transition cursor-pointer">
+                        <option value="">Semua Salesman</option>
+                    </select>
+                </div>
+                <!-- Date Filter -->
+                <div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 block">Tarikh</label>
+                    <input type="date" id="filterDate" onchange="applyFilters()"
+                        class="w-full p-2.5 bg-slate-50 border-2 border-slate-100 rounded-xl text-sm font-semibold transition cursor-pointer">
+                </div>
+            </div>
+            <!-- Result Count + Page Size -->
+            <div class="flex flex-wrap items-center justify-between gap-2 mt-4 pt-3 border-t border-slate-100">
+                <div id="countDisplay" class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                    Memaparkan: — rekod
+                </div>
+                <div class="flex items-center gap-2">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase">Baris / Halaman:</label>
+                    <select id="pageSizeSelect" onchange="changePageSize()" class="text-xs font-bold border-2 border-slate-100 rounded-lg px-2 py-1 bg-slate-50 cursor-pointer">
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── DATA TABLE ── -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-5">
+            <!-- Table Header Bar -->
+            <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center justify-between">
+                <h3 class="text-xs font-black text-slate-600 uppercase tracking-wider">Rekod Jualan Kredit</h3>
+                <div id="syncTimeDisplay" class="text-[10px] text-slate-400 font-semibold"></div>
+            </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-slate-100 border-b">
+                <table id="mainTable" class="w-full text-left grid-table min-w-[700px]">
+                    <thead class="bg-slate-50">
                         <tr>
-                            <th class="p-4 text-[10px] font-black uppercase text-slate-500">Transaksi</th>
-                            <th class="p-4 text-[10px] font-black uppercase text-slate-500">Butiran & Info</th>
-                            <th class="p-4 text-[10px] font-black uppercase text-slate-500">Dokumen</th>
-                            <th class="p-4 text-[10px] font-black uppercase text-slate-500">Tindakan & Remark</th>
+                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider w-10 bg-slate-50">#</th>
+                            <th id="th-branch"   class="sortable px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider bg-slate-50" onclick="sortBy('branch')">
+                                Cawangan / Salesman <span class="sort-icon"><span class="arr-up"></span><span class="arr-down"></span></span>
+                            </th>
+                            <th id="th-datetime" class="sortable px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider bg-slate-50" onclick="sortBy('datetime')">
+                                Tarikh <span class="sort-icon"><span class="arr-up"></span><span class="arr-down"></span></span>
+                            </th>
+                            <th id="th-school"   class="sortable px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider bg-slate-50" onclick="sortBy('school')">
+                                Butiran Pelanggan <span class="sort-icon"><span class="arr-up"></span><span class="arr-down"></span></span>
+                            </th>
+                            <th id="th-docNo"    class="sortable px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider bg-slate-50" onclick="sortBy('docNo')">
+                                Dokumen <span class="sort-icon"><span class="arr-up"></span><span class="arr-down"></span></span>
+                            </th>
+                            <th class="px-4 py-3 text-[10px] font-black uppercase text-slate-500 tracking-wider bg-slate-50">Status & Tindakan</th>
                         </tr>
                     </thead>
-                    <tbody id="dashBody" class="divide-y divide-slate-100">
-                        </tbody>
+                    <tbody id="dashBody">
+                        <!-- Skeleton rows -->
+                        <tr><td colspan="6" class="p-8 text-center text-slate-300 text-sm font-semibold">Memuatkan data...</td></tr>
+                    </tbody>
                 </table>
             </div>
         </div>
-    </div>
 
+        <!-- ── PAGINATION ── -->
+        <div id="paginationContainer" class="flex flex-wrap items-center justify-between gap-3 bg-white rounded-2xl border border-slate-200 px-5 py-3 shadow-sm">
+            <div id="paginationInfo" class="text-xs font-bold text-slate-500"></div>
+            <div id="paginationBtns" class="flex flex-wrap gap-1.5"></div>
+        </div>
+
+    </main>
+
+    <!-- ══════════════════════════════════════════════
+         FOOTER
+    ══════════════════════════════════════════════ -->
+    <footer class="text-center py-6 text-[10px] text-slate-400 font-semibold uppercase tracking-widest">
+        CreditSales Enterprise v4.0 &nbsp;·&nbsp; Hak Cipta Terpelihara &nbsp;·&nbsp; <span id="footerTime"></span>
+    </footer>
+
+    <!-- ══════════════════════════════════════════════
+         JAVASCRIPT — ENTERPRISE CORE
+    ══════════════════════════════════════════════ -->
     <script>
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxreXhv__TCtjnyxFqhCrRbjyqSlGytoTxJh6KN8QkTwDk2xY8ysOKfMmpBCJfvFyUV/exec";
-        let LOCAL_DATA = [];
+    /* ─────────────────────────────────────────────
+       CONSTANTS & STATE
+    ───────────────────────────────────────────── */
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxreXhv__TCtjnyxFqhCrRbjyqSlGytoTxJh6KN8QkTwDk2xY8ysOKfMmpBCJfvFyUV/exec";
+    const CACHE_KEY   = 'sales_data_cache';
+    const CACHE_TIME  = 'sales_data_time';
+    const CACHE_TTL   = 300000; // 5 minutes
 
-        // --- 1. DATA FETCHING ---
-        async function fetchData(forceRefresh = false) {
-            const cachedData = localStorage.getItem('sales_data_cache');
-            const cacheTime = localStorage.getItem('sales_data_time');
-            const now = new Date().getTime();
+    let LOCAL_DATA     = [];   // full dataset
+    let FILTERED_DATA  = [];   // after filters
+    let CURRENT_PAGE   = 1;
+    let PAGE_SIZE      = 20;
 
-            if (!forceRefresh && cachedData && cacheTime && (now - cacheTime < 300000)) {
-                LOCAL_DATA = JSON.parse(cachedData);
-                renderTable(LOCAL_DATA);
+    // Sort state
+    let SORT_COL = 'datetime';
+    let SORT_DIR = 'desc';     // 'asc' | 'desc'
+
+    // Remark modal state
+    let _remarkRow     = null;
+    let _remarkRole    = null;
+
+    /* ─────────────────────────────────────────────
+       UTILITY: TOAST
+    ───────────────────────────────────────────── */
+    function showToast(msg, type = 'success') {
+        const icons = { success: '✅', error: '❌', info: 'ℹ️', warn: '⚠️' };
+        const colors = { success: 'bg-slate-800', error: 'bg-red-700', info: 'bg-blue-700', warn: 'bg-amber-600' };
+        const t = document.getElementById('toast');
+        document.getElementById('toastMsg').textContent  = msg;
+        document.getElementById('toastIcon').textContent = icons[type] || '📌';
+        document.getElementById('toastContent').className =
+            `flex items-center gap-3 ${colors[type]||'bg-slate-800'} text-white px-5 py-3 rounded-2xl shadow-2xl text-sm font-semibold min-w-[240px]`;
+        t.classList.add('show');
+        setTimeout(() => t.classList.remove('show'), 3500);
+    }
+
+    /* ─────────────────────────────────────────────
+       UTILITY: MODAL
+    ───────────────────────────────────────────── */
+    function openModal(id)  { document.getElementById(id).classList.add('active'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+
+    // Close modal on overlay click
+    document.querySelectorAll('.modal-overlay').forEach(el => {
+        el.addEventListener('click', e => { if (e.target === el) el.classList.remove('active'); });
+    });
+
+    /* ─────────────────────────────────────────────
+       1. DATA FETCHING (with cache + skeleton)
+    ───────────────────────────────────────────── */
+    async function fetchData(forceRefresh = false) {
+        const cached   = localStorage.getItem(CACHE_KEY);
+        const cacheTs  = localStorage.getItem(CACHE_TIME);
+        const now      = Date.now();
+
+        if (!forceRefresh && cached && cacheTs && (now - cacheTs < CACHE_TTL)) {
+            LOCAL_DATA = JSON.parse(cached);
+            initDashboard();
+            return;
+        }
+
+        showLoader(true);
+        try {
+            const r    = await fetch(WEB_APP_URL + "?action=getData");
+            LOCAL_DATA = await r.json();
+            localStorage.setItem(CACHE_KEY,  JSON.stringify(LOCAL_DATA));
+            localStorage.setItem(CACHE_TIME, now.toString());
+            initDashboard();
+            showToast('Data berjaya dikemaskini!', 'success');
+        } catch (e) {
+            showToast('Gagal Sync. Periksa sambungan internet anda.', 'error');
+            // Fallback to stale cache if available
+            if (cached) {
+                LOCAL_DATA = JSON.parse(cached);
+                initDashboard();
+            }
+        } finally {
+            showLoader(false);
+        }
+    }
+
+    function showLoader(show) {
+        document.getElementById('loader').style.display = show ? 'flex' : 'none';
+    }
+
+    /* ─────────────────────────────────────────────
+       INIT DASHBOARD (after data loaded)
+    ───────────────────────────────────────────── */
+    function initDashboard() {
+        updateAuthUI();
+        buildDropdowns();
+        updateStatCards();
+        applyFilters();
+        updateSyncTime();
+        updateSortHeaders();
+    }
+
+    /* ─────────────────────────────────────────────
+       STAT CARDS
+    ───────────────────────────────────────────── */
+    function updateStatCards() {
+        const today = new Date().toLocaleDateString('ms-MY');
+        const todayCount = LOCAL_DATA.filter(d => {
+            if (!d.datetime) return false;
+            return new Date(d.datetime).toLocaleDateString('ms-MY') === today;
+        }).length;
+        const branches  = [...new Set(LOCAL_DATA.map(d => d.branch).filter(Boolean))].length;
+        const salesmen  = [...new Set(LOCAL_DATA.map(d => d.salesman).filter(Boolean))].length;
+
+        document.getElementById('statCards').innerHTML = `
+            <div class="stat-card">
+                <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Jumlah Rekod</div>
+                <div class="text-3xl font-black text-slate-800">${LOCAL_DATA.length.toLocaleString()}</div>
+                <div class="text-[10px] text-slate-400 mt-1 font-semibold">Keseluruhan transaksi</div>
+            </div>
+            <div class="stat-card">
+                <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Hari Ini</div>
+                <div class="text-3xl font-black text-blue-700">${todayCount}</div>
+                <div class="text-[10px] text-slate-400 mt-1 font-semibold">Rekod baru hari ini</div>
+            </div>
+            <div class="stat-card">
+                <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Cawangan</div>
+                <div class="text-3xl font-black text-emerald-700">${branches}</div>
+                <div class="text-[10px] text-slate-400 mt-1 font-semibold">Cawangan aktif</div>
+            </div>
+            <div class="stat-card">
+                <div class="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">Salesman</div>
+                <div class="text-3xl font-black text-violet-700">${salesmen}</div>
+                <div class="text-[10px] text-slate-400 mt-1 font-semibold">Salesman aktif</div>
+            </div>
+        `;
+    }
+
+    /* ─────────────────────────────────────────────
+       BUILD DROPDOWNS (Branch & Salesman)
+    ───────────────────────────────────────────── */
+    function buildDropdowns() {
+        const branches  = [...new Set(LOCAL_DATA.map(d => d.branch).filter(Boolean))].sort();
+        const salesmen  = [...new Set(LOCAL_DATA.map(d => d.salesman).filter(Boolean))].sort();
+
+        const brSel = document.getElementById('filterBranch');
+        const slSel = document.getElementById('filterSalesman');
+
+        const curBr = brSel.value;
+        const curSl = slSel.value;
+
+        brSel.innerHTML = '<option value="">Semua Cawangan</option>' +
+            branches.map(b => `<option value="${b}" ${b===curBr?'selected':''}>${b}</option>`).join('');
+        slSel.innerHTML = '<option value="">Semua Salesman</option>' +
+            salesmen.map(s => `<option value="${s}" ${s===curSl?'selected':''}>${s}</option>`).join('');
+    }
+
+    /* ─────────────────────────────────────────────
+       2. FILTER + PAGINATION
+    ───────────────────────────────────────────── */
+    function applyFilters() {
+        const gen  = document.getElementById('filterGeneral').value.toLowerCase().trim();
+        const br   = document.getElementById('filterBranch').value.toLowerCase();
+        const sl   = document.getElementById('filterSalesman').value.toLowerCase();
+        const dt   = document.getElementById('filterDate').value; // YYYY-MM-DD
+
+        FILTERED_DATA = LOCAL_DATA.filter(item => {
+            const text    = `${item.school} ${item.nickname} ${item.docNo} ${item.phone} ${item.salesmanAction} ${item.adminAction}`.toLowerCase();
+            const branch  = (item.branch   || '').toLowerCase();
+            const salesman= (item.salesman || '').toLowerCase();
+            const itemDate= item.datetime ? new Date(item.datetime).toISOString().slice(0,10) : '';
+
+            return (!gen || text.includes(gen))
+                && (!br  || branch.includes(br))
+                && (!sl  || salesman.includes(sl))
+                && (!dt  || itemDate === dt);
+        });
+
+        applySortToFiltered();
+        CURRENT_PAGE = 1;
+        renderPage();
+    }
+
+    /* ─────────────────────────────────────────────
+       SORT
+    ───────────────────────────────────────────── */
+    function sortBy(col) {
+        if (SORT_COL === col) {
+            SORT_DIR = SORT_DIR === 'asc' ? 'desc' : 'asc';
+        } else {
+            SORT_COL = col;
+            SORT_DIR = col === 'datetime' ? 'desc' : 'asc';
+        }
+        applySortToFiltered();
+        CURRENT_PAGE = 1;
+        renderPage();
+        updateSortHeaders();
+    }
+
+    function applySortToFiltered() {
+        const col = SORT_COL;
+        const dir = SORT_DIR === 'asc' ? 1 : -1;
+
+        FILTERED_DATA.sort((a, b) => {
+            let va = a[col] || '';
+            let vb = b[col] || '';
+
+            if (col === 'datetime') {
+                va = va ? new Date(va).getTime() : 0;
+                vb = vb ? new Date(vb).getTime() : 0;
+                return (va - vb) * dir;
+            }
+            return String(va).localeCompare(String(vb), 'ms') * dir;
+        });
+
+        updateSortHeaders();
+    }
+
+    function updateSortHeaders() {
+        const cols = ['branch','datetime','school','docNo'];
+        cols.forEach(c => {
+            const th = document.getElementById('th-' + c);
+            if (!th) return;
+            th.classList.remove('sort-asc','sort-desc');
+            if (c === SORT_COL) th.classList.add(SORT_DIR === 'asc' ? 'sort-asc' : 'sort-desc');
+        });
+    }
+
+    function clearFilters() {
+        document.getElementById('filterGeneral').value = '';
+        document.getElementById('filterBranch').value  = '';
+        document.getElementById('filterSalesman').value= '';
+        document.getElementById('filterDate').value    = '';
+        applyFilters();
+    }
+
+    function changePageSize() {
+        PAGE_SIZE    = parseInt(document.getElementById('pageSizeSelect').value);
+        CURRENT_PAGE = 1;
+        renderPage();
+    }
+
+    /* ─────────────────────────────────────────────
+       3. RENDER PAGE (Pagination + Lazy Render)
+    ───────────────────────────────────────────── */
+    function renderPage() {
+        const total      = FILTERED_DATA.length;
+        const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+        if (CURRENT_PAGE > totalPages) CURRENT_PAGE = totalPages;
+
+        const start = (CURRENT_PAGE - 1) * PAGE_SIZE;
+        const end   = Math.min(start + PAGE_SIZE, total);
+        const slice = FILTERED_DATA.slice(start, end);
+
+        // Update count
+        document.getElementById('countDisplay').textContent =
+            `Memaparkan: ${total.toLocaleString()} rekod  (Halaman ${CURRENT_PAGE} / ${totalPages})`;
+
+        // Render table rows
+        renderTableRows(slice, start);
+
+        // Render pagination
+        renderPagination(total, totalPages, start + 1, end);
+    }
+
+    /* ─────────────────────────────────────────────
+       3a. TABLE ROW RENDERER (lazy batch)
+    ───────────────────────────────────────────── */
+    function renderTableRows(slice, startIndex) {
+        const body = document.getElementById('dashBody');
+        const role = localStorage.getItem("myAppRole") || "GUEST";
+
+        if (!slice || slice.length === 0) {
+            body.innerHTML = `<tr><td colspan="6" class="p-12 text-center">
+                <div class="text-slate-300 text-4xl mb-3">🔍</div>
+                <div class="text-slate-400 font-bold text-sm">Tiada rekod ditemukan.</div>
+                <div class="text-slate-300 text-xs mt-1">Cuba ubah penapis carian anda.</div>
+            </td></tr>`;
+            return;
+        }
+
+        // Lazy batch render: build fragment, then inject once
+        const fragment = document.createDocumentFragment();
+        slice.forEach((item, idx) => {
+            const tr = document.createElement('tr');
+            tr.className = 'hover:bg-blue-50/30 transition-colors group';
+            tr.setAttribute('data-branch',   item.branch   || '');
+            tr.setAttribute('data-salesman', item.salesman || '');
+            tr.innerHTML = buildRowHTML(item, startIndex + idx + 1, role);
+            fragment.appendChild(tr);
+        });
+
+        body.innerHTML = '';
+        body.appendChild(fragment);
+    }
+
+    function buildRowHTML(item, rowNum, role) {
+        const dateStr = item.datetime
+            ? new Date(item.datetime).toLocaleDateString('ms-MY', {day:'2-digit',month:'short',year:'numeric'})
+            : '—';
+
+        const sAction = item.salesmanAction || '';
+        const aAction = item.adminAction    || '';
+
+        const sBadge  = getStatusBadge(sAction);
+        const aBadge  = getStatusBadge(aAction);
+
+        const canEdit = role !== 'GUEST';
+        const editBtn = canEdit
+            ? `<button onclick="openRemarkModal(${item.row}, '${role}', \`${escStr(sAction)}\`, '${escStr(item.docNo)}')"
+                   class="mt-2 text-[10px] font-black text-amber-600 hover:text-amber-800 uppercase tracking-wider flex items-center gap-1 transition">
+                   ✏️ Kemaskini Remark
+               </button>`
+            : '';
+
+        return `
+            <td class="px-3 py-3 text-xs text-slate-400 font-bold text-center bg-slate-50/60 border-r border-slate-200">${rowNum}</td>
+            <td class="px-4 py-3">
+                <span class="badge badge-blue mb-1">${item.branch || '—'}</span>
+                <div class="text-sm font-black text-slate-800 leading-tight">${item.salesman || '—'}</div>
+            </td>
+            <td class="px-4 py-3 whitespace-nowrap">
+                <div class="text-xs font-bold text-slate-700">${dateStr}</div>
+            </td>
+            <td class="px-4 py-3">
+                <div class="text-sm font-black text-slate-700 uppercase leading-tight">${item.school || '—'}</div>
+                <div class="text-xs text-blue-500 font-bold mt-0.5">${item.nickname || '—'}</div>
+                <div class="text-[10px] text-slate-400 font-semibold mt-1">📞 ${item.phone || '—'}</div>
+            </td>
+            <td class="px-4 py-3">
+                <div class="font-mono text-xs font-black text-slate-700 bg-slate-100 px-2 py-1 rounded-lg inline-block mb-1.5">${item.docNo || '—'}</div>
+                ${item.link && item.link !== 'tiada'
+                    ? `<br><a href="${item.link}" target="_blank"
+                           class="inline-flex items-center gap-1 text-[10px] font-black text-blue-600 hover:text-blue-800 uppercase tracking-wider transition">
+                           📂 Buka Folder
+                       </a>`
+                    : '<div class="text-[10px] text-slate-300 font-semibold">Tiada Dokumen</div>'}
+            </td>
+            <td class="px-4 py-3">
+                <div class="space-y-1.5">
+                    <div class="flex items-start gap-1.5">
+                        <span class="text-[9px] font-black text-slate-400 uppercase mt-0.5 w-4 flex-shrink-0">S:</span>
+                        <div>${sBadge || `<span class="text-[10px] text-slate-400 font-semibold">—</span>`}</div>
+                    </div>
+                    <div class="flex items-start gap-1.5">
+                        <span class="text-[9px] font-black text-slate-400 uppercase mt-0.5 w-4 flex-shrink-0">A:</span>
+                        <div>${aBadge || `<span class="text-[10px] text-slate-400 font-semibold">—</span>`}</div>
+                    </div>
+                    ${editBtn}
+                </div>
+            </td>`;
+    }
+
+    /* ─────────────────────────────────────────────
+       STATUS BADGE HELPER
+    ───────────────────────────────────────────── */
+    function getStatusBadge(text) {
+        if (!text || text === '-' || text.trim() === '') return '';
+        const t = text.toUpperCase();
+        let cls = 'badge-gray';
+        if (t.includes('LULUS') || t.includes('APPROVE') || t.includes('SELESAI') || t.includes('DONE'))   cls = 'badge-green';
+        else if (t.includes('PENDING') || t.includes('TUNGGU') || t.includes('PROSES'))                    cls = 'badge-yellow';
+        else if (t.includes('TOLAK') || t.includes('REJECT') || t.includes('BATAL') || t.includes('FAIL')) cls = 'badge-red';
+        else if (t.includes('HANTAR') || t.includes('SUBMIT') || t.includes('SENT'))                       cls = 'badge-blue';
+        return `<span class="badge ${cls} max-w-[160px] truncate" title="${escStr(text)}">${text}</span>`;
+    }
+
+    function escStr(s) {
+        return String(s || '').replace(/'/g,"&#39;").replace(/"/g,"&quot;").replace(/`/g,"&#96;");
+    }
+
+    /* ─────────────────────────────────────────────
+       PAGINATION RENDERER
+    ───────────────────────────────────────────── */
+    function renderPagination(total, totalPages, from, to) {
+        document.getElementById('paginationInfo').textContent =
+            total === 0 ? 'Tiada rekod' : `Menunjukkan ${from}–${to} daripada ${total.toLocaleString()} rekod`;
+
+        const container = document.getElementById('paginationBtns');
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+        let html = '';
+
+        // Prev
+        html += `<button class="page-btn" onclick="goPage(${CURRENT_PAGE-1})" ${CURRENT_PAGE===1?'disabled':''}>‹</button>`;
+
+        // Page numbers (smart ellipsis)
+        const pages = getPageRange(CURRENT_PAGE, totalPages);
+        let prev = null;
+        pages.forEach(p => {
+            if (prev !== null && p - prev > 1) html += `<span class="page-btn" style="cursor:default;border:none;color:#94a3b8">…</span>`;
+            html += `<button class="page-btn ${p===CURRENT_PAGE?'active':''}" onclick="goPage(${p})">${p}</button>`;
+            prev = p;
+        });
+
+        // Next
+        html += `<button class="page-btn" onclick="goPage(${CURRENT_PAGE+1})" ${CURRENT_PAGE===totalPages?'disabled':''}>›</button>`;
+
+        container.innerHTML = html;
+    }
+
+    function getPageRange(current, total) {
+        if (total <= 7) return Array.from({length: total}, (_, i) => i + 1);
+        const pages = new Set([1, total, current]);
+        for (let i = Math.max(2, current-1); i <= Math.min(total-1, current+1); i++) pages.add(i);
+        return [...pages].sort((a,b) => a-b);
+    }
+
+    function goPage(p) {
+        const totalPages = Math.ceil(FILTERED_DATA.length / PAGE_SIZE);
+        if (p < 1 || p > totalPages) return;
+        CURRENT_PAGE = p;
+        renderPage();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    /* ─────────────────────────────────────────────
+       SYNC TIME DISPLAY
+    ───────────────────────────────────────────── */
+    function updateSyncTime() {
+        const ts = localStorage.getItem(CACHE_TIME);
+        if (!ts) return;
+        const d = new Date(parseInt(ts));
+        document.getElementById('syncTimeDisplay').textContent =
+            `Terakhir sync: ${d.toLocaleTimeString('ms-MY', {hour:'2-digit',minute:'2-digit'})}`;
+    }
+
+    /* ─────────────────────────────────────────────
+       4. AUTHENTICATION
+    ───────────────────────────────────────────── */
+    async function submitLogin() {
+        const id = document.getElementById('loginInput').value.trim();
+        if (!id) return;
+        document.getElementById('loginError').classList.add('hidden');
+        showLoader(true);
+        try {
+            const r   = await fetch(WEB_APP_URL + "?action=checkUser&id=" + encodeURIComponent(id));
+            const res = await r.text();
+            if (res !== "GUEST|NONE") {
+                const [role, name] = res.split("|");
+                localStorage.setItem("myAppRole", role);
+                localStorage.setItem("myAppName", name);
+                closeModal('loginModal');
+                document.getElementById('loginInput').value = '';
+                showToast(`Selamat datang, ${name}!`, 'success');
                 updateAuthUI();
-                return;
-            }
-
-            document.getElementById('loader').style.display = 'flex';
-            try {
-                const r = await fetch(WEB_APP_URL + "?action=getData");
-                LOCAL_DATA = await r.json();
-                
-                localStorage.setItem('sales_data_cache', JSON.stringify(LOCAL_DATA));
-                localStorage.setItem('sales_data_time', now.toString());
-                
-                renderTable(LOCAL_DATA);
-                updateAuthUI();
-            } catch (e) {
-                alert('Gagal Sync Data. Periksa Internet anda.');
-            } finally {
-                document.getElementById('loader').style.display = 'none';
-            }
-        }
-
-        // --- 2. FAST FILTER ---
-        function fastFilter() {
-            const gen = document.getElementById('filterGeneral').value.toLowerCase();
-            const br = document.getElementById('filterBranch').value.toLowerCase();
-            const sl = document.getElementById('filterSalesman').value.toLowerCase();
-
-            const rows = document.querySelectorAll('#dashBody tr');
-            let visibleCount = 0;
-
-            rows.forEach(row => {
-                const text = row.innerText.toLowerCase();
-                const branch = row.getAttribute('data-branch').toLowerCase();
-                const salesman = row.getAttribute('data-salesman').toLowerCase();
-
-                const matchGen = text.includes(gen);
-                const matchBr = branch.includes(br);
-                const matchSl = salesman.includes(sl);
-
-                if (matchGen && matchBr && matchSl) {
-                    row.classList.remove('hidden-row');
-                    visibleCount++;
-                } else {
-                    row.classList.add('hidden-row');
-                }
-            });
-            document.getElementById('countDisplay').innerText = `Memaparkan: ${visibleCount} rekod`;
-        }
-
-        // --- 3. RENDER TABLE ---
-        function renderTable(data) {
-            const body = document.getElementById('dashBody');
-            const role = localStorage.getItem("myAppRole") || "GUEST";
-
-            if (!data || data.length === 0) {
-                body.innerHTML = '<tr><td colspan="4" class="p-10 text-center text-slate-400 italic">Tiada rekod ditemukan.</td></tr>';
-                return;
-            }
-
-            body.innerHTML = data.map(item => {
-                return `
-                <tr data-branch="${item.branch}" data-salesman="${item.salesman}" class="hover:bg-blue-50/40 transition-colors">
-                    <td class="p-4">
-                        <div class="text-[9px] font-black text-blue-600 uppercase tracking-tighter">${item.branch}</div>
-                        <div class="text-sm font-bold text-slate-800">${item.salesman}</div>
-                        <div class="text-[9px] text-slate-400 font-bold tracking-widest">${item.datetime ? new Date(item.datetime).toLocaleDateString('ms-MY') : '-'}</div>
-                    </td>
-                    <td class="p-4">
-                        <div class="text-sm font-black text-slate-700 uppercase tracking-tight">${item.school}</div>
-                        <div class="text-xs text-blue-500 font-bold">${item.nickname}</div>
-                        <div class="text-[10px] text-slate-400 font-bold mt-1">${item.phone || '-'}</div>
-                    </td>
-                    <td class="p-4">
-                        <div class="font-mono text-xs font-black text-slate-600 bg-slate-100 px-2 py-1 rounded inline-block mb-1">${item.docNo}</div>
-                        <br>
-                        ${item.link !== 'tiada' ? `<a href="${item.link}" target="_blank" class="text-[9px] font-black text-blue-600 underline hover:text-blue-800 uppercase tracking-widest">Buka Folder 📂</a>` : ''}
-                    </td>
-                    <td class="p-4">
-                        <div class="flex flex-col gap-1.5">
-                            <div class="text-[10px] leading-tight">
-                                <span class="font-black text-slate-400 uppercase mr-1">S:</span> 
-                                <span class="text-slate-700 font-bold">${item.salesmanAction || '-'}</span>
-                            </div>
-                            <div class="text-[10px] leading-tight">
-                                <span class="font-black text-slate-400 uppercase mr-1">A:</span> 
-                                <span class="text-slate-700 font-bold">${item.adminAction || '-'}</span>
-                            </div>
-                            <button onclick="updateStatus(${item.row}, '${role}', '${item.salesmanAction}')" class="text-[10px] font-black text-blue-600 uppercase hover:underline text-left mt-1">
-                                ${role !== 'GUEST' ? '📝 Kemaskini Remark' : ''}
-                            </button>
-                        </div>
-                    </td>
-                </tr>`;
-            }).join('');
-            fastFilter(); 
-        }
-
-        // --- 4. AUTHENTICATION ---
-        async function loginStaff() {
-            const id = prompt("Masukkan User ID:");
-            if (!id) return;
-            document.getElementById('loader').style.display = 'flex';
-            try {
-                const r = await fetch(WEB_APP_URL + "?action=checkUser&id=" + encodeURIComponent(id));
-                const res = await r.text();
-                if (res !== "GUEST|NONE") {
-                    const [role, name] = res.split("|");
-                    localStorage.setItem("myAppRole", role);
-                    localStorage.setItem("myAppName", name);
-                    location.reload();
-                } else { alert("ID Salah!"); }
-            } catch (e) { alert("Ralat Server."); }
-            finally { document.getElementById('loader').style.display = 'none'; }
-        }
-
-        function logoutStaff() {
-            if(confirm("Log keluar sekarang?")) {
-                localStorage.clear();
-                location.reload();
-            }
-        }
-
-        function updateAuthUI() {
-            const role = localStorage.getItem("myAppRole") || "GUEST";
-            const name = localStorage.getItem("myAppName") || "";
-            const statusDiv = document.getElementById('authStatus');
-            if(role !== "GUEST") {
-                statusDiv.innerHTML = `<span class="text-[10px] font-black text-green-700 bg-green-100 px-2 py-1 rounded-lg border border-green-200 uppercase tracking-tighter italic">👤 ${name} (${role})</span>`;
-                document.getElementById('loginBtn').classList.add('hidden');
-                document.getElementById('logoutBtn').classList.remove('hidden');
+                renderPage(); // Re-render to show edit buttons
             } else {
-                statusDiv.innerHTML = `<span class="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-100 px-2 py-1 rounded-lg border border-slate-200">Mode: Read-Only</span>`;
+                document.getElementById('loginError').classList.remove('hidden');
             }
+        } catch (e) {
+            showToast('Ralat sambungan server.', 'error');
+        } finally {
+            showLoader(false);
         }
+    }
 
-        // --- 5. UPDATE REMARK ---
-        async function updateStatus(row, role, oldRemark) {
-            if (role === "GUEST") return;
-            const myName = localStorage.getItem("myAppName");
-            
-            // Bersihkan teks remark lama untuk dipaparkan dalam input
-            let cleanOldRemark = oldRemark;
-            if (oldRemark.includes(': ')) {
-                cleanOldRemark = oldRemark.split(': ')[1];
-            }
+    function confirmLogout() {
+        localStorage.removeItem("myAppRole");
+        localStorage.removeItem("myAppName");
+        closeModal('logoutModal');
+        showToast('Anda telah log keluar.', 'info');
+        updateAuthUI();
+        renderPage();
+    }
 
-            const newR = prompt("Masukkan Remark Baru:", cleanOldRemark === '-' ? "" : cleanOldRemark);
-            if (newR === null) return;
+    function updateAuthUI() {
+        const role = localStorage.getItem("myAppRole") || "GUEST";
+        const name = localStorage.getItem("myAppName") || "";
+        const statusDiv = document.getElementById('authStatus');
 
-            document.getElementById('loader').style.display = 'flex';
-            try {
-                const finalRemark = `${myName}: ${newR.toUpperCase()}`;
-                await fetch(WEB_APP_URL, {
-                    method: 'POST',
-                    mode: 'no-cors',
-                    body: JSON.stringify({ method: "UPDATE_REMARK", row: row, role: role, remark: finalRemark })
-                });
-                alert("Berjaya dihantar! Sila tunggu sebentar dan tekan Sync Data.");
-                setTimeout(() => fetchData(true), 1500); 
-            } catch (e) { alert("Ralat penghantaran."); }
-            finally { document.getElementById('loader').style.display = 'none'; }
+        if (role !== "GUEST") {
+            statusDiv.innerHTML = `
+                <span class="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-black text-emerald-300 bg-emerald-500/20 border border-emerald-400/30 px-2.5 py-1 rounded-lg uppercase tracking-tight">
+                    👤 ${name} <span class="text-emerald-400/60">·</span> ${role}
+                </span>`;
+            document.getElementById('loginBtn').classList.add('hidden');
+            document.getElementById('logoutBtn').classList.remove('hidden');
+        } else {
+            statusDiv.innerHTML = `
+                <span class="hidden sm:inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-400 bg-slate-500/20 border border-slate-400/20 px-2.5 py-1 rounded-lg uppercase tracking-wider">
+                    🔒 Read-Only
+                </span>`;
+            document.getElementById('loginBtn').classList.remove('hidden');
+            document.getElementById('logoutBtn').classList.add('hidden');
         }
+    }
 
-        window.onload = () => fetchData();
+    /* ─────────────────────────────────────────────
+       5. REMARK MODAL
+    ───────────────────────────────────────────── */
+    function openRemarkModal(row, role, oldRemark, docNo) {
+        if (role === 'GUEST') return;
+        _remarkRow  = row;
+        _remarkRole = role;
+
+        let clean = oldRemark || '';
+        if (clean.includes(': ')) clean = clean.split(': ').slice(1).join(': ');
+        if (clean === '-') clean = '';
+
+        document.getElementById('remarkSubtitle').textContent = `Dokumen: ${docNo || '—'}`;
+        document.getElementById('remarkInput').value = clean;
+        updateRemarkPreview();
+        openModal('remarkModal');
+        setTimeout(() => document.getElementById('remarkInput').focus(), 100);
+    }
+
+    function updateRemarkPreview() {
+        const myName = localStorage.getItem("myAppName") || "STAFF";
+        const val    = (document.getElementById('remarkInput').value || '').toUpperCase();
+        document.getElementById('remarkPreview').textContent = val ? `${myName}: ${val}` : '—';
+    }
+
+    document.getElementById('remarkInput').addEventListener('input', updateRemarkPreview);
+
+    async function submitRemark() {
+        if (!_remarkRow || _remarkRole === 'GUEST') return;
+        const myName = localStorage.getItem("myAppName");
+        const newR   = document.getElementById('remarkInput').value.trim();
+        if (newR === null) return;
+
+        const finalRemark = `${myName}: ${newR.toUpperCase()}`;
+        closeModal('remarkModal');
+        showLoader(true);
+        try {
+            await fetch(WEB_APP_URL, {
+                method: 'POST',
+                mode:   'no-cors',
+                body:   JSON.stringify({ method: "UPDATE_REMARK", row: _remarkRow, role: _remarkRole, remark: finalRemark })
+            });
+            showToast('Remark berjaya dihantar! Menyegerakkan data...', 'success');
+            setTimeout(() => fetchData(true), 1800);
+        } catch (e) {
+            showToast('Ralat semasa menghantar remark.', 'error');
+        } finally {
+            showLoader(false);
+        }
+    }
+
+    /* ─────────────────────────────────────────────
+       6. EXPORT CSV
+    ───────────────────────────────────────────── */
+    function exportCSV() {
+        if (!FILTERED_DATA.length) { showToast('Tiada data untuk dieksport.', 'warn'); return; }
+
+        const headers = ['No','Cawangan','Salesman','Tarikh','Sekolah','Nickname','Telefon','No Dokumen','Remark Salesman','Remark Admin'];
+        const rows = FILTERED_DATA.map((d, i) => [
+            i + 1,
+            d.branch    || '',
+            d.salesman  || '',
+            d.datetime  ? new Date(d.datetime).toLocaleDateString('ms-MY') : '',
+            d.school    || '',
+            d.nickname  || '',
+            d.phone     || '',
+            d.docNo     || '',
+            d.salesmanAction || '',
+            d.adminAction    || ''
+        ].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+
+        const csv  = [headers.join(','), ...rows].join('\r\n');
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        a.download = `CreditSales_Export_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`${FILTERED_DATA.length} rekod dieksport ke CSV.`, 'success');
+    }
+
+    /* ─────────────────────────────────────────────
+       FOOTER CLOCK
+    ───────────────────────────────────────────── */
+    function updateFooterClock() {
+        document.getElementById('footerTime').textContent =
+            new Date().toLocaleString('ms-MY', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    }
+
+    /* ─────────────────────────────────────────────
+       INIT
+    ───────────────────────────────────────────── */
+    window.onload = () => {
+        updateAuthUI();
+        updateFooterClock();
+        fetchData();
+    };
     </script>
 </body>
 </html>
