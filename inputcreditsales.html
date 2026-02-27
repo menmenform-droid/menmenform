@@ -6,7 +6,7 @@
     <title>Pendaftaran Credit Sales v3.5.2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .loading-overlay { display: none; background: rgba(0,0,0,0.85); position: fixed; inset: 0; z-index: 9999; justify-content: center; align-items: center; color: white; flex-direction: column; }
+        .loading-overlay { display: none; background: rgba(15,23,42,0.92); backdrop-filter: blur(10px); position: fixed; inset: 0; z-index: 9999; justify-content: center; align-items: center; color: white; flex-direction: column; }
         #whatsappBtn { display: none; }
         .preview-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 10px; margin-top: 15px; }
         .preview-box { position: relative; width: 100%; height: 100px; }
@@ -15,7 +15,7 @@
         input:focus, select:focus { border-color: #2563eb !important; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen p-4 md:p-8 text-slate-800">
+<body class="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen p-4 md:p-8 text-slate-800">
     
     <div id="loader" class="loading-overlay">
         <div class="animate-spin rounded-full h-12 w-12 border-4 border-blue-400 border-t-transparent mb-4"></div>
@@ -27,10 +27,26 @@
     </div>
 
     <div class="max-w-2xl mx-auto">
-        <div class="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
-            <div class="bg-blue-600 p-8 text-center">
-                <h2 class="text-2xl font-black text-white uppercase tracking-tighter italic">Credit Sales Registration</h2>
-                <p class="text-blue-100 text-[10px] font-bold uppercase tracking-[0.2em] mt-1">Multi-Image Support (Add one by one)</p>
+        <div class="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl shadow-blue-900/10 overflow-hidden border border-slate-200/80">
+            <div class="bg-gradient-to-r from-blue-600 via-blue-500 to-sky-500 p-6 md:p-8 text-white">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <p class="text-[10px] font-semibold tracking-[0.28em] uppercase text-blue-100/85">Enterprise Credit Sales Console</p>
+                        <h2 class="mt-2 text-2xl md:text-3xl font-black text-white uppercase tracking-tight italic drop-shadow-sm">Credit Sales Registration</h2>
+                        <p class="mt-1 text-[11px] md:text-[10px] font-semibold uppercase tracking-[0.24em] text-blue-100/90">
+                            Multi-Image Capture · Centralised Record · WhatsApp Ready
+                        </p>
+                    </div>
+                    <div class="flex flex-col items-start md:items-end gap-2 text-[10px] font-semibold uppercase tracking-[0.25em] text-blue-50/90">
+                        <span class="inline-flex items-center gap-2 rounded-full bg-blue-700/40 border border-blue-200/40 px-3 py-1">
+                            <span class="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse"></span>
+                            Live · v3.5.2
+                        </span>
+                        <span class="hidden md:inline text-[9px] text-blue-100/80">
+                            Data disimpan terus ke sistem dalaman syarikat.
+                        </span>
+                    </div>
+                </div>
             </div>
 
             <form id="mainForm" onsubmit="handleFormSubmit(event)" class="p-8 space-y-5">
@@ -103,33 +119,83 @@
         let allImages = [];
         let lastSavedData = null;
 
+        const loader = document.getElementById('loader');
+        const loaderStatus = document.getElementById('loaderStatus');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const imgCountLabel = document.getElementById('imgCount');
+
+        // Paksa semua input text / telefon jadi UPPERCASE semasa menaip
+        (function enforceUppercaseInputs() {
+            const inputs = document.querySelectorAll('input[type="text"], input[type="tel"]');
+            inputs.forEach(input => {
+                input.style.textTransform = 'uppercase';
+                input.addEventListener('input', () => {
+                    const start = input.selectionStart;
+                    const end = input.selectionEnd;
+                    input.value = input.value.toUpperCase();
+                    if (start !== null && end !== null) {
+                        input.setSelectionRange(start, end);
+                    }
+                });
+            });
+        })();
+
+        function showLoader(message, startPercent = 0) {
+            if (!loader) return;
+            loader.style.display = 'flex';
+            if (loaderStatus) loaderStatus.innerText = message;
+            updateProgress(startPercent);
+        }
+
+        function updateProgress(percent) {
+            if (!progressBar || !progressText) return;
+            const safe = Math.max(0, Math.min(100, Math.round(percent)));
+            progressBar.style.width = safe + '%';
+            progressText.innerText = safe + '% DIPROSES';
+        }
+
+        function hideLoader() {
+            if (!loader) return;
+            loader.style.display = 'none';
+        }
+
         // Listener untuk tambah gambar tanpa replace yang lama
         document.getElementById('imageFiles').addEventListener('change', async function(e) {
             const files = e.target.files;
-            if (files.length === 0) return;
+            if (!files || files.length === 0) return;
 
-            const loader = document.getElementById('loader');
-            loader.style.display = 'flex';
-            document.getElementById('loaderStatus').innerText = "MEMPROSES GAMBAR...";
+            showLoader("MEMPROSES GAMBAR...", 5);
 
-            for (let file of files) {
-                if (allImages.length >= 50) {
-                    alert("Maksimum 50 gambar sahaja!");
-                    break;
-                }
+            const MAX_IMAGES = 50;
+            const remainingSlots = MAX_IMAGES - allImages.length;
+            const filesToProcess = Array.from(files).slice(0, remainingSlots);
+
+            let processed = 0;
+            for (let file of filesToProcess) {
                 const compressed = await compressImage(file);
                 allImages.push(compressed);
+                processed++;
+                const percent = 5 + (processed / filesToProcess.length) * 60;
+                updateProgress(percent);
+            }
+
+            if (files.length > filesToProcess.length) {
+                alert("Maksimum 50 gambar sahaja! Selebihnya diabaikan.");
             }
 
             renderPreviews();
             this.value = ""; // Benarkan snap semula gambar yang sama/baru
-            loader.style.display = 'none';
+            hideLoader();
         });
 
         function renderPreviews() {
             const area = document.getElementById('previewArea');
+            if (!area) return;
             area.innerHTML = "";
-            document.getElementById('imgCount').innerText = allImages.length;
+            if (imgCountLabel) {
+                imgCountLabel.innerText = allImages.length;
+            }
 
             allImages.forEach((imgData, index) => {
                 const box = document.createElement('div');
@@ -149,20 +215,29 @@
 
         async function handleFormSubmit(e) {
             e.preventDefault();
-            if (allImages.length === 0) return alert("Sila ambil sekurang-kurangnya 1 gambar!");
+            if (allImages.length === 0) {
+                alert("Sila ambil sekurang-kurangnya 1 gambar!");
+                return;
+            }
 
-            const loader = document.getElementById('loader');
             const btn = document.getElementById('submitBtn');
-            
-            loader.style.display = 'flex';
-            document.getElementById('loaderStatus').innerText = "SEDANG MENGHANTAR DATA...";
-            btn.disabled = true;
+            const whatsappBtn = document.getElementById('whatsappBtn');
+
+            showLoader("SEDANG MENGHANTAR DATA...", 70);
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-60', 'cursor-not-allowed');
+            }
+            if (whatsappBtn) {
+                whatsappBtn.disabled = true;
+            }
 
             const formData = new FormData(e.target);
             const data = Object.fromEntries(formData.entries());
             data.images = allImages; // Hantar array gambar yang dikumpul
 
             try {
+                updateProgress(85);
                 const response = await fetch(WEB_APP_URL, {
                     method: 'POST',
                     body: JSON.stringify(data)
@@ -171,18 +246,30 @@
                 const result = await response.json();
 
                 if (result.status === "success") {
+                    updateProgress(100);
                     alert('✅ Rekod Berjaya Disimpan!');
                     lastSavedData = {...data, folderUrl: result.folderUrl, timestamp: result.timestamp};
-                    btn.style.display = "none";
-                    document.getElementById('whatsappBtn').style.display = "flex";
+                    if (btn) {
+                        btn.style.display = "none";
+                    }
+                    if (whatsappBtn) {
+                        whatsappBtn.style.display = "flex";
+                        whatsappBtn.disabled = false;
+                    }
                 } else {
-                    throw new Error(result.message);
+                    throw new Error(result.message || 'Gagal menyimpan rekod.');
                 }
             } catch (err) {
                 alert('❌ Ralat: ' + err.message);
-                btn.disabled = false;
+                if (btn) {
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-60', 'cursor-not-allowed');
+                }
+                if (whatsappBtn) {
+                    whatsappBtn.disabled = false;
+                }
             } finally {
-                loader.style.display = 'none';
+                hideLoader();
             }
         }
 
@@ -190,7 +277,7 @@
             if (!lastSavedData) return;
             const msg = `📄 *[${lastSavedData.timestamp}]*%0Acawangan *[${lastSavedData.branch.toUpperCase()}]* keluarkan *[${lastSavedData.actionType}]* no:*[${lastSavedData.docNo.toUpperCase()}]* dibawah salesman *[${lastSavedData.salesman.toUpperCase()}]* kepada *[${lastSavedData.school.toUpperCase()}] [${lastSavedData.nickname.toUpperCase()}] [${lastSavedData.phone}]*, view *[${lastSavedData.folderUrl}]*`;
             window.open(`https://wa.me/?text=${msg}`, '_blank');
-            if(confirm("Dah share? Ingin buat rekod baru?")) location.reload();
+            if (confirm("Dah share? Ingin buat rekod baru?")) location.reload();
         }
 
         async function compressImage(file) {
