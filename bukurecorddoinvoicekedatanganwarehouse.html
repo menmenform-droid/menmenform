@@ -3,126 +3,929 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Rekod Warehouse</title>
+    <title>Sistem Rekod Warehouse (Enterprise)</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css">
     <style>
-        body { background: #f4f7f9; padding: 20px; font-family: sans-serif; }
-        .container { max-width: 600px; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); }
-        .header { text-align: center; color: #007bff; margin-bottom: 30px; font-weight: bold; }
-        #preview { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px; }
-        #preview img { width: 70px; height: 90px; object-fit: cover; border-radius: 5px; border: 1px solid #ddd; }
-        .loading { display: none; text-align: center; margin-top: 20px; font-weight: bold; color: #007bff; }
-        #whatsappBtn { display: none; margin-top: 15px; background-color: #25d366; border-color: #25d366; color: white; }
+        :root{
+            --bg: #f4f7f9;
+            --card: #ffffff;
+            --text: #1f2d3d;
+            --muted: #6c757d;
+            --primary: #0b5ed7;
+            --border: rgba(0,0,0,0.08);
+        }
+
+        body { background: var(--bg); padding: 16px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, "Noto Sans", sans-serif; color: var(--text); }
+        .app-shell { max-width: 1080px; margin: 0 auto; }
+        .app-topbar { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; box-shadow: 0 5px 18px rgba(0,0,0,0.06); }
+        .brand-title { font-weight: 800; letter-spacing: .2px; margin: 0; font-size: 18px; }
+        .brand-sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+        .pill { display:inline-flex; align-items:center; padding: 3px 10px; border-radius: 999px; border:1px solid var(--border); color: var(--muted); font-size: 12px; }
+
+        .app-grid { display: grid; grid-template-columns: 260px 1fr; gap: 14px; margin-top: 14px; }
+        @media (max-width: 992px){ .app-grid { grid-template-columns: 1fr; } }
+
+        .side { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 10px; box-shadow: 0 5px 18px rgba(0,0,0,0.06); height: fit-content; }
+        .side .nav-link { border-radius: 10px; color: var(--text); }
+        .side .nav-link.active { background: rgba(11,94,215,0.10); color: var(--primary); font-weight: 700; }
+
+        .main { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; box-shadow: 0 5px 18px rgba(0,0,0,0.06); }
+
+        .section-title { font-weight: 800; font-size: 16px; margin: 0; }
+        .section-desc { color: var(--muted); margin-top: 6px; font-size: 13px; }
+        .kpi { display:flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+        .kpi .kpi-item { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; min-width: 190px; }
+        .kpi .kpi-label { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+        .kpi .kpi-value { font-weight: 800; }
+
+        #preview { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+        .preview-tile { position: relative; width: 86px; height: 110px; border-radius: 10px; border: 1px solid var(--border); overflow: hidden; background: #f8f9fa; }
+        .preview-tile img { width: 100%; height: 100%; object-fit: cover; }
+        .preview-remove { position:absolute; top: 6px; right: 6px; width: 26px; height: 26px; border-radius: 999px; border: 1px solid var(--border); background: rgba(255,255,255,0.92); color: #dc3545; font-weight: 800; line-height: 1; display:flex; align-items:center; justify-content:center; cursor:pointer; }
+
+        .loading { display: none; text-align: center; margin-top: 16px; font-weight: 700; color: var(--primary); }
+        #whatsappBtn { display: none; margin-top: 12px; background-color: #25d366; border-color: #25d366; color: white; }
         #whatsappBtn:hover { background-color: #128c7e; border-color: #128c7e; }
+
+        .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; }
+        .small-muted { color: var(--muted); font-size: 12px; }
+        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2 class="header">REKOD MASUK GUDANG</h2>
-    
-    <form id="recordForm">
-        <div class="form-group">
-            <label>Nama Staff</label>
-            <input type="text" id="staff" class="form-control" required>
+<div class="app-shell">
+    <div class="app-topbar d-flex align-items-center justify-content-between flex-wrap">
+        <div class="mr-2">
+            <p class="brand-title" id="companyName">Sistem Rekod Warehouse</p>
+            <div class="brand-sub">Enterprise Edition · <span class="mono" id="appVersion">v2.0</span> · <span id="loginStatus" class="pill">Belum log masuk</span></div>
+        </div>
+        <div class="d-flex align-items-center" style="gap:10px;">
+            <span class="pill">Apps Script: <span class="mono ml-1" id="scriptUrlShort">default</span></span>
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="openLogin()">Log Masuk</button>
+        </div>
+    </div>
+
+    <div class="app-grid">
+        <div class="side">
+            <div class="small-muted px-2 pt-1 pb-2">Menu</div>
+            <nav class="nav flex-column">
+                <a class="nav-link active" href="javascript:void(0)" data-tab="tab-entry" onclick="showTab('tab-entry')">Rekod Masuk</a>
+                <a class="nav-link" href="javascript:void(0)" data-tab="tab-records" onclick="showTab('tab-records')">Rekod / Carian</a>
+                <a class="nav-link" href="javascript:void(0)" data-tab="tab-settings" onclick="showTab('tab-settings')">Tetapan (Admin)</a>
+                <a class="nav-link" href="javascript:void(0)" data-tab="tab-audit" onclick="showTab('tab-audit')">Audit / Log</a>
+                <a class="nav-link" href="javascript:void(0)" data-tab="tab-about" onclick="showTab('tab-about')">About</a>
+            </nav>
         </div>
 
-        <div class="form-group">
-            <label>Nama Vendor</label>
-            <input type="text" id="vendor" class="form-control" required>
-        </div>
+        <div class="main">
+            <!-- Entry -->
+            <div id="tab-entry" class="tab-page">
+                <div class="d-flex align-items-start justify-content-between flex-wrap" style="gap:10px;">
+                    <div>
+                        <h2 class="section-title mb-0">Rekod Masuk Gudang</h2>
+                        <div class="section-desc">Rekod kemasukan dokumen (DO/Invoice) bersama bukti gambar. Data dihantar ke Google Sheet melalui Apps Script.</div>
+                    </div>
+                    <div class="text-right">
+                        <div class="small-muted">Masa semasa</div>
+                        <div class="mono font-weight-bold" id="nowClock">-</div>
+                    </div>
+                </div>
 
-        <div class="form-row">
-            <div class="form-group col-6">
-                <label>Jenis Dokumen</label>
-                <select id="docType" class="form-control">
-                    <option>DO</option>
-                    <option>Invoice</option>
-                </select>
+                <div class="kpi">
+                    <div class="kpi-item">
+                        <div class="kpi-label">Jumlah gambar</div>
+                        <div class="kpi-value"><span id="count">0</span> / <span id="maxImagesLabel">50</span></div>
+                    </div>
+                    <div class="kpi-item">
+                        <div class="kpi-label">Status</div>
+                        <div class="kpi-value" id="statusText">Sedia</div>
+                    </div>
+                    <div class="kpi-item">
+                        <div class="kpi-label">Rekod tempatan</div>
+                        <div class="kpi-value"><span id="localCount">0</span> item</div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <form id="recordForm" onsubmit="return false;">
+                    <div class="form-row">
+                        <div class="form-group col-md-6">
+                            <label>Nama Staff</label>
+                            <input type="text" id="staff" class="form-control" required autocomplete="name">
+                            <div class="small-muted mt-1">Disyorkan: gunakan nama penuh untuk audit.</div>
+                        </div>
+                        <div class="form-group col-md-6">
+                            <label>Nama Vendor</label>
+                            <input type="text" id="vendor" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label>Jenis Dokumen</label>
+                            <select id="docType" class="form-control">
+                                <option>DO</option>
+                                <option>Invoice</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>No. Dokumen</label>
+                            <input type="text" id="docNo" class="form-control" required>
+                            <div class="small-muted mt-1">Auto trim & uppercase. Sistem akan beri amaran jika pernah disimpan dalam rekod tempatan.</div>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>Jenis Barang</label>
+                            <select id="itemType" class="form-control">
+                                <option value="Stationery">Stationery</option>
+                                <option value="Buku">Buku</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group col-md-4">
+                            <label>Kuantiti</label>
+                            <input type="number" id="qty" class="form-control" required min="1" step="1">
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>Unit</label>
+                            <select id="unit" class="form-control">
+                                <option>Carton</option>
+                                <option>Pallet</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label>Catatan (optional)</label>
+                            <input type="text" id="note" class="form-control" placeholder="Contoh: pallet rosak / urgent">
+                        </div>
+                    </div>
+
+                    <div class="form-group border p-3 rounded" style="background:#f8fafc;">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap:10px;">
+                            <div>
+                                <label class="mb-0"><b>Ambil Gambar (Satu-per-Satu)</b></label>
+                                <div class="small-muted">Klik “Buka Kamera” untuk tambah halaman. Tekan (×) pada preview untuk buang gambar.</div>
+                            </div>
+                            <div class="d-flex" style="gap:8px;">
+                                <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none">
+                                <button type="button" class="btn btn-info" onclick="triggerCamera()">+ Buka Kamera / Tambah Halaman</button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="clearImages()">Kosongkan Gambar</button>
+                            </div>
+                        </div>
+                        <div id="preview"></div>
+                    </div>
+
+                    <button type="button" id="submitBtn" onclick="hantarData()" class="btn btn-primary btn-lg btn-block">SIMPAN REKOD</button>
+                    
+                    <button type="button" id="whatsappBtn" onclick="shareWhatsApp()" class="btn btn-lg btn-block">
+                        📲 SHARE TO WHATSAPP GROUP
+                    </button>
+
+                    <div class="d-flex mt-2" style="gap:10px;">
+                        <button type="button" class="btn btn-outline-secondary btn-block" onclick="downloadDraft()">Simpan Draft (JSON)</button>
+                        <button type="button" class="btn btn-outline-secondary btn-block" onclick="resetForm()">Reset Borang</button>
+                    </div>
+                    
+                    <div id="loading" class="loading">
+                        <div class="spinner-border spinner-border-sm"></div> Memproses & Menyemak Duplicate...
+                    </div>
+                </form>
             </div>
-            <div class="form-group col-6">
-                <label>No. Dokumen</label>
-                <input type="text" id="docNo" class="form-control" required>
+
+            <!-- Records -->
+            <div id="tab-records" class="tab-page" style="display:none;">
+                <h2 class="section-title mb-0">Rekod / Carian</h2>
+                <div class="section-desc">Ini ialah “buku rekod” tempatan (peranti ini). Untuk rujukan pantas, export CSV, dan cetakan ringkas.</div>
+                <div class="form-row mt-3">
+                    <div class="form-group col-md-4">
+                        <label>Carian</label>
+                        <input type="text" id="recordSearch" class="form-control" placeholder="Vendor / Doc No / Staff" oninput="renderRecords()">
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label>Jenis Dokumen</label>
+                        <select id="filterDocType" class="form-control" onchange="renderRecords()">
+                            <option value="">Semua</option>
+                            <option value="DO">DO</option>
+                            <option value="Invoice">Invoice</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-3">
+                        <label>Jenis Barang</label>
+                        <select id="filterItemType" class="form-control" onchange="renderRecords()">
+                            <option value="">Semua</option>
+                            <option value="Stationery">Stationery</option>
+                            <option value="Buku">Buku</option>
+                        </select>
+                    </div>
+                    <div class="form-group col-md-2 d-flex align-items-end" style="gap:8px;">
+                        <button class="btn btn-outline-primary btn-block" type="button" onclick="exportCSV()">Export CSV</button>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap" style="gap:10px;">
+                    <div class="small-muted">Tip: rekod akan bertambah selepas “Berjaya Disimpan”.</div>
+                    <div class="d-flex" style="gap:8px;">
+                        <button class="btn btn-outline-secondary btn-sm" type="button" onclick="clearLocalRecords()">Padam Rekod Tempatan</button>
+                        <button class="btn btn-outline-secondary btn-sm" type="button" onclick="showTab('tab-entry')">+ Rekod Baru</button>
+                    </div>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="table table-sm mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>Masa</th>
+                                <th>Staff</th>
+                                <th>Vendor</th>
+                                <th>Doc</th>
+                                <th>Barang</th>
+                                <th class="text-right">Qty</th>
+                                <th>Link</th>
+                                <th class="text-right">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recordsTbody">
+                            <tr><td colspan="8" class="text-center small-muted p-3">Tiada rekod tempatan lagi.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Settings -->
+            <div id="tab-settings" class="tab-page" style="display:none;">
+                <h2 class="section-title mb-0">Tetapan (Admin)</h2>
+                <div class="section-desc">Konfigurasi enterprise: nama syarikat, Apps Script URL, template WhatsApp, dan tag penerima.</div>
+                <div class="alert alert-warning mt-3 mb-3">
+                    <b>Nota:</b> Tetapan disimpan dalam browser (localStorage) per-peranti. Untuk keselamatan, hanya role <b>Admin</b> boleh ubah.
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label>Nama Syarikat / Gudang</label>
+                        <input type="text" id="settingCompany" class="form-control" placeholder="Contoh: MBS Warehouse">
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label>Apps Script URL (POST endpoint)</label>
+                        <input type="text" id="settingScriptUrl" class="form-control mono">
+                        <div class="small-muted mt-1">Jika kosong, guna default URL asal.</div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-4">
+                        <label>Maksimum Gambar</label>
+                        <input type="number" id="settingMaxImages" class="form-control" min="1" max="50" step="1">
+                        <div class="small-muted mt-1">Cadangan: 10–30 untuk prestasi.</div>
+                    </div>
+                    <div class="form-group col-md-8">
+                        <label>Template WhatsApp</label>
+                        <input type="text" id="settingWhatsAppTemplate" class="form-control" placeholder="📦[{timestamp}]: warehouse terima dari [{vendor}] nombor doc [{docNo}] total [{qty}] [{unit}], view [{folderUrl}] {tags}">
+                        <div class="small-muted mt-1">Token: <span class="mono">{timestamp}</span> <span class="mono">{vendor}</span> <span class="mono">{docNo}</span> <span class="mono">{qty}</span> <span class="mono">{unit}</span> <span class="mono">{itemType}</span> <span class="mono">{folderUrl}</span> <span class="mono">{tags}</span></div>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group col-md-6">
+                        <label>Tag WhatsApp (Stationery)</label>
+                        <textarea id="settingTagsStationery" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-group col-md-6">
+                        <label>Tag WhatsApp (Buku)</label>
+                        <textarea id="settingTagsBuku" class="form-control" rows="3"></textarea>
+                    </div>
+                </div>
+
+                <div class="d-flex" style="gap:10px;">
+                    <button type="button" class="btn btn-primary" onclick="saveSettings()">Simpan Tetapan</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="resetSettings()">Reset ke Default</button>
+                </div>
+            </div>
+
+            <!-- Audit -->
+            <div id="tab-audit" class="tab-page" style="display:none;">
+                <h2 class="section-title mb-0">Audit / Log</h2>
+                <div class="section-desc">Log operasi tempatan (untuk troubleshooting & semakan ringkas).</div>
+                <div class="d-flex align-items-center justify-content-between mt-3 mb-2 flex-wrap" style="gap:10px;">
+                    <div class="small-muted">Log disimpan dalam peranti (maks 300 item).</div>
+                    <div class="d-flex" style="gap:8px;">
+                        <button class="btn btn-outline-secondary btn-sm" type="button" onclick="copyAudit()">Copy</button>
+                        <button class="btn btn-outline-secondary btn-sm" type="button" onclick="clearAudit()">Padam Log</button>
+                    </div>
+                </div>
+                <pre id="auditPre" class="p-3" style="background:#0b1220; color:#dbe6ff; border-radius:12px; border:1px solid var(--border); min-height: 240px; white-space: pre-wrap;"></pre>
+            </div>
+
+            <!-- About -->
+            <div id="tab-about" class="tab-page" style="display:none;">
+                <h2 class="section-title mb-0">About</h2>
+                <div class="section-desc">Enterprise Edition menambah kawalan, konfigurasi, dan rekod tempatan tanpa mengganggu fungsi asal (hantar ke Google Sheet + share WhatsApp).</div>
+                <div class="mt-3 small-muted">
+                    <div><b>Fungsi asal dikekalkan:</b> rekod + gambar → Apps Script → folder link → WhatsApp share.</div>
+                    <div class="mt-2"><b>Enterprise additions:</b> login peranan (Admin/Staff), tetapan pusat, audit log, rekod tempatan + export.</div>
+                </div>
             </div>
         </div>
+    </div>
+</div>
 
-        <div class="form-row">
-            <div class="form-group col-4">
-                <label>Jenis Barang</label>
-                <select id="itemType" class="form-control">
-                    <option value="Stationery">Stationery</option>
-                    <option value="Buku">Buku</option>
-                </select>
-            </div>
-            <div class="form-group col-4">
-                <label>Kuantiti</label>
-                <input type="number" id="qty" class="form-control" required>
-            </div>
-            <div class="form-group col-4">
-                <label>Unit</label>
-                <select id="unit" class="form-control">
-                    <option>Carton</option>
-                    <option>Pallet</option>
-                </select>
-            </div>
-        </div>
-
-        <div class="form-group border p-3 rounded bg-light">
-            <label><b>Ambil Gambar (Satu-per-Satu)</b></label>
-            <input type="file" id="fileInput" accept="image/*" capture="environment" style="display:none">
-            <button type="button" class="btn btn-info btn-block" onclick="document.getElementById('fileInput').click()">
-                + Buka Kamera / Tambah Halaman
-            </button>
-            <p class="mt-2 mb-0"><small>Jumlah Gambar: <span id="count">0</span> / 50</small></p>
-            <div id="preview"></div>
-        </div>
-
-        <button type="button" id="submitBtn" onclick="hantarData()" class="btn btn-primary btn-lg btn-block">SIMPAN REKOD</button>
-        
-        <button type="button" id="whatsappBtn" onclick="shareWhatsApp()" class="btn btn-lg btn-block">
-            📲 SHARE TO WHATSAPP GROUP
+<!-- Login Modal -->
+<div class="modal fade" id="loginModal" tabindex="-1" role="dialog" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Log Masuk</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
         </button>
-        
-        <div id="loading" class="loading">
-            <div class="spinner-border spinner-border-sm"></div> Memproses & Menyemak Duplicate...
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+            <b>Mod enterprise (local).</b> Akaun disimpan dalam peranti ini sahaja.
         </div>
-    </form>
+        <div class="form-group">
+            <label>Role</label>
+            <select id="loginRole" class="form-control">
+                <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>PIN / Password</label>
+            <input type="password" id="loginPin" class="form-control" placeholder="Masukkan PIN">
+            <div class="small-muted mt-1">Jika kali pertama Admin, PIN ini akan dijadikan PIN Admin.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">Tutup</button>
+        <button type="button" class="btn btn-primary" onclick="doLogin()">Log Masuk</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRlNe2kmKGxITL6KlUb8tkYCDKHmlliliaGVZ6x-7IfEXJ-AUyyyOouBKVFK2e2y8i/exec";
+    const APP_VERSION = "2.0.0-enterprise";
+    const DEFAULT_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxRlNe2kmKGxITL6KlUb8tkYCDKHmlliliaGVZ6x-7IfEXJ-AUyyyOouBKVFK2e2y8i/exec";
     
     let imageArray = [];
     let lastSavedData = null;
+    let currentUser = { role: "guest", name: "" };
+
+    const STORAGE_KEYS = {
+        settings: "wrh_enterprise_settings_v1",
+        records: "wrh_enterprise_records_v1",
+        audit: "wrh_enterprise_audit_v1",
+        authAdminHash: "wrh_enterprise_admin_hash_v1",
+        session: "wrh_enterprise_session_v1"
+    };
+
+    const DEFAULT_SETTINGS = {
+        companyName: "Sistem Rekod Warehouse",
+        scriptUrl: "",
+        maxImages: 50,
+        whatsappTemplate: "📦[{timestamp}]: warehouse terima dari [{vendor}] nombor doc [{docNo}] total [{qty}] [{unit}], view [{folderUrl}] {tags}",
+        tagsStationery: "@60129289909(Albert) @60199529393(Uncle) @60169392765(Sara) @601126169563(Kit) @601111945520(Wong)",
+        tagsBuku: "@60129289909(Albert) @60125979393(Sumi) @601116396177(Tiela)"
+    };
+
+    function getSettings(){
+        try {
+            const raw = localStorage.getItem(STORAGE_KEYS.settings);
+            if(!raw) return { ...DEFAULT_SETTINGS };
+            const parsed = JSON.parse(raw);
+            return { ...DEFAULT_SETTINGS, ...(parsed || {}) };
+        } catch {
+            return { ...DEFAULT_SETTINGS };
+        }
+    }
+
+    function setSettings(next){
+        localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(next));
+    }
+
+    function getScriptUrl(){
+        const s = getSettings();
+        const url = (s.scriptUrl || "").trim();
+        return url ? url : DEFAULT_SCRIPT_URL;
+    }
+
+    function nowIso(){
+        return new Date().toISOString();
+    }
+
+    function audit(action, detail){
+        const item = { at: nowIso(), action, detail: detail || "" };
+        let list = [];
+        try { list = JSON.parse(localStorage.getItem(STORAGE_KEYS.audit) || "[]"); } catch { list = []; }
+        list.unshift(item);
+        if(list.length > 300) list = list.slice(0, 300);
+        localStorage.setItem(STORAGE_KEYS.audit, JSON.stringify(list));
+        renderAudit();
+    }
+
+    function renderAudit(){
+        const pre = document.getElementById("auditPre");
+        if(!pre) return;
+        let list = [];
+        try { list = JSON.parse(localStorage.getItem(STORAGE_KEYS.audit) || "[]"); } catch { list = []; }
+        if(list.length === 0){
+            pre.textContent = "Tiada log lagi.";
+            return;
+        }
+        pre.textContent = list.map(x => `${x.at}  |  ${x.action}${x.detail ? "  |  " + x.detail : ""}`).join("\n");
+    }
+
+    function clearAudit(){
+        localStorage.setItem(STORAGE_KEYS.audit, "[]");
+        audit("AUDIT_CLEARED");
+    }
+
+    async function copyAudit(){
+        const pre = document.getElementById("auditPre");
+        if(!pre) return;
+        try {
+            await navigator.clipboard.writeText(pre.textContent || "");
+            alert("Audit log telah disalin.");
+        } catch {
+            alert("Tidak dapat copy (clipboard blocked).");
+        }
+    }
+
+    function getRecords(){
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEYS.records) || "[]") || []; } catch { return []; }
+    }
+    function setRecords(list){
+        localStorage.setItem(STORAGE_KEYS.records, JSON.stringify(list || []));
+        updateLocalCount();
+    }
+
+    function updateLocalCount(){
+        const el = document.getElementById("localCount");
+        if(!el) return;
+        el.textContent = String(getRecords().length);
+    }
+
+    function showTab(id){
+        const pages = document.querySelectorAll(".tab-page");
+        pages.forEach(p => p.style.display = (p.id === id ? "" : "none"));
+        const links = document.querySelectorAll(".side .nav-link");
+        links.forEach(a => a.classList.toggle("active", a.getAttribute("data-tab") === id));
+        if(id === "tab-records") renderRecords();
+        if(id === "tab-audit") renderAudit();
+        if(id === "tab-settings") hydrateSettingsForm();
+    }
+
+    function setStatus(text){
+        const el = document.getElementById("statusText");
+        if(el) el.textContent = text;
+    }
+
+    function triggerCamera(){
+        const s = getSettings();
+        if(imageArray.length >= (s.maxImages || 50)){
+            alert(`Had maksimum gambar ialah ${s.maxImages}. Sila buang gambar lama atau export dahulu.`);
+            return;
+        }
+        document.getElementById('fileInput').click();
+    }
+
+    function clearImages(askConfirm = true){
+        if(askConfirm && !confirm("Kosongkan semua gambar?")) return;
+        imageArray = [];
+        document.getElementById("preview").innerHTML = "";
+        document.getElementById("count").innerText = "0";
+        setStatus("Sedia");
+        audit("IMAGES_CLEARED");
+    }
+
+    function resetForm(){
+        if(!confirm("Reset borang rekod?")) return;
+        const staffKeep = document.getElementById("staff").value || "";
+        document.getElementById("recordForm").reset();
+        document.getElementById("staff").value = staffKeep;
+        document.getElementById("docType").value = "DO";
+        document.getElementById("itemType").value = "Stationery";
+        document.getElementById("unit").value = "Carton";
+        document.getElementById("submitBtn").disabled = false;
+        document.getElementById("submitBtn").style.display = "";
+        document.getElementById("whatsappBtn").style.display = "none";
+        lastSavedData = null;
+        clearImages(false);
+        setStatus("Sedia");
+        audit("FORM_RESET");
+    }
+
+    function downloadDraft(){
+        normalizeInputs();
+        const payload = {
+            staff: document.getElementById('staff').value,
+            vendor: document.getElementById('vendor').value,
+            docType: document.getElementById('docType').value,
+            docNo: document.getElementById('docNo').value,
+            itemType: document.getElementById('itemType').value,
+            qty: document.getElementById('qty').value,
+            unit: document.getElementById('unit').value,
+            files: []
+        };
+        const note = (document.getElementById("note").value || "").trim();
+
+        let includeImages = false;
+        if(imageArray.length > 0){
+            includeImages = confirm("Masukkan gambar dalam draft? (Fail JSON boleh jadi besar)");
+        }
+        const draft = {
+            savedAt: nowIso(),
+            appVersion: APP_VERSION,
+            note,
+            payload: includeImages ? { ...payload, files: imageArray } : payload,
+            imageCount: imageArray.length
+        };
+
+        const blob = new Blob([JSON.stringify(draft, null, 2)], { type: "application/json;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        const safeDoc = (payload.docNo || "draft").replace(/[^a-zA-Z0-9_-]+/g, "_").slice(0, 40);
+        a.download = `warehouse_draft_${safeDoc}_${new Date().toISOString().slice(0,10)}.json`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        audit("DRAFT_DOWNLOADED", `includeImages=${includeImages}`);
+        alert("Draft telah dimuat turun.");
+    }
+
+    function removeImageAt(idx){
+        imageArray.splice(idx, 1);
+        renderPreview();
+        audit("IMAGE_REMOVED", `index=${idx}`);
+    }
+
+    function renderPreview(){
+        const preview = document.getElementById("preview");
+        preview.innerHTML = "";
+        imageArray.forEach((imgObj, idx) => {
+            const tile = document.createElement("div");
+            tile.className = "preview-tile";
+            const img = document.createElement("img");
+            img.src = imgObj.data;
+            const btn = document.createElement("div");
+            btn.className = "preview-remove";
+            btn.textContent = "×";
+            btn.title = "Buang gambar ini";
+            btn.onclick = () => removeImageAt(idx);
+            tile.appendChild(img);
+            tile.appendChild(btn);
+            preview.appendChild(tile);
+        });
+        document.getElementById('count').innerText = imageArray.length;
+    }
+
+    function normalizeInputs(){
+        const docNoEl = document.getElementById("docNo");
+        if(docNoEl && typeof docNoEl.value === "string"){
+            docNoEl.value = docNoEl.value.trim().toUpperCase();
+        }
+        const staffEl = document.getElementById("staff");
+        if(staffEl && typeof staffEl.value === "string"){
+            staffEl.value = staffEl.value.trim();
+        }
+        const vendorEl = document.getElementById("vendor");
+        if(vendorEl && typeof vendorEl.value === "string"){
+            vendorEl.value = vendorEl.value.trim();
+        }
+    }
+
+    function checkLocalDuplicate(){
+        const docNo = (document.getElementById("docNo").value || "").trim().toUpperCase();
+        const docType = (document.getElementById("docType").value || "").trim();
+        if(!docNo) return;
+        const list = getRecords();
+        const hit = list.find(r => (r.docNo || "").toUpperCase() === docNo && (r.docType || "") === docType);
+        if(hit){
+            setStatus("Amaran: Doc No pernah direkod (tempatan)");
+        } else {
+            setStatus("Sedia");
+        }
+    }
+
+    async function sha256(text){
+        const enc = new TextEncoder();
+        const data = enc.encode(text || "");
+        const buf = await crypto.subtle.digest("SHA-256", data);
+        return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+    }
+
+    function openLogin(){
+        if(window.jQuery){
+            window.jQuery("#loginModal").modal("show");
+        } else {
+            alert("Bootstrap modal memerlukan jQuery (akan dimuatkan sebentar).");
+        }
+    }
+
+    function setSession(user){
+        currentUser = user || { role:"guest", name:"" };
+        localStorage.setItem(STORAGE_KEYS.session, JSON.stringify(currentUser));
+        refreshHeader();
+        hydrateRoleVisibility();
+    }
+
+    function loadSession(){
+        try {
+            const raw = localStorage.getItem(STORAGE_KEYS.session);
+            if(!raw) return;
+            const parsed = JSON.parse(raw);
+            if(parsed && parsed.role){
+                currentUser = parsed;
+            }
+        } catch {}
+    }
+
+    function refreshHeader(){
+        const s = getSettings();
+        const company = document.getElementById("companyName");
+        if(company) company.textContent = s.companyName || DEFAULT_SETTINGS.companyName;
+        const ver = document.getElementById("appVersion");
+        if(ver) ver.textContent = APP_VERSION;
+        const badge = document.getElementById("loginStatus");
+        if(badge){
+            const label = currentUser.role === "admin" ? "Admin" : (currentUser.role === "staff" ? "Staff" : "Guest");
+            badge.textContent = `${label}${currentUser.name ? " · " + currentUser.name : ""}`;
+        }
+        const short = document.getElementById("scriptUrlShort");
+        if(short){
+            const url = getScriptUrl();
+            short.textContent = url.includes("/macros/") ? "connected" : "custom";
+        }
+        const maxLbl = document.getElementById("maxImagesLabel");
+        if(maxLbl) maxLbl.textContent = String(getSettings().maxImages || 50);
+    }
+
+    function hydrateRoleVisibility(){
+        const adminOnly = document.querySelector('a[data-tab="tab-settings"]');
+        if(adminOnly){
+            adminOnly.style.display = (currentUser.role === "admin" ? "" : "none");
+        }
+    }
+
+    async function doLogin(){
+        const role = document.getElementById("loginRole").value;
+        const pin = document.getElementById("loginPin").value || "";
+        if(!pin.trim()){
+            alert("Sila masukkan PIN.");
+            return;
+        }
+
+        if(role === "admin"){
+            const existingHash = localStorage.getItem(STORAGE_KEYS.authAdminHash);
+            const pinHash = await sha256(pin.trim());
+            if(!existingHash){
+                if(!confirm("Tiada PIN Admin ditemui. Set PIN ini sebagai PIN Admin?")) return;
+                localStorage.setItem(STORAGE_KEYS.authAdminHash, pinHash);
+                audit("ADMIN_PIN_SET");
+            } else {
+                if(existingHash !== pinHash){
+                    audit("LOGIN_FAILED", "role=admin");
+                    alert("PIN Admin tidak tepat.");
+                    return;
+                }
+            }
+            setSession({ role: "admin", name: (document.getElementById("staff").value || "").trim() });
+            audit("LOGIN_OK", "role=admin");
+        } else {
+            setSession({ role: "staff", name: (document.getElementById("staff").value || "").trim() });
+            audit("LOGIN_OK", "role=staff");
+        }
+
+        document.getElementById("loginPin").value = "";
+        if(window.jQuery) window.jQuery("#loginModal").modal("hide");
+    }
+
+    function ensureAdmin(){
+        if(currentUser.role !== "admin"){
+            alert("Akses ditolak. Hanya Admin boleh buat tindakan ini.");
+            return false;
+        }
+        return true;
+    }
+
+    function hydrateSettingsForm(){
+        if(!ensureAdmin()){
+            showTab("tab-entry");
+            return;
+        }
+        const s = getSettings();
+        document.getElementById("settingCompany").value = s.companyName || "";
+        document.getElementById("settingScriptUrl").value = s.scriptUrl || "";
+        document.getElementById("settingMaxImages").value = String(s.maxImages || 50);
+        document.getElementById("settingWhatsAppTemplate").value = s.whatsappTemplate || DEFAULT_SETTINGS.whatsappTemplate;
+        document.getElementById("settingTagsStationery").value = s.tagsStationery || "";
+        document.getElementById("settingTagsBuku").value = s.tagsBuku || "";
+    }
+
+    function saveSettings(){
+        if(!ensureAdmin()) return;
+        const next = {
+            companyName: (document.getElementById("settingCompany").value || "").trim() || DEFAULT_SETTINGS.companyName,
+            scriptUrl: (document.getElementById("settingScriptUrl").value || "").trim(),
+            maxImages: Math.min(50, Math.max(1, parseInt(document.getElementById("settingMaxImages").value || "50", 10) || 50)),
+            whatsappTemplate: (document.getElementById("settingWhatsAppTemplate").value || "").trim() || DEFAULT_SETTINGS.whatsappTemplate,
+            tagsStationery: (document.getElementById("settingTagsStationery").value || "").trim(),
+            tagsBuku: (document.getElementById("settingTagsBuku").value || "").trim()
+        };
+        setSettings(next);
+        refreshHeader();
+        audit("SETTINGS_SAVED");
+        alert("Tetapan disimpan.");
+    }
+
+    function resetSettings(){
+        if(!ensureAdmin()) return;
+        if(!confirm("Reset semua tetapan ke default?")) return;
+        setSettings({ ...DEFAULT_SETTINGS });
+        refreshHeader();
+        hydrateSettingsForm();
+        audit("SETTINGS_RESET");
+    }
+
+    function renderRecords(){
+        const tbody = document.getElementById("recordsTbody");
+        if(!tbody) return;
+        const q = (document.getElementById("recordSearch").value || "").trim().toLowerCase();
+        const docType = document.getElementById("filterDocType").value || "";
+        const itemType = document.getElementById("filterItemType").value || "";
+
+        const list = getRecords().filter(r => {
+            if(docType && r.docType !== docType) return false;
+            if(itemType && r.itemType !== itemType) return false;
+            if(!q) return true;
+            const hay = `${r.staff||""} ${r.vendor||""} ${r.docNo||""}`.toLowerCase();
+            return hay.includes(q);
+        });
+
+        if(list.length === 0){
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center small-muted p-3">Tiada rekod yang sepadan.</td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = "";
+        list.slice(0, 200).forEach((r, idx) => {
+            const tr = document.createElement("tr");
+            const link = r.folderUrl ? `<a href="${r.folderUrl}" target="_blank" rel="noopener">Folder</a>` : "-";
+            const recordId = (r.id || `${r.timestamp || ""}|${r.docType || ""}|${r.docNo || ""}`);
+            const recordIdEnc = encodeURIComponent(recordId);
+            tr.innerHTML = `
+                <td class="mono">${escapeHtml(r.timestamp || "")}</td>
+                <td>${escapeHtml(r.staff || "")}</td>
+                <td>${escapeHtml(r.vendor || "")}</td>
+                <td><span class="badge badge-light">${escapeHtml(r.docType || "")}</span> <span class="mono">${escapeHtml(r.docNo || "")}</span></td>
+                <td>${escapeHtml(r.itemType || "")}</td>
+                <td class="text-right">${escapeHtml(String(r.qty || ""))} ${escapeHtml(r.unit || "")}</td>
+                <td>${link}</td>
+                <td class="text-right">
+                    <button class="btn btn-outline-secondary btn-sm" type="button" onclick="printRecordById('${recordIdEnc}')">Print</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function exportCSV(){
+        const list = getRecords();
+        if(list.length === 0){
+            alert("Tiada rekod untuk export.");
+            return;
+        }
+        const headers = ["timestamp","staff","vendor","docType","docNo","itemType","qty","unit","folderUrl"];
+        const rows = [headers.join(",")].concat(list.map(r => headers.map(h => csvCell(r[h])).join(",")));
+        const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `warehouse_records_${new Date().toISOString().slice(0,10)}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        audit("RECORDS_EXPORTED", `count=${list.length}`);
+    }
+
+    function clearLocalRecords(){
+        if(!confirm("Padam semua rekod tempatan? (Tidak menjejaskan Google Sheet)")) return;
+        setRecords([]);
+        renderRecords();
+        audit("RECORDS_CLEARED");
+    }
+
+    function printRecordById(recordIdEnc){
+        const recordId = decodeURIComponent(recordIdEnc || "");
+        const list = getRecords();
+        const r = list.find(x => (x.id || "") === recordId) || list.find(x => `${x.timestamp || ""}|${x.docType || ""}|${x.docNo || ""}` === recordId);
+        if(!r){
+            alert("Rekod tidak ditemui.");
+            return;
+        }
+
+        const safeUrl = (r.folderUrl || "").trim();
+        const folderHtml = safeUrl ? `<a href="${escapeAttr(safeUrl)}">${escapeHtml(safeUrl)}</a>` : "-";
+        const html = `
+            <div style="font-family: Arial, sans-serif; padding: 18px;">
+                <h2 style="margin:0 0 6px 0;">${escapeHtml(getSettings().companyName || DEFAULT_SETTINGS.companyName)}</h2>
+                <div style="color:#555; margin-bottom: 14px;">Rekod Masuk Gudang (Ringkas)</div>
+                <table style="width:100%; border-collapse: collapse;">
+                    ${printRow("Masa", escapeHtml(r.timestamp || ""))}
+                    ${printRow("Staff", escapeHtml(r.staff || ""))}
+                    ${printRow("Vendor", escapeHtml(r.vendor || ""))}
+                    ${printRow("Doc", escapeHtml(`${r.docType || ""} ${r.docNo || ""}`.trim()))}
+                    ${printRow("Barang", escapeHtml(r.itemType || ""))}
+                    ${printRow("Qty", escapeHtml(`${r.qty || ""} ${r.unit || ""}`.trim()))}
+                    ${printRow("Folder", folderHtml)}
+                </table>
+                <div style="margin-top: 18px; color:#777; font-size:12px;">Dicetak dari Enterprise Edition.</div>
+            </div>
+        `;
+        const w = window.open("", "_blank");
+        w.document.write(`<html><head><title>Print</title></head><body>${html}</body></html>`);
+        w.document.close();
+        w.focus();
+        w.print();
+        audit("RECORD_PRINTED");
+    }
+
+    function printRow(label, value){
+        return `<tr>
+            <td style="border:1px solid #ddd; padding:8px; width: 140px; font-weight:700; background:#f7f7f7;">${escapeHtml(label)}</td>
+            <td style="border:1px solid #ddd; padding:8px;">${value || ""}</td>
+        </tr>`;
+    }
+
+    function csvCell(v){
+        const s = (v === null || v === undefined) ? "" : String(v);
+        const escaped = s.replace(/"/g, "\"\"");
+        return `"${escaped}"`;
+    }
+
+    function escapeHtml(s){
+        return String(s || "").replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[m]));
+    }
+
+    function escapeAttr(s){
+        return escapeHtml(s).replace(/`/g, "&#96;");
+    }
+
+    function makeId(){
+        return `${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    }
+
+    function startClock(){
+        const el = document.getElementById("nowClock");
+        if(!el) return;
+        const tick = () => {
+            const d = new Date();
+            el.textContent = d.toLocaleString();
+        };
+        tick();
+        setInterval(tick, 1000);
+    }
 
     document.getElementById('fileInput').addEventListener('change', async function(e) {
         const files = e.target.files;
         if (files.length === 0) return;
 
         for (let file of files) {
+            const s = getSettings();
+            if(imageArray.length >= (s.maxImages || 50)){
+                alert(`Had maksimum gambar ialah ${s.maxImages}. Gambar selebihnya tidak akan ditambah.`);
+                break;
+            }
             const compressed = await compressImage(file);
             imageArray.push(compressed);
-            
-            const img = document.createElement('img');
-            img.src = compressed.data;
-            document.getElementById('preview').appendChild(img);
         }
-        document.getElementById('count').innerText = imageArray.length;
+        renderPreview();
         this.value = ""; 
+        audit("IMAGES_ADDED", `count=${imageArray.length}`);
     });
 
     async function hantarData() {
         const btn = document.getElementById('submitBtn');
         const load = document.getElementById('loading');
         const waBtn = document.getElementById('whatsappBtn');
+        normalizeInputs();
+        checkLocalDuplicate();
+        audit("SUBMIT_CLICKED");
         
         if (!document.getElementById('docNo').value || imageArray.length === 0) {
             alert("Lengkapkan No. Dokumen dan ambil gambar!");
+            audit("SUBMIT_BLOCKED", "missing_docno_or_images");
+            return;
+        }
+        const qtyVal = Number(document.getElementById('qty').value || 0);
+        if(!Number.isFinite(qtyVal) || qtyVal <= 0){
+            alert("Sila masukkan kuantiti yang sah (>=1).");
+            audit("SUBMIT_BLOCKED", "invalid_qty");
             return;
         }
 
         btn.disabled = true;
         load.style.display = "block";
+        setStatus("Memproses...");
 
         const payload = {
             staff: document.getElementById('staff').value,
@@ -136,7 +939,7 @@
         };
 
         try {
-            const response = await fetch(SCRIPT_URL, {
+            const response = await fetch(getScriptUrl(), {
                 method: "POST",
                 body: JSON.stringify(payload)
             });
@@ -146,8 +949,11 @@
             if (result.status === "REJECTED") {
                 alert("REJECTED: " + result.message);
                 btn.disabled = false;
+                setStatus("Rejected");
+                audit("SUBMIT_REJECTED", result.message || "");
             } else {
                 alert("Berjaya Disimpan!");
+                setStatus("Berjaya");
                 
                 // Simpan data untuk dikongsi ke WhatsApp
                 lastSavedData = {
@@ -160,6 +966,23 @@
                     timestamp: result.timestamp
                 };
 
+                // Simpan rekod tempatan (enterprise ledger)
+                const list = getRecords();
+                list.unshift({
+                    id: makeId(),
+                    timestamp: result.timestamp,
+                    staff: payload.staff,
+                    vendor: payload.vendor,
+                    docType: payload.docType,
+                    docNo: payload.docNo,
+                    itemType: payload.itemType,
+                    qty: payload.qty,
+                    unit: payload.unit,
+                    folderUrl: result.folderUrl
+                });
+                setRecords(list.slice(0, 2000));
+                audit("SUBMIT_OK", `doc=${payload.docType} ${payload.docNo}`);
+
                 // Tukar butang
                 btn.style.display = "none";
                 waBtn.style.display = "block";
@@ -167,6 +990,8 @@
         } catch (err) {
             alert("Ralat sambungan atau Duplicate: Sila semak Google Sheet.");
             btn.disabled = false;
+            setStatus("Gagal sambungan");
+            audit("SUBMIT_ERROR", (err && err.message) ? err.message : "unknown");
         } finally {
             load.style.display = "none";
         }
@@ -175,21 +1000,40 @@
     function shareWhatsApp() {
         if (!lastSavedData) return;
 
+        const s = getSettings();
         let tags = "";
-        if (lastSavedData.itemType === "Stationery") {
-            tags = "@60129289909(Albert) @60199529393(Uncle) @60169392765(Sara) @601126169563(Kit) @601111945520(Wong)";
-        } else {
-            tags = "@60129289909(Albert) @60125979393(Sumi) @601116396177(Tiela)";
-        }
+        if (lastSavedData.itemType === "Stationery") tags = (s.tagsStationery || "").trim();
+        else tags = (s.tagsBuku || "").trim();
 
-        const ayat = `📦[${lastSavedData.timestamp}]: warehouse terima dari [${lastSavedData.vendor}] nombor doc [${lastSavedData.docNo}] total [${lastSavedData.qty}] [${lastSavedData.unit}], view [${lastSavedData.folderUrl}] ${tags}`;
+        const template = (s.whatsappTemplate || DEFAULT_SETTINGS.whatsappTemplate);
+        const ayat = renderTemplate(template, {
+            timestamp: lastSavedData.timestamp || "",
+            vendor: lastSavedData.vendor || "",
+            docNo: lastSavedData.docNo || "",
+            qty: lastSavedData.qty || "",
+            unit: lastSavedData.unit || "",
+            itemType: lastSavedData.itemType || "",
+            folderUrl: lastSavedData.folderUrl || "",
+            tags: tags ? (" " + tags) : ""
+        });
         
         const url = "https://wa.me/?text=" + encodeURIComponent(ayat);
         window.open(url, '_blank');
+        audit("WHATSAPP_OPENED");
         
         if(confirm("Maklumat telah dihantar ke WhatsApp. Adakah anda ingin buat rekod baru?")) {
             location.reload();
         }
+    }
+
+    function renderTemplate(template, vars){
+        let out = String(template || "");
+        const entries = Object.entries(vars || {});
+        for(const [k, v] of entries){
+            const token = `{${k}}`;
+            out = out.split(token).join(String(v ?? ""));
+        }
+        return out;
     }
 
     function compressImage(file) {
@@ -221,11 +1065,34 @@
             };
         });
     }
+
+    function boot(){
+        // Initialize settings if missing
+        if(!localStorage.getItem(STORAGE_KEYS.settings)){
+            setSettings({ ...DEFAULT_SETTINGS });
+        }
+        loadSession();
+        refreshHeader();
+        hydrateRoleVisibility();
+        updateLocalCount();
+        renderAudit();
+        startClock();
+
+        // Wire up docNo normalization + local duplicate warning
+        document.getElementById("docNo").addEventListener("blur", () => { normalizeInputs(); checkLocalDuplicate(); });
+        document.getElementById("docNo").addEventListener("input", () => { checkLocalDuplicate(); });
+
+        audit("APP_BOOT", `version=${APP_VERSION}`);
+    }
+
+    boot();
 </script>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
-
 
 
 
