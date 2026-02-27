@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard PO Stationery & Buku</title>
+    <style>
+        :root {
+            --primary: #1f4f7f;
+            --primary-light: #2f6ba6;
+            --primary-soft: #e6f0fa;
+            --accent: #e74c3c;
+            --success: #27ae60;
+            --info: #3498db;
+            --bg: #f3f6fb;
+            --text-main: #1f2933;
+            --text-muted: #7b8794;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 24px;
+            color: var(--text-main);
+        }
+
+        .page-shell {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-logo {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .brand-text-main {
+            font-weight: 600;
+            font-size: 18px;
+            color: var(--primary);
+        }
+
+        .brand-text-sub {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .top-meta {
+            text-align: right;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .summary-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 10px;
+            padding: 12px 14px;
+            box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .summary-title {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .summary-value {
+            font-size: 22px;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .summary-badge {
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background-color: var(--primary-soft);
+            color: var(--primary);
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(15, 23, 42, 0.08);
+            padding: 18px 18px 20px;
+        }
+
+        h2 {
+            text-align: left;
+            color: var(--primary);
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 10px;
+            margin-top: 0;
+            font-size: 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .tabs {
+            display: inline-flex;
+            background-color: #f3f4f6;
+            border-radius: 999px;
+            padding: 3px;
+            gap: 4px;
+        }
+
+        .tab-btn {
+            padding: 6px 16px;
+            border-radius: 999px;
+            border: none;
+            background-color: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: 0.25s;
+        }
+
+        .tab-btn.active {
+            background-color: white;
+            color: var(--primary);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+        }
+
+        .section {
+            display: none;
+            margin-top: 14px;
+        }
+
+        .section.active {
+            display: block;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .section-title {
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--primary);
+        }
+
+        .section-subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .controls-left,
+        .controls-right {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .field-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-right: 4px;
+        }
+
+        select,
+        input[type="text"] {
+            border-radius: 999px;
+            border: 1px solid #d1d5db;
+            padding: 5px 10px;
+            font-size: 12px;
+            min-width: 150px;
+            outline: none;
+        }
+
+        input[type="text"] {
+            min-width: 200px;
+        }
+
+        select:focus,
+        input[type="text"]:focus {
+            border-color: var(--primary-light);
+            box-shadow: 0 0 0 1px var(--primary-soft);
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .meta-pill {
+            padding: 2px 8px;
+            border-radius: 999px;
+            background-color: var(--primary-soft);
+            color: var(--primary);
+            font-weight: 500;
+        }
+
+        .meta-warning {
+            color: var(--accent);
+            font-weight: 500;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+            font-size: 13px;
+        }
+
+        th {
+            background-color: #f3f4f6;
+            color: var(--text-main);
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        th.sortable:hover {
+            background-color: #e5e7eb;
+        }
+
+        th .sort-indicator {
+            font-size: 10px;
+            margin-left: 4px;
+            opacity: 0.5;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 12px;
+        }
+
+        tr:nth-child(even) td {
+            background-color: #f9fafb;
+        }
+
+        tr:hover td {
+            background-color: #eef2ff;
+        }
+
+        /* Status Berkelip */
+        .pending-blink {
+            color: var(--accent);
+            font-weight: bold;
+            animation: blinker 1s linear infinite;
+        }
+
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
+
+        .status-text {
+            color: #555;
+            font-style: italic;
+            font-weight: 500;
+        }
+
+        /* Button Styling */
+        .btn {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 600;
+            color: white;
+            transition: 0.2s;
+            margin-right: 5px;
+            font-size: 11px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .btn-print { background-color: var(--info); }
+        .btn-print:hover { background-color: #2980b9; }
+
+        .btn-kutip { background-color: var(--success); }
+        .btn-kutip:hover { background-color: #219150; }
+
+        .btn-ghost {
+            background-color: white;
+            color: var(--primary);
+            border: 1px solid #d1d5db;
+        }
+
+        .btn-ghost:hover {
+            background-color: #eef2ff;
+            border-color: var(--primary-light);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .error-banner {
+            padding: 8px 10px;
+            border-radius: 8px;
+            background-color: #fef2f2;
+            color: #b91c1c;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .auto-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .auto-toggle input {
+            cursor: pointer;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 8px;
+            font-size: 11px;
+            color: var(--text-muted);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .pagination-btn {
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid #d1d5db;
+            background-color: white;
+            color: var(--primary);
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .pagination-btn[disabled] {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        .pagination-page {
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+
+            .controls-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .controls-right {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+            input[type="text"] {
+                width: 100%;
+                min-width: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="page-shell">
+    <div class="top-bar">
+        <div class="brand">
+            <div class="brand-logo">PO</div>
+            <div>
+                <div class="brand-text-main">Purchase Order Operations</div>
+                <div class="brand-text-sub">Real‑time dashboard for Stationery & Buku</div>
+            </div>
+        </div>
+        <div class="top-meta">
+            <div>Auto-refresh setiap 30 saat (boleh dijeda per modul)</div>
+            <div id="global-last-update">Belum ada data dimuatkan</div>
+        </div>
+    </div>
+
+    <div class="summary-row">
+        <div class="summary-card">
+            <div>
+                <div class="summary-title">Stationery - Pending PO</div>
+                <div id="summary-stationery-count" class="summary-value">0</div>
+            </div>
+            <div>
+                <div id="summary-stationery-total" class="summary-badge">Total: 0</div>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div>
+                <div class="summary-title">Buku - Pending PO</div>
+                <div id="summary-buku-count" class="summary-value">0</div>
+            </div>
+            <div>
+                <div id="summary-buku-total" class="summary-badge">Total: 0</div>
+            </div>
+        </div>
+        <div class="summary-card">
+            <div>
+                <div class="summary-title">All Completed PO</div>
+                <div id="summary-completed-count" class="summary-value">0</div>
+            </div>
+            <div>
+                <div id="summary-completed-meta" class="summary-badge">Loaded: -</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h2>
+            <span>📦 Dashboard PO Stationery & Buku</span>
+            <div class="tabs">
+                <button id="tab-stationery" class="tab-btn active" onclick="switchSection('stationery')">Stationery</button>
+                <button id="tab-buku" class="tab-btn" onclick="switchSection('buku')">Buku</button>
+                <button id="tab-complete" class="tab-btn" onclick="switchSection('complete')">Completed</button>
+            </div>
+        </h2>
+
+        <!-- Stationery Section -->
+        <div id="section-stationery" class="section active">
+            <div class="section-header">
+                <div>
+                    <div class="section-title">Stationery Purchase Orders</div>
+                    <div class="section-subtitle">Pantau status print by & kutip by secara masa nyata</div>
+                </div>
+                <div class="auto-toggle">
+                    <input type="checkbox" id="auto-stationery" checked>
+                    <span>Auto-refresh</span>
+                </div>
+            </div>
+
+            <div class="controls-row">
+                <div class="controls-left">
+                    <label>
+                        <span class="field-label">Cawangan</span>
+                        <select id="filter-branch-stationery" onchange="applyFiltersStationery()">
+                            <option value="ALL">Semua cawangan</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span class="field-label">Status</span>
+                        <select id="filter-status-stationery" onchange="applyFiltersStationery()">
+                            <option value="ALL">Semua status</option>
+                            <option value="PENDING">Pending sahaja</option>
+                            <option value="NON_EMPTY">Ada status (bukan kosong)</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="controls-right">
+                    <input type="text" id="search-stationery" placeholder="Cari cawangan / Nombor PO / status"
+                           oninput="applyFiltersStationery()">
+                    <button class="btn btn-ghost" onclick="manualRefresh('stationery')">⟳ Refresh sekarang</button>
+                </div>
+            </div>
+
+            <div class="meta-row">
+                <div>
+                    <span id="statusUpdate-stationery" class="meta-pill">Auto-refresh aktif (Stationery)</span>
+                </div>
+                <div>
+                    <span>Terakhir kemas kini: <span id="lastUpdate-stationery">-</span></span>
+                </div>
+            </div>
+
+            <div id="error-stationery" class="error-banner" style="display:none;"></div>
+
+            <div id="mainContent-stationery">
+                <div class="loading">Sila tunggu, sedang memuatkan data Stationery...</div>
+            </div>
+        </div>
+
+        <!-- Buku Section -->
+        <div id="section-buku" class="section">
+            <div class="section-header">
+                <div>
+                    <div class="section-title">Buku Purchase Orders</div>
+                    <div class="section-subtitle">Pantau status print by & kutip by secara masa nyata</div>
+                </div>
+                <div class="auto-toggle">
+                    <input type="checkbox" id="auto-buku" checked>
+                    <span>Auto-refresh</span>
+                </div>
+            </div>
+
+            <div class="controls-row">
+                <div class="controls-left">
+                    <label>
+                        <span class="field-label">Cawangan</span>
+                        <select id="filter-branch-buku" onchange="applyFiltersBuku()">
+                            <option value="ALL">Semua cawangan</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span class="field-label">Status</span>
+                        <select id="filter-status-buku" onchange="applyFiltersBuku()">
+                            <option value="ALL">Semua status</option>
+                            <option value="PENDING">Pending sahaja</option>
+                            <option value="NON_EMPTY">Ada status (bukan kosong)</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="controls-right">
+                    <input type="text" id="search-buku" placeholder="Cari cawangan / Nombor PO / status"
+                           oninput="applyFiltersBuku()">
+                    <button class="btn btn-ghost" onclick="manualRefresh('buku')">⟳ Refresh sekarang</button>
+                </div>
+            </div>
+
+            <div class="meta-row">
+                <div>
+                    <span id="statusUpdate-buku" class="meta-pill">Auto-refresh aktif (Buku)</span>
+                </div>
+                <div>
+                    <span>Terakhir kemas kini: <span id="lastUpdate-buku">-</span></span>
+                </div>
+            </div>
+
+            <div id="error-buku" class="error-banner" style="display:none;"></div>
+
+            <div id="mainContent-buku">
+                <div class="loading">Sila tunggu, sedang memuatkan data Buku...</div>
+            </div>
+        </div>
+
+        <!-- Completed Section (lazy load) -->
+        <div id="section-complete" class="section">
+            <div class="section-header">
+                <div>
+                    <div class="section-title">Completed Purchase Orders</div>
+                    <div class="section-subtitle">Senarai PO yang telah lengkap PRINT BY &amp; KUTIP BY</div>
+                </div>
+            </div>
+
+            <div class="controls-row">
+                <div class="controls-left">
+                    <label>
+                        <span class="field-label">Jenis</span>
+                        <select id="filter-type-complete" onchange="applyFiltersComplete()">
+                            <option value="ALL">Semua jenis</option>
+                            <option value="STATIONERY">Stationery</option>
+                            <option value="BUKU">Buku</option>
+                        </select>
+                    </label>
+                    <label>
+                        <span class="field-label">Cawangan</span>
+                        <select id="filter-branch-complete" onchange="applyFiltersComplete()">
+                            <option value="ALL">Semua cawangan</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="controls-right">
+                    <input type="text" id="search-complete" placeholder="Cari cawangan / Nombor PO / status"
+                           oninput="applyFiltersComplete()">
+                    <button class="btn btn-ghost" onclick="manualRefresh('complete')">⟳ Muat semula senarai lengkap</button>
+                </div>
+            </div>
+
+            <div class="meta-row">
+                <div>
+                    <span class="meta-pill">Lazy load: data hanya dipanggil bila buka tab ini</span>
+                </div>
+                <div>
+                    <span>Terakhir muat: <span id="lastUpdate-complete">-</span></span>
+                </div>
+            </div>
+
+            <div id="error-complete" class="error-banner" style="display:none;"></div>
+
+            <div id="mainContent-complete">
+                <div class="loading">Buka tab ini untuk memuatkan senarai lengkap PO yang telah selesai.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // URL Web App Google Apps Script（保持与原来完全一致）
+    const WEB_APP_URL_STATIONERY = "https://script.google.com/macros/s/AKfycbxSfE6FurB7jFOMxrqlQzMjtOjzpXRENda7a6vtv9i_jm0qr8DKKhvzVm_QIb4YwMiC/exec";
+    const WEB_APP_URL_BUKU = "https://script.google.com/macros/s/AKfycbyIZPuERQCBY5ABYepIPLVTxXL2rAGxAt1vi9PMOCabWJFz_YOFCIbySTarJfOxqKbu0A/exec";
+
+    let intervalStationery = null;
+    let intervalBuku = null;
+    let stationeryData = [];
+    let bukuData = [];
+    let stationerySort = { key: null, dir: 'asc' };
+    let bukuSort = { key: null, dir: 'asc' };
+
+    // Completed data（lazy-load）
+    let stationeryCompletedData = [];
+    let bukuCompletedData = [];
+    let completedSort = { key: null, dir: 'desc' };
+    let completedLoadedOnce = false;
+
+    // Paging state
+    let stationeryPaging = { page: 1, pageSize: 20 };
+    let bukuPaging = { page: 1, pageSize: 20 };
+    let completePaging = { page: 1, pageSize: 20 };
+
+    function formatTime(date) {
+        const d = date instanceof Date ? date : new Date(date);
+        return d.toLocaleString('ms-MY', {
+            hour12: false
+        });
+    }
+
+    function formatDateOnly(value) {
+        if (!value) return '';
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return String(value);
+        return d.toLocaleDateString('ms-MY');
+    }
+
+    function updateCompletedSummary() {
+        const total = stationeryCompletedData.length + bukuCompletedData.length;
+        const countEl = document.getElementById('summary-completed-count');
+        const metaEl = document.getElementById('summary-completed-meta');
+        if (countEl) countEl.textContent = total;
+        if (metaEl) metaEl.textContent = "Records: " + total;
+    }
+
+    function updateGlobalLastUpdate() {
+        const el = document.getElementById('global-last-update');
+        if (!el) return;
+        const now = new Date();
+        el.textContent = "Dashboard dikemas kini pada " + formatTime(now);
+    }
+
+    function switchSection(type) {
+        const isStationery = type === 'stationery';
+        const isBuku = type === 'buku';
+        const isComplete = type === 'complete';
+
+        document.getElementById('section-stationery').classList.toggle('active', isStationery);
+        document.getElementById('section-buku').classList.toggle('active', isBuku);
+        document.getElementById('section-complete').classList.toggle('active', isComplete);
+
+        document.getElementById('tab-stationery').classList.toggle('active', isStationery);
+        document.getElementById('tab-buku').classList.toggle('active', isBuku);
+        document.getElementById('tab-complete').classList.toggle('active', isComplete);
+
+        if (isComplete) {
+            fetchCompletedData(); // 懒加载：第一次切到 Completed 才去拉数据
+        }
+    }
+
+    function manualRefresh(type) {
+        if (type === 'stationery') {
+            fetchDataStationery(true);
+        } else if (type === 'buku') {
+            fetchDataBuku(true);
+        } else if (type === 'complete') {
+            fetchCompletedData(true);
+        }
+    }
+
+    function updateSummaryCounts() {
+        const stTotal = stationeryData.length;
+        const stPending = stationeryData.filter(item => !item.status || item.status === "").length;
+        const bkTotal = bukuData.length;
+        const bkPending = bukuData.filter(item => !item.status || item.status === "").length;
+
+        const stTotalEl = document.getElementById('summary-stationery-total');
+        const stPendingEl = document.getElementById('summary-stationery-count');
+        const bkTotalEl = document.getElementById('summary-buku-total');
+        const bkPendingEl = document.getElementById('summary-buku-count');
+
+        if (stTotalEl) stTotalEl.textContent = "Total: " + stTotal;
+        if (stPendingEl) stPendingEl.textContent = stPending;
+        if (bkTotalEl) bkTotalEl.textContent = "Total: " + bkTotal;
+        if (bkPendingEl) bkPendingEl.textContent = bkPending;
+    }
+
+    // ===== Stationery Functions =====
+    async function fetchDataStationery(force = false) {
+        try {
+            const autoEl = document.getElementById('auto-stationery');
+            if (!force && autoEl && !autoEl.checked) {
+                return;
+            }
+
+            document.getElementById('error-stationery').style.display = 'none';
+
+            const response = await fetch(`${WEB_APP_URL_STATIONERY}?action=getData`);
+            const data = await response.json();
+            stationeryData = Array.isArray(data) ? data : [];
+
+            const lastUpdateEl = document.getElementById('lastUpdate-stationery');
+            if (lastUpdateEl) lastUpdateEl.textContent = formatTime(new Date());
+
+            updateSummaryCounts();
+            updateStationeryFilterOptions();
+            applyFiltersStationery();
+            updateGlobalLastUpdate();
+        } catch (error) {
+            console.error("Error fetching data Stationery:", error);
+            const errEl = document.getElementById('error-stationery');
+            if (errEl) {
+                errEl.textContent = "Gagal bersambung ke Google Sheets (Stationery). Pastikan URL Web App betul atau cuba lagi sebentar lagi.";
+                errEl.style.display = 'block';
+            }
+            document.getElementById('mainContent-stationery').innerHTML =
+                "<div class='loading'>Tidak dapat memuatkan data Stationery buat masa ini.</div>";
+        }
+    }
+
+    function updateStationeryFilterOptions() {
+        const branchSelect = document.getElementById('filter-branch-stationery');
+        if (!branchSelect) return;
+
+        const previous = branchSelect.value || 'ALL';
+        const branches = Array.from(new Set(stationeryData.map(i => i.cawangan).filter(Boolean))).sort();
+
+        let options = '<option value="ALL">Semua cawangan</option>';
+        branches.forEach(b => {
+            const safeValue = String(b).replace(/"/g, '&quot;');
+            options += `<option value="${safeValue}">${safeValue}</option>`;
+        });
+
+        branchSelect.innerHTML = options;
+        branchSelect.value = previous;
+    }
+
+    function getFilteredStationeryData() {
+        let filtered = stationeryData.slice();
+
+        const branchSelect = document.getElementById('filter-branch-stationery');
+        const statusSelect = document.getElementById('filter-status-stationery');
+        const searchInput = document.getElementById('search-stationery');
+
+        const branch = branchSelect ? branchSelect.value : 'ALL';
+        const statusFilter = statusSelect ? statusSelect.value : 'ALL';
+        const search = (searchInput ? searchInput.value : '').toLowerCase().trim();
+
+        if (branch && branch !== 'ALL') {
+            filtered = filtered.filter(i => String(i.cawangan || '').toLowerCase() === branch.toLowerCase());
+        }
+
+        if (statusFilter === 'PENDING') {
+            filtered = filtered.filter(i => !i.status || i.status === "");
+        } else if (statusFilter === 'NON_EMPTY') {
+            filtered = filtered.filter(i => i.status && i.status !== "");
+        }
+
+        if (search) {
+            filtered = filtered.filter(i => {
+                const cawangan = String(i.cawangan || '').toLowerCase();
+                const noPo = String(i.noPo || '').toLowerCase();
+                const status = String(i.status || '').toLowerCase();
+                return cawangan.includes(search) || noPo.includes(search) || status.includes(search);
+            });
+        }
+
+        if (stationerySort.key) {
+            const key = stationerySort.key;
+            const dir = stationerySort.dir === 'desc' ? -1 : 1;
+            filtered.sort((a, b) => {
+                const va = (a[key] ?? '').toString().toLowerCase();
+                const vb = (b[key] ?? '').toString().toLowerCase();
+                if (va < vb) return -1 * dir;
+                if (va > vb) return 1 * dir;
+                return 0;
+            });
+        }
+
+        return filtered;
+    }
+
+    function changeSortStationery(key) {
+        if (stationerySort.key === key) {
+            stationerySort.dir = stationerySort.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+            stationerySort.key = key;
+            stationerySort.dir = 'asc';
+        }
+        applyFiltersStationery();
+    }
+
+    function applyFiltersStationery() {
+        const data = getFilteredStationeryData();
+        renderTableStationery(data);
+    }
+
+    function renderTableStationery(data) {
+        const container = document.getElementById('mainContent-stationery');
+        if (!container) return;
+
+        if (!data || data.length === 0) {
+            container.innerHTML =
+                "<div class='loading'>✅ Tiada PO pending Stationery buat masa ini (selepas tapis).</div>";
+            return;
+        }
+
+        const paging = stationeryPaging;
+        const total = data.length;
+        const totalPages = Math.max(1, Math.ceil(total / paging.pageSize));
+        if (paging.page > totalPages) paging.page = totalPages;
+        const startIndex = (paging.page - 1) * paging.pageSize;
+        const endIndex = Math.min(startIndex + paging.pageSize, total);
+        const pageData = data.slice(startIndex, endIndex);
+
+        const sortKey = stationerySort.key;
+        const sortDir = stationerySort.dir;
+
+        function sortIndicator(key) {
+            if (sortKey !== key) return '';
+            return sortDir === 'asc' ? '▲' : '▼';
+        }
+
+        let html = `<table>
+            <thead>
+                <tr>
+                    <th class="sortable" onclick="changeSortStationery('date')">
+                        Tarikh <span class="sort-indicator">${sortIndicator('date')}</span>
+                    </th>
+                    <th class="sortable" onclick="changeSortStationery('cawangan')">
+                        Cawangan <span class="sort-indicator">${sortIndicator('cawangan')}</span>
+                    </th>
+                    <th class="sortable" onclick="changeSortStationery('noPo')">
+                        Nombor PO <span class="sort-indicator">${sortIndicator('noPo')}</span>
+                    </th>
+                    <th class="sortable" onclick="changeSortStationery('status')">
+                        Status H <span class="sort-indicator">${sortIndicator('status')}</span>
+                    </th>
+                    <th style="width: 1%;">Tindakan</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        pageData.forEach(item => {
+            let statusDisplay = !item.status || item.status === ""
+                ? '<span class="pending-blink">⚠ PENDING</span>'
+                : `<span class="status-text">${item.status}</span>`;
+
+            html += `<tr>
+                <td>${formatDateOnly(item.date)}</td>
+                <td><strong>${item.cawangan ?? ''}</strong></td>
+                <td>${item.noPo ?? ''}</td>
+                <td>${statusDisplay}</td>
+                <td>
+                    <button class="btn btn-print" onclick="handleActionStationery(${item.row}, 'PRINT', '${item.fileUrl}')">🖨️ Print</button>
+                    <button class="btn btn-kutip" onclick="handleActionStationery(${item.row}, 'KUTIP')">🚚 Kutip</button>
+                </td>
+            </tr>`;
+        });
+
+        html += `</tbody></table>`;
+
+        const prevDisabled = paging.page === 1 ? 'disabled' : '';
+        const nextDisabled = paging.page === totalPages ? 'disabled' : '';
+
+        html += `<div class="pagination">
+            <div class="pagination-info">
+                Menunjukkan ${startIndex + 1}–${endIndex} daripada ${total} rekod
+            </div>
+            <div class="pagination-controls">
+                <span class="field-label">Show</span>
+                <select onchange="changePageSizeStationery(this.value)">
+                    <option value="20" ${paging.pageSize === 20 ? 'selected' : ''}>20</option>
+                    <option value="50" ${paging.pageSize === 50 ? 'selected' : ''}>50</option>
+                </select>
+                <span class="field-label">per page</span>
+                <button class="pagination-btn" onclick="changePageStationery(-1)" ${prevDisabled}>‹ Prev</button>
+                <span class="pagination-page">Page ${paging.page} / ${totalPages}</span>
+                <button class="pagination-btn" onclick="changePageStationery(1)" ${nextDisabled}>Next ›</button>
+            </div>
+        </div>`;
+
+        container.innerHTML = html;
+    }
+
+    async function handleActionStationery(row, type, fileUrl) {
+        let promptMsg = type === 'PRINT' ? "Masukkan nama (Print by):" : "Masukkan nama (Done kutip by):";
+        let staffName = prompt(promptMsg);
+
+        if (staffName && staffName.trim() !== "") {
+            if (type === 'PRINT' && fileUrl && fileUrl !== "undefined") {
+                window.open(fileUrl, '_blank');
+            }
+
+            document.getElementById('mainContent-stationery').innerHTML =
+                "<div class='loading'>Mengemaskini data Stationery...</div>";
+
+            try {
+                await fetch(WEB_APP_URL_STATIONERY, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({
+                        row: row,
+                        action: type,
+                        name: staffName
+                    })
+                });
+
+                setTimeout(() => fetchDataStationery(true), 1500);
+            } catch (error) {
+                alert("Ralat kemas kini Stationery!");
+                fetchDataStationery(true);
+            }
+        }
+    }
+
+    function changePageStationery(delta) {
+        const paging = stationeryPaging;
+        const data = getFilteredStationeryData();
+        const totalPages = Math.max(1, Math.ceil(data.length / paging.pageSize));
+        paging.page = Math.min(totalPages, Math.max(1, paging.page + delta));
+        renderTableStationery(data);
+    }
+
+    function changePageSizeStationery(size) {
+        const paging = stationeryPaging;
+        paging.pageSize = parseInt(size, 10) || 20;
+        paging.page = 1;
+        const data = getFilteredStationeryData();
+        renderTableStationery(data);
+    }
+
+    // ===== Buku Functions =====
+    async function fetchDataBuku(force = false) {
+        try {
+            const autoEl = document.getElementById('auto-buku');
+            if (!force && autoEl && !autoEl.checked) {
+                return;
+            }
+
+            document.getElementById('error-buku').style.display = 'none';
+
+            const response = await fetch(`${WEB_APP_URL_BUKU}?action=getData`);
+            const data = await response.json();
+            bukuData = Array.isArray(data) ? data : [];
+
+            const lastUpdateEl = document.getElementById('lastUpdate-buku');
+            if (lastUpdateEl) lastUpdateEl.textContent = formatTime(new Date());
+
+            updateSummaryCounts();
+            updateBukuFilterOptions();
+            applyFiltersBuku();
+            updateGlobalLastUpdate();
+        } catch (error) {
+            console.error("Error fetching data Buku:", error);
+            const errEl = document.getElementById('error-buku');
+            if (errEl) {
+                errEl.textContent = "Gagal bersambung ke Google Sheets (Buku). Pastikan URL Web App betul atau cuba lagi sebentar lagi.";
+                errEl.style.display = 'block';
+            }
+            document.getElementById('mainContent-buku').innerHTML =
+                "<div class='loading'>Tidak dapat memuatkan data Buku buat masa ini.</div>";
+        }
+    }
+
+    function updateBukuFilterOptions() {
+        const branchSelect = document.getElementById('filter-branch-buku');
+        if (!branchSelect) return;
+
+        const previous = branchSelect.value || 'ALL';
+        const branches = Array.from(new Set(bukuData.map(i => i.cawangan).filter(Boolean))).sort();
+
+        let options = '<option value="ALL">Semua cawangan</option>';
+        branches.forEach(b => {
+            const safeValue = String(b).replace(/"/g, '&quot;');
+            options += `<option value="${safeValue}">${safeValue}</option>`;
+        });
+
+        branchSelect.innerHTML = options;
+        branchSelect.value = previous;
+    }
+
+    function getFilteredBukuData() {
+        let filtered = bukuData.slice();
+
+        const branchSelect = document.getElementById('filter-branch-buku');
+        const statusSelect = document.getElementById('filter-status-buku');
+        const searchInput = document.getElementById('search-buku');
+
+        const branch = branchSelect ? branchSelect.value : 'ALL';
+        const statusFilter = statusSelect ? statusSelect.value : 'ALL';
+        const search = (searchInput ? searchInput.value : '').toLowerCase().trim();
+
+        if (branch && branch !== 'ALL') {
+            filtered = filtered.filter(i => String(i.cawangan || '').toLowerCase() === branch.toLowerCase());
+        }
+
+        if (statusFilter === 'PENDING') {
+            filtered = filtered.filter(i => !i.status || i.status === "");
+        } else if (statusFilter === 'NON_EMPTY') {
+            filtered = filtered.filter(i => i.status && i.status !== "");
+        }
+
+        if (search) {
+            filtered = filtered.filter(i => {
+                const cawangan = String(i.cawangan || '').toLowerCase();
+                const noPo = String(i.noPo || '').toLowerCase();
+                const status = String(i.status || '').toLowerCase();
+                return cawangan.includes(search) || noPo.includes(search) || status.includes(search);
+            });
+        }
+
+        if (bukuSort.key) {
+            const key = bukuSort.key;
+            const dir = bukuSort.dir === 'desc' ? -1 : 1;
+            filtered.sort((a, b) => {
+                const va = (a[key] ?? '').toString().toLowerCase();
+                const vb = (b[key] ?? '').toString().toLowerCase();
+                if (va < vb) return -1 * dir;
+                if (va > vb) return 1 * dir;
+                return 0;
+            });
+        }
+
+        return filtered;
+    }
+
+    function changeSortBuku(key) {
+        if (bukuSort.key === key) {
+            bukuSort.dir = bukuSort.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+            bukuSort.key = key;
+            bukuSort.dir = 'asc';
+        }
+        applyFiltersBuku();
+    }
+
+    function applyFiltersBuku() {
+        const data = getFilteredBukuData();
+        renderTableBuku(data);
+    }
+
+    function renderTableBuku(data) {
+        const container = document.getElementById('mainContent-buku');
+        if (!container) return;
+
+        if (!data || data.length === 0) {
+            container.innerHTML =
+                "<div class='loading'>✅ Tiada PO pending Buku buat masa ini (selepas tapis).</div>";
+            return;
+        }
+
+        const paging = bukuPaging;
+        const total = data.length;
+        const totalPages = Math.max(1, Math.ceil(total / paging.pageSize));
+        if (paging.page > totalPages) paging.page = totalPages;
+        const startIndex = (paging.page - 1) * paging.pageSize;
+        const endIndex = Math.min(startIndex + paging.pageSize, total);
+        const pageData = data.slice(startIndex, endIndex);
+
+        const sortKey = bukuSort.key;
+        const sortDir = bukuSort.dir;
+
+        function sortIndicator(key) {
+            if (sortKey !== key) return '';
+            return sortDir === 'asc' ? '▲' : '▼';
+        }
+
+        let html = `<table>
+            <thead>
+                <tr>
+                    <th class="sortable" onclick="changeSortBuku('date')">
+                        Tarikh <span class="sort-indicator">${sortIndicator('date')}</span>
+                    </th>
+                    <th class="sortable" onclick="changeSortBuku('cawangan')">
+                        Cawangan <span class="sort-indicator">${sortIndicator('cawangan')}</span>
+                    </th>
+                    <th class="sortable" onclick="changeSortBuku('noPo')">
+                        Nombor PO <span class="sort-indicator">${sortIndicator('noPo')}</span>
+                    </th>
+                    <th class="sortable" onclick="changeSortBuku('status')">
+                        Status H <span class="sort-indicator">${sortIndicator('status')}</span>
+                    </th>
+                    <th style="width: 1%;">Tindakan</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        pageData.forEach(item => {
+            let statusDisplay = !item.status || item.status === ""
+                ? '<span class="pending-blink">⚠ PENDING</span>'
+                : `<span class="status-text">${item.status}</span>`;
+
+            html += `<tr>
+                <td>${formatDateOnly(item.date)}</td>
+                <td><strong>${item.cawangan ?? ''}</strong></td>
+                <td>${item.noPo ?? ''}</td>
+                <td>${statusDisplay}</td>
+                <td>
+                    <button class="btn btn-print" onclick="handleActionBuku(${item.row}, 'PRINT', '${item.fileUrl}')">🖨️ Print</button>
+                    <button class="btn btn-kutip" onclick="handleActionBuku(${item.row}, 'KUTIP')">🚚 Kutip</button>
+                </td>
+            </tr>`;
+        });
+
+        html += `</tbody></table>`;
+
+        const prevDisabled = paging.page === 1 ? 'disabled' : '';
+        const nextDisabled = paging.page === totalPages ? 'disabled' : '';
+
+        html += `<div class="pagination">
+            <div class="pagination-info">
+                Menunjukkan ${startIndex + 1}–${endIndex} daripada ${total} rekod
+            </div>
+            <div class="pagination-controls">
+                <span class="field-label">Show</span>
+                <select onchange="changePageSizeBuku(this.value)">
+                    <option value="20" ${paging.pageSize === 20 ? 'selected' : ''}>20</option>
+                    <option value="50" ${paging.pageSize === 50 ? 'selected' : ''}>50</option>
+                </select>
+                <span class="field-label">per page</span>
+                <button class="pagination-btn" onclick="changePageBuku(-1)" ${prevDisabled}>‹ Prev</button>
+                <span class="pagination-page">Page ${paging.page} / ${totalPages}</span>
+                <button class="pagination-btn" onclick="changePageBuku(1)" ${nextDisabled}>Next ›</button>
+            </div>
+        </div>`;
+
+        container.innerHTML = html;
+    }
+
+    async function handleActionBuku(row, type, fileUrl) {
+        let promptMsg = type === 'PRINT' ? "Masukkan nama (Print by):" : "Masukkan nama (Done kutip by):";
+        let staffName = prompt(promptMsg);
+
+        if (staffName && staffName.trim() !== "") {
+            if (type === 'PRINT' && fileUrl && fileUrl !== "undefined") {
+                window.open(fileUrl, '_blank');
+            }
+
+            document.getElementById('mainContent-buku').innerHTML =
+                "<div class='loading'>Mengemaskini data Buku...</div>";
+
+            try {
+                await fetch(WEB_APP_URL_BUKU, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify({
+                        row: row,
+                        action: type,
+                        name: staffName
+                    })
+                });
+
+                setTimeout(() => fetchDataBuku(true), 1500);
+            } catch (error) {
+                alert("Ralat kemas kini Buku!");
+                fetchDataBuku(true);
+            }
+        }
+    }
+
+    function changePageBuku(delta) {
+        const paging = bukuPaging;
+        const data = getFilteredBukuData();
+        const totalPages = Math.max(1, Math.ceil(data.length / paging.pageSize));
+        paging.page = Math.min(totalPages, Math.max(1, paging.page + delta));
+        renderTableBuku(data);
+    }
+
+    function changePageSizeBuku(size) {
+        const paging = bukuPaging;
+        paging.pageSize = parseInt(size, 10) || 20;
+        paging.page = 1;
+        const data = getFilteredBukuData();
+        renderTableBuku(data);
+    }
+
+    // ===== Completed (Stationery + Buku, lazy load) =====
+    async function fetchCompletedData(force = false) {
+        if (!force && completedLoadedOnce) {
+            return; // 已经加载过且不是强制刷新，就不再打扰 GAS
+        }
+        completedLoadedOnce = true;
+
+        const container = document.getElementById('mainContent-complete');
+        const errorEl = document.getElementById('error-complete');
+        if (errorEl) errorEl.style.display = 'none';
+        if (container) {
+            container.innerHTML = "<div class='loading'>Sedang memuatkan senarai lengkap Stationery &amp; Buku...</div>";
+        }
+
+        try {
+            const [stRes, bkRes] = await Promise.all([
+                fetch(`${WEB_APP_URL_STATIONERY}?action=getCompleted`),
+                fetch(`${WEB_APP_URL_BUKU}?action=getCompleted`)
+            ]);
+
+            const [stData, bkData] = await Promise.all([stRes.json(), bkRes.json()]);
+
+            stationeryCompletedData = Array.isArray(stData) ? stData : [];
+            bukuCompletedData = Array.isArray(bkData) ? bkData : [];
+
+            const lastUpdateEl = document.getElementById('lastUpdate-complete');
+            if (lastUpdateEl) lastUpdateEl.textContent = formatTime(new Date());
+
+            updateCompletedFilterOptions();
+            applyFiltersComplete();
+            updateCompletedSummary();
+        } catch (error) {
+            console.error("Error fetching completed data:", error);
+            if (errorEl) {
+                errorEl.textContent = "Gagal memuatkan senarai lengkap. Cuba lagi sebentar lagi.";
+                errorEl.style.display = 'block';
+            }
+            if (container) {
+                container.innerHTML = "<div class='loading'>Tidak dapat memuatkan senarai lengkap buat masa ini.</div>";
+            }
+        }
+    }
+
+    function getAllCompletedData() {
+        const st = stationeryCompletedData.map(item => ({
+            ...item,
+            jenis: 'STATIONERY'
+        }));
+        const bk = bukuCompletedData.map(item => ({
+            ...item,
+            jenis: 'BUKU'
+        }));
+        return [...st, ...bk];
+    }
+
+    function updateCompletedFilterOptions() {
+        const branchSelect = document.getElementById('filter-branch-complete');
+        if (!branchSelect) return;
+
+        const previous = branchSelect.value || 'ALL';
+        const all = getAllCompletedData();
+        const branches = Array.from(new Set(all.map(i => i.cawangan).filter(Boolean))).sort();
+
+        let options = '<option value="ALL">Semua cawangan</option>';
+        branches.forEach(b => {
+            const safeValue = String(b).replace(/"/g, '&quot;');
+            options += `<option value="${safeValue}">${safeValue}</option>`;
+        });
+
+        branchSelect.innerHTML = options;
+        branchSelect.value = previous;
+    }
+
+    function getFilteredCompletedData() {
+        let data = getAllCompletedData();
+
+        const typeSelect = document.getElementById('filter-type-complete');
+        const branchSelect = document.getElementById('filter-branch-complete');
+        const searchInput = document.getElementById('search-complete');
+
+        const jenis = typeSelect ? typeSelect.value : 'ALL';
+        const branch = branchSelect ? branchSelect.value : 'ALL';
+        const search = (searchInput ? searchInput.value : '').toLowerCase().trim();
+
+        if (jenis && jenis !== 'ALL') {
+            data = data.filter(i => i.jenis === jenis);
+        }
+
+        if (branch && branch !== 'ALL') {
+            data = data.filter(i => String(i.cawangan || '').toLowerCase() === branch.toLowerCase());
+        }
+
+        if (search) {
+            data = data.filter(i => {
+                const cawangan = String(i.cawangan || '').toLowerCase();
+                const noPo = String(i.noPo || '').toLowerCase();
+                const status = String(i.status || '').toLowerCase();
+                return cawangan.includes(search) || noPo.includes(search) || status.includes(search);
+            });
+        }
+
+        if (completedSort.key) {
+            const key = completedSort.key;
+            const dir = completedSort.dir === 'desc' ? -1 : 1;
+            data.sort((a, b) => {
+                const va = (a[key] ?? '').toString().toLowerCase();
+                const vb = (b[key] ?? '').toString().toLowerCase();
+                if (va < vb) return -1 * dir;
+                if (va > vb) return 1 * dir;
+                return 0;
+            });
+        }
+
+        return data;
+    }
+
+    function changeSortComplete(key) {
+        if (completedSort.key === key) {
+            completedSort.dir = completedSort.dir === 'asc' ? 'desc' : 'asc';
+        } else {
+            completedSort.key = key;
+            completedSort.dir = 'asc';
+        }
+        applyFiltersComplete();
+    }
+
+    function applyFiltersComplete() {
+        const data = getFilteredCompletedData();
+        renderTableComplete(data);
+    }
+
+    function renderTableComplete(data) {
+        const container = document.getElementById('mainContent-complete');
+        if (!container) return;
+
+        if (!data || data.length === 0) {
+            container.innerHTML =
+                "<div class='loading'>✅ Tiada rekod lengkap (PRINT BY &amp; KUTIP BY) ditemui mengikut tapisan semasa.</div>";
+            return;
+        }
+
+        const paging = completePaging;
+        const total = data.length;
+        const totalPages = Math.max(1, Math.ceil(total / paging.pageSize));
+        if (paging.page > totalPages) paging.page = totalPages;
+        const startIndex = (paging.page - 1) * paging.pageSize;
+        const endIndex = Math.min(startIndex + paging.pageSize, total);
+        const pageData = data.slice(startIndex, endIndex);
+
+        const sortKey = completedSort.key;
+        const sortDir = completedSort.dir;
+
+        function sortIndicator(key) {
+            if (sortKey !== key) return '';
+            return sortDir === 'asc' ? '▲' : '▼';
+        }
+
+        let html = `<table>
+            <thead>
+                <tr>
+                    <th class="sortable" onclick="changeSortComplete('jenis')">
+                        Jenis <span class="sort-indicator">${sortIndicator('jenis')}</span>
+                    </th>
+                    <th class="sortable" onclick="changeSortComplete('date')">
+                        Tarikh <span class="sort-indicator">${sortIndicator('date')}</span>
+                    </th>
+                    <th class="sortable" onclick="changeSortComplete('cawangan')">
+                        Cawangan <span class="sort-indicator">${sortIndicator('cawangan')}</span>
+                    </th>
+                    <th class="sortable" onclick="changeSortComplete('noPo')">
+                        Nombor PO <span class="sort-indicator">${sortIndicator('noPo')}</span>
+                    </th>
+                    <th class="sortable" onclick="changeSortComplete('status')">
+                        Status H <span class="sort-indicator">${sortIndicator('status')}</span>
+                    </th>
+                    <th style="width: 1%;">Tindakan</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+        pageData.forEach(item => {
+            const statusDisplay = `<span class="status-text">${item.status ?? ''}</span>`;
+            const fileUrl = item.fileUrl ?? '';
+
+            html += `<tr>
+                <td>${item.jenis}</td>
+                <td>${formatDateOnly(item.date)}</td>
+                <td><strong>${item.cawangan ?? ''}</strong></td>
+                <td>${item.noPo ?? ''}</td>
+                <td>${statusDisplay}</td>
+                <td>
+                    ${fileUrl ? `<button class="btn btn-print" onclick="window.open('${fileUrl}', '_blank')">🖨️ Buka fail</button>` : ''}
+                </td>
+            </tr>`;
+        });
+
+        html += `</tbody></table>`;
+
+        const prevDisabled = paging.page === 1 ? 'disabled' : '';
+        const nextDisabled = paging.page === totalPages ? 'disabled' : '';
+
+        html += `<div class="pagination">
+            <div class="pagination-info">
+                Menunjukkan ${startIndex + 1}–${endIndex} daripada ${total} rekod
+            </div>
+            <div class="pagination-controls">
+                <span class="field-label">Show</span>
+                <select onchange="changePageSizeComplete(this.value)">
+                    <option value="20" ${paging.pageSize === 20 ? 'selected' : ''}>20</option>
+                    <option value="50" ${paging.pageSize === 50 ? 'selected' : ''}>50</option>
+                </select>
+                <span class="field-label">per page</span>
+                <button class="pagination-btn" onclick="changePageComplete(-1)" ${prevDisabled}>‹ Prev</button>
+                <span class="pagination-page">Page ${paging.page} / ${totalPages}</span>
+                <button class="pagination-btn" onclick="changePageComplete(1)" ${nextDisabled}>Next ›</button>
+            </div>
+        </div>`;
+
+        container.innerHTML = html;
+    }
+
+    function changePageComplete(delta) {
+        const paging = completePaging;
+        const data = getFilteredCompletedData();
+        const totalPages = Math.max(1, Math.ceil(data.length / paging.pageSize));
+        paging.page = Math.min(totalPages, Math.max(1, paging.page + delta));
+        renderTableComplete(data);
+    }
+
+    function changePageSizeComplete(size) {
+        const paging = completePaging;
+        paging.pageSize = parseInt(size, 10) || 20;
+        paging.page = 1;
+        const data = getFilteredCompletedData();
+        renderTableComplete(data);
+    }
+
+    // Initial Load & Auto Refresh
+    function init() {
+        fetchDataStationery(true);
+        fetchDataBuku(true);
+
+        intervalStationery = setInterval(fetchDataStationery, 30000);
+        intervalBuku = setInterval(fetchDataBuku, 30000);
+    }
+
+    init();
+</script>
+
+</body>
+</html>
+
