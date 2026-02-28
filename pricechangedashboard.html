@@ -597,6 +597,10 @@
         <button type="submit" class="btn btn-primary" id="loginBtn">
           登录
         </button>
+        <p id="deployHint" class="deploy-hint" style="display:none; margin-top:16px; font-size:0.85rem; color:var(--text-muted);">
+          若登入报 Failed to fetch，请改用
+          <a id="deployLink" href="#" target="_blank" rel="noopener" style="color:var(--accent);">从部署地址打开</a>。
+        </p>
       </form>
     </section>
 
@@ -673,8 +677,11 @@
 
   <script>
     (function () {
-      const PRICE_LOG_URL = "https://script.google.com/macros/s/AKfycbxir5xEKoJMMJ__uYXHOlifn4bub7eShf_ePdDb0n1-wYjNimpFC8qhJb5mi2yQpGvg/exec";
-      const BRANCH_STATE_URL = "https://script.google.com/macros/s/AKfycbxb1WfAQ6DtjDV9iNfznkTSEV9xb5Cr2y8Mbjf6w0cQZsPZsImsn3uXAzVWgjQCu44m/exec";
+      // 从 script.google.com 打开时用同源地址，避免登入/POST 时 CORS 导致 Failed to fetch
+      var isFromGAS = (window.location.origin || "").indexOf("script.google.com") !== -1;
+      var API_BASE = isFromGAS ? (window.location.origin + window.location.pathname) : "";
+      var PRICE_LOG_URL = API_BASE || "https://script.google.com/macros/s/AKfycbxb1WfAQ6DtjDV9iNfznkTSEV9xb5Cr2y8Mbjf6w0cQZsPZsImsn3uXAzVWgjQCu44m/exec";
+      var BRANCH_STATE_URL = API_BASE || "https://script.google.com/macros/s/AKfycbxb1WfAQ6DtjDV9iNfznkTSEV9xb5Cr2y8Mbjf6w0cQZsPZsImsn3uXAzVWgjQCu44m/exec";
       const SESSION_KEY = "priceDashboardSession";
 
       let branchId = "";
@@ -1102,7 +1109,12 @@
           toast("登录成功");
         } catch (err) {
           console.error(err);
-          toast(err.message || "登录失败", "error");
+          var msg = err.message || "登录失败";
+          if (msg.indexOf("fetch") !== -1 || msg.indexOf("Failed") !== -1 || msg.indexOf("NetworkError") !== -1) {
+            toast("登入请求被拦截（跨域）。请改用下方「从部署地址打开」链接", "error");
+          } else {
+            toast(msg, "error");
+          }
         } finally {
           setLoading(false);
         }
@@ -1116,6 +1128,10 @@
       $("loginBtn").addEventListener("click", doLogin);
 
       (function init() {
+        var hint = $("deployHint");
+        var link = $("deployLink");
+        if (link) link.href = BRANCH_STATE_URL;
+        if (hint && !isFromGAS) hint.style.display = "block";
         loadBranchList().then(function () {
           if (!restoreSession()) {
             var sel = $("branchSelect");
