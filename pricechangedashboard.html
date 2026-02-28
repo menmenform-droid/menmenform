@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>价格变更看板 - 企业版</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0f1419;
+      --bg-secondary: #1a2332;
+      --bg-card: #1e2a3a;
+      --bg-hover: #253344;
+      --text-primary: #e6edf3;
+      --text-secondary: #8b949e;
+      --text-muted: #6e7681;
+      --accent: #58a6ff;
+      --accent-hover: #79b8ff;
+      --success: #3fb950;
+      --success-bg: rgba(63, 185, 80, 0.15);
+      --warning: #d29922;
+      --error: #f85149;
+      --error-bg: rgba(248, 81, 73, 0.12);
+      --border: #30363d;
+      --radius: 12px;
+      --radius-sm: 8px;
+      --shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+      --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .app {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      min-height: 100vh;
+    }
+
+    /* ----- 登录区 ----- */
+    .login-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 32px;
+      box-shadow: var(--shadow);
+      max-width: 420px;
+      margin: 80px auto 0;
+    }
+
+    .login-card h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+
+    .login-card .subtitle {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+      margin-bottom: 28px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px 14px;
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      transition: border-color 0.2s;
+    }
+
+    .form-group input::placeholder {
+      color: var(--text-muted);
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+    }
+
+    .form-group select {
+      width: 100%;
+      padding: 12px 14px;
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      cursor: pointer;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%238b949e' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 36px;
+    }
+
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.2);
+    }
+
+    .form-group .branch-id-wrap {
+      margin-top: 10px;
+      display: none;
+    }
+
+    .form-group .branch-id-wrap.visible {
+      display: block;
+    }
+
+    .form-group .branch-id-wrap label {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 20px;
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      font-weight: 600;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: background 0.2s, transform 0.05s;
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      width: 100%;
+      margin-top: 8px;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* ----- 仪表盘 ----- */
+    .dashboard {
+      display: none;
+    }
+
+    .dashboard.visible {
+      display: block;
+    }
+
+    .header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-bar h1 {
+      font-size: 1.35rem;
+      font-weight: 700;
+    }
+
+    .branch-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .branch-badge {
+      background: var(--bg-secondary);
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      border: 1px solid var(--border);
+    }
+
+    .branch-badge strong {
+      color: var(--text-primary);
+      margin-right: 6px;
+    }
+
+    .btn-icon {
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      background: var(--bg-secondary);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-icon:hover {
+      background: var(--bg-hover);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .btn-success {
+      background: rgba(63, 185, 80, 0.2);
+      color: var(--success);
+      border: 1px solid rgba(63, 185, 80, 0.4);
+    }
+
+    .btn-success:hover {
+      background: rgba(63, 185, 80, 0.3);
+    }
+
+    /* 统计卡片 */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+    }
+
+    .stat-card .value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+    }
+
+    .stat-card .label {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    .stat-card.highlight .value {
+      color: var(--accent);
+    }
+
+    .stat-card.success .value {
+      color: var(--success);
+    }
+
+    /* 工具栏 */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .search-wrap {
+      flex: 1;
+      min-width: 200px;
+      position: relative;
+    }
+
+    .search-wrap input {
+      width: 100%;
+      padding: 10px 14px 10px 38px;
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+    }
+
+    .search-wrap input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .search-wrap::before {
+      content: "🔍";
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.9rem;
+      opacity: 0.6;
+    }
+
+    .filter-select {
+      padding: 10px 14px;
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      cursor: pointer;
+      min-width: 120px;
+    }
+
+    .filter-select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    /* 列表卡片 */
+    .list-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .list-header {
+      display: grid;
+      grid-template-columns: 1fr 100px 100px 120px 100px;
+      gap: 12px;
+      padding: 14px 20px;
+      background: var(--bg-secondary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+
+    @media (max-width: 700px) {
+      .list-header {
+        grid-template-columns: 1fr 80px 80px;
+      }
+      .list-header .hide-mobile { display: none; }
+    }
+
+    .price-row {
+      display: grid;
+      grid-template-columns: 1fr 100px 100px 120px 100px;
+      gap: 12px;
+      align-items: center;
+      padding: 14px 20px;
+      border-top: 1px solid var(--border);
+      transition: background 0.15s;
+    }
+
+    .price-row:hover {
+      background: var(--bg-hover);
+    }
+
+    .price-row.read {
+      opacity: 0.75;
+    }
+
+    .price-row .item-info {
+      font-size: 0.95rem;
+    }
+
+    .price-row .item-no {
+      font-family: var(--font-mono);
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .price-row .item-name {
+      color: var(--text-secondary);
+      margin-left: 6px;
+    }
+
+    .price-row .price-change {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+    }
+
+    .price-row .old-price {
+      color: var(--text-muted);
+      text-decoration: line-through;
+    }
+
+    .price-row .new-price {
+      color: var(--success);
+      font-weight: 600;
+    }
+
+    .price-row .uom {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .price-row .date {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .price-row .status {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .status-badge {
+      font-size: 0.8rem;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    .status-badge.read {
+      background: var(--success-bg);
+      color: var(--success);
+    }
+
+    .status-badge.unread {
+      background: var(--error-bg);
+      color: var(--error);
+    }
+
+    .btn-mark {
+      padding: 6px 12px;
+      font-size: 0.85rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    .btn-mark:hover {
+      background: var(--accent-hover);
+    }
+
+    @media (max-width: 700px) {
+      .price-row {
+        grid-template-columns: 1fr 80px 80px;
+      }
+      .price-row .hide-mobile { display: none; }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-secondary);
+    }
+
+    .empty-state .icon {
+      font-size: 3rem;
+      margin-bottom: 16px;
+      opacity: 0.5;
+    }
+
+    /* 加载与错误 */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 20, 25, 0.85);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .loading-overlay.visible {
+      display: flex;
+    }
+
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1001;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: 360px;
+    }
+
+    .toast {
+      padding: 14px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      animation: slideIn 0.3s ease;
+    }
+
+    .toast.success {
+      border-left: 4px solid var(--success);
+    }
+
+    .toast.error {
+      border-left: 4px solid var(--error);
+    }
+
+    .toast.warning {
+      border-left: 4px solid var(--warning);
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(24px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+
+    .sync-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- 登录 -->
+    <section id="loginSection" class="login-card">
+      <h1>价格变更看板</h1>
+      <p class="subtitle">选择门店并输入密码登录</p>
+      <form id="loginForm" onsubmit="return false;">
+        <div class="form-group">
+          <label for="branchSelect">选择门店</label>
+          <select id="branchSelect">
+            <option value="">加载中...</option>
+          </select>
+          <div id="branchIdWrap" class="branch-id-wrap">
+            <label for="branchId" class="branch-id-label">门店 ID</label>
+            <input type="text" id="branchId" placeholder="输入门店 ID" autocomplete="off">
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="password">密码</label>
+          <input type="password" id="password" placeholder="请输入密码" autocomplete="off">
+        </div>
+        <button type="submit" class="btn btn-primary" id="loginBtn">
+          登录
+        </button>
+        <p id="deployHint" class="deploy-hint" style="display:none; margin-top:16px; font-size:0.85rem; color:var(--text-muted);">
+          若登入报 Failed to fetch，请改用
+          <a id="deployLink" href="#" target="_blank" rel="noopener" style="color:var(--accent);">从部署地址打开</a>。
+        </p>
+      </form>
+    </section>
+
+    <!-- 仪表盘 -->
+    <section id="dashboard" class="dashboard">
+      <div class="header-bar">
+        <h1>价格变更列表</h1>
+        <div class="branch-info">
+          <span class="branch-badge"><strong>门店</strong><span id="displayBranchName"></span></span>
+          <span class="branch-badge"><strong>ID</strong><span id="displayBranchId"></span></span>
+          <div class="sync-actions">
+            <button type="button" class="btn btn-icon" id="loadServerBtn" title="从服务器加载">📥 加载</button>
+            <button type="button" class="btn btn-icon btn-success" id="saveServerBtn" title="保存到服务器">📤 保存</button>
+            <button type="button" class="btn btn-icon" id="logoutBtn" title="退出登录">退出</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat-card highlight">
+          <div class="value" id="statTotal">0</div>
+          <div class="label">全部条数</div>
+        </div>
+        <div class="stat-card success">
+          <div class="value" id="statRead">0</div>
+          <div class="label">已读</div>
+        </div>
+        <div class="stat-card">
+          <div class="value" id="statUnread">0</div>
+          <div class="label">未读</div>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <div class="search-wrap">
+          <input type="text" id="searchInput" placeholder="搜索品号或品名...">
+        </div>
+        <select class="filter-select" id="filterSelect">
+          <option value="all">全部</option>
+          <option value="unread">仅未读</option>
+          <option value="read">仅已读</option>
+        </select>
+        <select class="filter-select" id="sortSelect">
+          <option value="default">默认顺序</option>
+          <option value="date-desc">日期 新→旧</option>
+          <option value="date-asc">日期 旧→新</option>
+          <option value="itemno">品号 A-Z</option>
+        </select>
+        <button type="button" class="btn btn-icon" id="markAllReadBtn">全部标为已读</button>
+      </div>
+
+      <div class="list-card">
+        <div class="list-header">
+          <span>品号 / 品名</span>
+          <span class="hide-mobile">原价 → 新价</span>
+          <span class="hide-mobile">单位</span>
+          <span class="hide-mobile">变更日期</span>
+          <span>状态</span>
+        </div>
+        <div id="priceList"></div>
+        <div id="emptyState" class="empty-state" style="display:none;">
+          <div class="icon">📋</div>
+          <p>暂无价格变更数据，或筛选后无结果</p>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    (function () {
+      // 从 script.google.com 打开时用同源地址，避免登入/POST 时 CORS 导致 Failed to fetch
+      var isFromGAS = (window.location.origin || "").indexOf("script.google.com") !== -1;
+      var API_BASE = isFromGAS ? (window.location.origin + window.location.pathname) : "";
+      var PRICE_LOG_URL = API_BASE || "https://script.google.com/macros/s/AKfycbxb1WfAQ6DtjDV9iNfznkTSEV9xb5Cr2y8Mbjf6w0cQZsPZsImsn3uXAzVWgjQCu44m/exec";
+      var BRANCH_STATE_URL = API_BASE || "https://script.google.com/macros/s/AKfycbxb1WfAQ6DtjDV9iNfznkTSEV9xb5Cr2y8Mbjf6w0cQZsPZsImsn3uXAzVWgjQCu44m/exec";
+      const SESSION_KEY = "priceDashboardSession";
+
+      let branchId = "";
+      let branchName = "";
+      let branchList = [];
+      let localStage = { save_time: "", done: [] };
+      let priceData = [];
+      let filteredData = [];
+
+      const $ = (id) => document.getElementById(id);
+      const show = (el) => { el.classList.add("visible"); el.style.display = ""; };
+      const hide = (el) => { el.classList.remove("visible"); el.style.display = "none"; };
+
+      function setLoading(on) {
+        const overlay = $("loadingOverlay");
+        if (on) overlay.classList.add("visible");
+        else overlay.classList.remove("visible");
+      }
+
+      function toast(message, type = "success") {
+        const container = $("toastContainer");
+        const div = document.createElement("div");
+        div.className = `toast ${type}`;
+        div.textContent = message;
+        container.appendChild(div);
+        setTimeout(() => div.remove(), 3500);
+      }
+
+      function formatDate(val) {
+        if (!val) return "—";
+        const d = new Date(val);
+        if (isNaN(d.getTime())) return String(val);
+        return d.toLocaleDateString("zh-CN", { year: "numeric", month: "2-digit", day: "2-digit" });
+      }
+
+      function getSearchTerm() {
+        return (($("searchInput") && $("searchInput").value) || "").trim().toLowerCase();
+      }
+
+      function getFilter() {
+        return ($("filterSelect") && $("filterSelect").value) || "all";
+      }
+
+      function getSort() {
+        return ($("sortSelect") && $("sortSelect").value) || "default";
+      }
+
+      function applyFilterAndSort() {
+        const term = getSearchTerm();
+        const filter = getFilter();
+        const sort = getSort();
+
+        filteredData = priceData.filter((item) => {
+          const read = localStage.done.includes(item.log_id);
+          if (filter === "read" && !read) return false;
+          if (filter === "unread" && read) return false;
+          if (term) {
+            const no = String(item.itemno || "").toLowerCase();
+            const name = String(item.itemname || "").toLowerCase();
+            if (!no.includes(term) && !name.includes(term)) return false;
+          }
+          return true;
+        });
+
+        if (sort === "date-desc") {
+          filteredData.sort((a, b) => new Date(b.change_date || 0) - new Date(a.change_date || 0));
+        } else if (sort === "date-asc") {
+          filteredData.sort((a, b) => new Date(a.change_date || 0) - new Date(b.change_date || 0));
+        } else if (sort === "itemno") {
+          filteredData.sort((a, b) => String(a.itemno || "").localeCompare(String(b.itemno || "")));
+        }
+
+        updateStats();
+        renderPriceList();
+      }
+
+      function updateStats() {
+        const total = priceData.length;
+        const read = localStage.done.length;
+        const unread = total - read;
+        const totalEl = $("statTotal");
+        const readEl = $("statRead");
+        const unreadEl = $("statUnread");
+        if (totalEl) totalEl.textContent = total;
+        if (readEl) readEl.textContent = read;
+        if (unreadEl) unreadEl.textContent = unread;
+      }
+
+      function renderPriceList() {
+        const container = $("priceList");
+        const emptyEl = $("emptyState");
+        if (!container) return;
+
+        container.innerHTML = "";
+
+        if (filteredData.length === 0) {
+          if (emptyEl) {
+            emptyEl.style.display = "block";
+            emptyEl.querySelector("p").textContent = priceData.length === 0
+              ? "暂无价格变更数据"
+              : "当前筛选无结果，请调整搜索或筛选条件";
+          }
+          return;
+        }
+
+        if (emptyEl) emptyEl.style.display = "none";
+
+        filteredData.forEach((item) => {
+          const logId = item.log_id;
+          const read = localStage.done.includes(logId);
+          const row = document.createElement("div");
+          row.className = "price-row" + (read ? " read" : "");
+          row.setAttribute("data-log-id", logId);
+
+          const itemNo = String(item.itemno ?? "").trim() || "—";
+          const itemName = String(item.itemname ?? "").trim() || "—";
+          const oldPrice = item.oldprice != null ? item.oldprice : "—";
+          const newPrice = item.newprice != null ? item.newprice : "—";
+          const uom = String(item.uom ?? "").trim() || "—";
+          const changeDate = formatDate(item.change_date);
+
+          row.innerHTML = `
+            <div class="item-info">
+              <span class="item-no">${escapeHtml(itemNo)}</span>
+              <span class="item-name">${escapeHtml(itemName)}</span>
+            </div>
+            <div class="price-change hide-mobile">
+              <span class="old-price">${escapeHtml(String(oldPrice))}</span> → <span class="new-price">${escapeHtml(String(newPrice))}</span>
+            </div>
+            <div class="uom hide-mobile">${escapeHtml(uom)}</div>
+            <div class="date hide-mobile">${escapeHtml(changeDate)}</div>
+            <div class="status">
+              ${read
+                ? '<span class="status-badge read">已读</span>'
+                : `<button type="button" class="btn-mark" data-log-id="${escapeAttr(logId)}">标为已读</button>`
+              }
+            </div>
+          `;
+
+          const btn = row.querySelector(".btn-mark");
+          if (btn) btn.addEventListener("click", () => markRead(logId));
+          container.appendChild(row);
+        });
+      }
+
+      function escapeHtml(s) {
+        const div = document.createElement("div");
+        div.textContent = s;
+        return div.innerHTML;
+      }
+
+      function escapeAttr(s) {
+        return String(s).replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+      function markRead(logId) {
+        if (localStage.done.includes(logId)) return;
+        localStage.done.push(logId);
+        localStage.save_time = new Date().toISOString();
+        try {
+          localStorage.setItem(branchId, JSON.stringify(localStage));
+        } catch (e) {
+          toast("本地存储写入失败", "error");
+        }
+        applyFilterAndSort();
+        toast("已标记为已读");
+      }
+
+      function markAllRead() {
+        if (!branchId) {
+          toast("请先登录", "warning");
+          return;
+        }
+        const unread = priceData.filter((item) => !localStage.done.includes(item.log_id));
+        if (unread.length === 0) {
+          toast("当前没有未读项", "warning");
+          return;
+        }
+        unread.forEach((item) => {
+          if (!localStage.done.includes(item.log_id)) localStage.done.push(item.log_id);
+        });
+        localStage.save_time = new Date().toISOString();
+        try {
+          localStorage.setItem(branchId, JSON.stringify(localStage));
+        } catch (e) {
+          toast("本地存储写入失败", "error");
+        }
+        applyFilterAndSort();
+        toast("已全部标为已读");
+      }
+
+      async function loadPriceLog() {
+        setLoading(true);
+        try {
+          const res = await fetch(`${PRICE_LOG_URL}?action=getPrice`);
+          if (!res.ok) throw new Error("网络请求失败: " + res.status);
+          const data = await res.json();
+          if (!Array.isArray(data)) throw new Error("数据格式异常");
+          priceData = data;
+          applyFilterAndSort();
+        } catch (err) {
+          console.error(err);
+          toast(err.message || "加载价格数据失败", "error");
+          priceData = [];
+          applyFilterAndSort();
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      async function loadServer() {
+        if (!branchId) {
+          toast("请先登录", "warning");
+          return;
+        }
+        setLoading(true);
+        try {
+          const res = await fetch(`${BRANCH_STATE_URL}?action=getBranchState&branch_id=${encodeURIComponent(branchId)}`);
+          if (!res.ok) throw new Error("请求失败: " + res.status);
+          const data = await res.json();
+          if (!data) {
+            toast("服务器无此门店数据", "warning");
+            return;
+          }
+          localStage.done = Array.isArray(data.save_stage) ? data.save_stage : [];
+          localStage.save_time = data.save_time || new Date().toISOString();
+          try {
+            localStorage.setItem(branchId, JSON.stringify(localStage));
+          } catch (e) {
+            toast("本地存储写入失败", "error");
+          }
+          applyFilterAndSort();
+          toast("已从服务器加载并覆盖本地状态", "success");
+        } catch (err) {
+          console.error(err);
+          toast(err.message || "从服务器加载失败", "error");
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      async function saveServer() {
+        if (!branchId) {
+          toast("请先登录", "warning");
+          return;
+        }
+        setLoading(true);
+        try {
+          const payload = {
+            action: "saveBranchState",
+            branch_id: branchId,
+            device_save_time: localStage.save_time,
+            device_stage: localStage.done
+          };
+          const res = await fetch(BRANCH_STATE_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) throw new Error("请求失败: " + res.status);
+          const result = await res.json();
+          if (result.status === "error") {
+            toast(result.message || "保存失败", "error");
+            return;
+          }
+          if (result.status === "device_overridden") {
+            localStage.done = result.server_save_stage || [];
+            localStage.save_time = result.server_save_time || new Date().toISOString();
+            try {
+              localStorage.setItem(branchId, JSON.stringify(localStage));
+            } catch (e) {}
+            toast("本地状态较旧，已用服务器数据覆盖", "warning");
+          } else {
+            toast("已成功保存到服务器");
+          }
+          applyFilterAndSort();
+        } catch (err) {
+          console.error(err);
+          toast(err.message || "保存到服务器失败", "error");
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      function saveSession() {
+        try {
+          localStorage.setItem(SESSION_KEY, JSON.stringify({
+            branchId: branchId,
+            branchName: branchName,
+            loginAt: new Date().toISOString()
+          }));
+        } catch (e) {
+          console.warn("session save failed", e);
+        }
+      }
+
+      function clearSession() {
+        try {
+          localStorage.removeItem(SESSION_KEY);
+        } catch (e) {}
+      }
+
+      function restoreSession() {
+        try {
+          const raw = localStorage.getItem(SESSION_KEY);
+          if (!raw) return false;
+          const session = JSON.parse(raw);
+          if (!session || !session.branchId) return false;
+          branchId = session.branchId;
+          branchName = session.branchName || session.branchId;
+          const saved = localStorage.getItem(branchId);
+          if (saved) localStage = JSON.parse(saved);
+          else localStage = { save_time: "", done: [] };
+          $("displayBranchId").textContent = branchId;
+          $("displayBranchName").textContent = branchName;
+          $("loginSection").style.display = "none";
+          show($("dashboard"));
+          loadPriceLog();
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
+      function logout() {
+        clearSession();
+        branchId = "";
+        branchName = "";
+        localStage = { save_time: "", done: [] };
+        hide($("dashboard"));
+        $("loginSection").style.display = "block";
+        $("branchId").value = "";
+        $("password").value = "";
+        var sel = $("branchSelect");
+        if (sel) {
+          sel.value = branchList.length ? branchList[0].branch_id : "";
+          toggleBranchIdInput(sel.value === "");
+        } else {
+          toggleBranchIdInput(false);
+        }
+        toast("已退出登录");
+      }
+
+      function toggleBranchIdInput(showOther) {
+        var wrap = $("branchIdWrap");
+        if (!wrap) return;
+        if (showOther) wrap.classList.add("visible");
+        else wrap.classList.remove("visible");
+      }
+
+      async function loadBranchList() {
+        try {
+          const res = await fetch(BRANCH_STATE_URL + "?action=getBranchList");
+          if (!res.ok) throw new Error("" + res.status);
+          const data = await res.json();
+          branchList = Array.isArray(data) ? data : [];
+          var sel = $("branchSelect");
+          if (!sel) return;
+          sel.innerHTML = "";
+          var opt0 = document.createElement("option");
+          opt0.value = "";
+          opt0.textContent = "— 其他（输入门店 ID）—";
+          sel.appendChild(opt0);
+          branchList.forEach(function (b) {
+            var opt = document.createElement("option");
+            opt.value = b.branch_id;
+            opt.textContent = (b.branch_name || b.branch_id) + " (" + b.branch_id + ")";
+            sel.appendChild(opt);
+          });
+        } catch (e) {
+          var sel = $("branchSelect");
+          if (sel) {
+            sel.innerHTML = "";
+            var opt = document.createElement("option");
+            opt.value = "";
+            opt.textContent = "加载失败，请手动输入门店 ID";
+            sel.appendChild(opt);
+          }
+          branchList = [];
+        }
+      }
+
+      function getSelectedBranchId() {
+        var sel = $("branchSelect");
+        var manual = $("branchId");
+        if (sel && sel.value === "" && manual) return (manual.value || "").trim();
+        return sel ? (sel.value || "").trim() : "";
+      }
+
+      async function doLogin() {
+        var bid = getSelectedBranchId();
+        var pwd = ($("password") && $("password").value) || "";
+        if (!bid) {
+          toast("请选择门店或输入门店 ID", "warning");
+          return;
+        }
+        setLoading(true);
+        try {
+          const res = await fetch(BRANCH_STATE_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "verifyLogin", branch_id: bid, password: pwd })
+          });
+          if (!res.ok) throw new Error("请求失败: " + res.status);
+          const result = await res.json();
+          if (!result.success) {
+            toast(result.message || "登录失败", "error");
+            return;
+          }
+          branchId = bid;
+          branchName = result.branch_name || bid;
+          saveSession();
+          try {
+            var saved = localStorage.getItem(branchId);
+            if (saved) localStage = JSON.parse(saved);
+            else localStage = { save_time: "", done: [] };
+          } catch (e) {
+            localStage = { save_time: "", done: [] };
+          }
+          $("loginSection").style.display = "none";
+          $("displayBranchId").textContent = branchId;
+          $("displayBranchName").textContent = branchName;
+          show($("dashboard"));
+          loadPriceLog();
+          toast("登录成功");
+        } catch (err) {
+          console.error(err);
+          var msg = err.message || "登录失败";
+          if (msg.indexOf("fetch") !== -1 || msg.indexOf("Failed") !== -1 || msg.indexOf("NetworkError") !== -1) {
+            toast("登入请求被拦截（跨域）。请改用下方「从部署地址打开」链接", "error");
+          } else {
+            toast(msg, "error");
+          }
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      $("branchSelect").addEventListener("change", function () {
+        toggleBranchIdInput(this.value === "");
+      });
+
+      $("loginForm").addEventListener("submit", doLogin);
+      $("loginBtn").addEventListener("click", doLogin);
+
+      (function init() {
+        var hint = $("deployHint");
+        var link = $("deployLink");
+        if (link) link.href = BRANCH_STATE_URL;
+        if (hint && !isFromGAS) hint.style.display = "block";
+        loadBranchList().then(function () {
+          if (!restoreSession()) {
+            var sel = $("branchSelect");
+            if (sel && branchList.length) sel.value = branchList[0].branch_id;
+            toggleBranchIdInput(false);
+          }
+        });
+      })();
+      $("loadServerBtn").addEventListener("click", loadServer);
+      $("saveServerBtn").addEventListener("click", saveServer);
+      $("logoutBtn").addEventListener("click", logout);
+      $("markAllReadBtn").addEventListener("click", markAllRead);
+
+      if ($("searchInput")) $("searchInput").addEventListener("input", applyFilterAndSort);
+      if ($("filterSelect")) $("filterSelect").addEventListener("change", applyFilterAndSort);
+      if ($("sortSelect")) $("sortSelect").addEventListener("change", applyFilterAndSort);
+
+      window.markRead = markRead;
+    })();
+  </script>
+</body>
+</html>
