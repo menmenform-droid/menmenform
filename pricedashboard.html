@@ -1,0 +1,1138 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Price Change Dashboard - Enterprise</title>
+
+<style>
+:root {
+    --bg-app: #020617;
+    --bg-elevated: #020617;
+    --bg-card: #020617;
+    --bg-soft: #020617;
+    --accent: #38bdf8;
+    --accent-strong: #0ea5e9;
+    --accent-soft: rgba(56, 189, 248, 0.18);
+    --text-main: #e5e7eb;
+    --text-muted: #9ca3af;
+    --border-subtle: rgba(148, 163, 184, 0.4);
+    --danger: #f97316;
+    --success: #22c55e;
+    --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.9);
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background:
+        radial-gradient(circle at 0% 0%, rgba(56, 189, 248, 0.12), transparent 55%),
+        radial-gradient(circle at 100% 100%, rgba(34, 197, 94, 0.09), transparent 55%),
+        #020617;
+    color: var(--text-main);
+}
+
+.app-shell {
+    min-height: 100vh;
+    padding: 24px 20px 32px;
+    display: flex;
+    flex-direction: column;
+}
+
+.topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.title-block h1 {
+    font-size: 24px;
+    letter-spacing: 0.04em;
+    margin: 0 0 4px;
+}
+
+.subtitle {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.topbar-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.divider {
+    width: 1px;
+    height: 16px;
+    background: var(--border-subtle);
+}
+
+.main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.kpi-section {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.kpi-card {
+    border-radius: 14px;
+    padding: 12px 14px;
+    background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.12), transparent 55%), rgba(15, 23, 42, 0.98);
+    border: 1px solid rgba(31, 41, 55, 0.95);
+    box-shadow: 0 14px 35px rgba(15, 23, 42, 0.9);
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 120% -20%, rgba(56, 189, 248, 0.16), transparent 60%);
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+.kpi-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: #9ca3af;
+}
+
+.kpi-value {
+    margin-top: 4px;
+    font-size: 22px;
+    font-weight: 650;
+}
+
+.kpi-value.kpi-accent {
+    color: var(--accent-strong);
+}
+
+.kpi-sub {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.tabs {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: radial-gradient(circle at 0 0, rgba(148, 163, 184, 0.18), transparent 55%), rgba(15, 23, 42, 0.96);
+}
+
+.tab-button {
+    position: relative;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 12px;
+    padding: 6px 16px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all 0.16s ease-out;
+    white-space: nowrap;
+}
+
+.tab-button:hover {
+    color: var(--text-main);
+    background: rgba(15, 23, 42, 0.85);
+}
+
+.tab-button.active {
+    color: var(--text-main);
+    background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.3), transparent 60%), rgba(15, 23, 42, 0.95);
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.6), 0 10px 25px rgba(15, 23, 42, 0.8);
+}
+
+.controls-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.control-label {
+    font-size: 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: var(--text-muted);
+}
+
+.select,
+.input {
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: rgba(15, 23, 42, 0.96);
+    color: var(--text-main);
+    font-size: 12px;
+    padding: 6px 10px;
+    outline: none;
+    min-width: 0;
+}
+
+.select {
+    padding-right: 26px;
+}
+
+.input::placeholder {
+    color: rgba(148, 163, 184, 0.6);
+}
+
+.select:focus,
+.input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.6);
+}
+
+.filters {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) minmax(0, 3fr) auto;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filter-group.filter-actions {
+    align-items: flex-end;
+    justify-content: flex-end;
+}
+
+.date-range {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.date-separator {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.pill-group {
+    display: inline-flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.pill {
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.35);
+    background: rgba(15, 23, 42, 0.96);
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.16s ease-out;
+}
+
+.pill:hover {
+    color: var(--text-main);
+    border-color: rgba(148, 163, 184, 0.6);
+}
+
+.pill.active {
+    color: var(--accent-strong);
+    border-color: rgba(56, 189, 248, 0.7);
+    background: rgba(15, 23, 42, 0.96);
+    box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.7);
+}
+
+.btn {
+    border-radius: 999px;
+    border: 1px solid transparent;
+    font-size: 12px;
+    padding: 6px 14px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(15, 23, 42, 0.9);
+    color: var(--text-main);
+    transition: all 0.16s ease-out;
+}
+
+.btn.btn-sm {
+    padding: 4px 10px;
+    font-size: 11px;
+}
+
+.btn.primary {
+    background: linear-gradient(135deg, var(--accent-strong), #22c55e);
+    color: #0b1120;
+    font-weight: 600;
+    box-shadow: 0 12px 30px rgba(8, 47, 73, 0.9);
+}
+
+.btn.primary:hover {
+    filter: brightness(1.04);
+    transform: translateY(-0.5px);
+}
+
+.btn.ghost {
+    border-color: rgba(148, 163, 184, 0.35);
+    background: rgba(15, 23, 42, 0.9);
+}
+
+.btn.ghost:hover {
+    border-color: rgba(148, 163, 184, 0.7);
+    background: rgba(15, 23, 42, 0.96);
+}
+
+.status-bar {
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.cards-container {
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.item-card {
+    border-radius: 16px;
+    padding: 10px 12px 8px;
+    background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.14), transparent 60%), rgba(15, 23, 42, 0.98);
+    border: 1px solid rgba(31, 41, 55, 0.9);
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.9);
+}
+
+.item-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+
+.item-header-main {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.item-title {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.item-meta {
+    font-size: 11px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    color: var(--text-muted);
+}
+
+.dot-separator {
+    width: 3px;
+    height: 3px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.8);
+}
+
+.item-header-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.item-body {
+    border-radius: 12px;
+    border: 1px solid rgba(31, 41, 55, 0.9);
+    background: rgba(15, 23, 42, 0.96);
+    overflow: hidden;
+}
+
+.log-row {
+    display: grid;
+    grid-template-columns: minmax(0, 220px) 70px 100px 110px;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-top: 1px solid rgba(31, 41, 55, 0.9);
+}
+
+.log-row:first-child {
+    border-top: none;
+}
+
+.log-row-head {
+    background: radial-gradient(circle at 0 0, rgba(56, 189, 248, 0.22), transparent 60%), rgba(15, 23, 42, 0.98);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-muted);
+}
+
+.price-highlight {
+    font-weight: 600;
+    color: var(--accent-strong);
+}
+
+.new-log {
+    background: linear-gradient(90deg, rgba(251, 146, 60, 0.18), transparent);
+}
+
+.complete-log {
+    background: linear-gradient(90deg, rgba(34, 197, 94, 0.16), transparent);
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 2px 7px;
+    font-size: 10px;
+    border: 1px solid transparent;
+    margin-left: 4px;
+}
+
+.badge-new {
+    color: #f97316;
+    font-weight: 600;
+}
+
+.badge-danger {
+    color: #fed7aa;
+    border-color: rgba(248, 113, 113, 0.7);
+    background: rgba(248, 113, 113, 0.12);
+}
+
+.badge-success {
+    color: #bbf7d0;
+    border-color: rgba(22, 163, 74, 0.7);
+    background: rgba(22, 163, 74, 0.18);
+}
+
+.empty-state {
+    margin-top: 10px;
+    padding: 18px;
+    border-radius: 12px;
+    border: 1px dashed rgba(148, 163, 184, 0.5);
+    background: rgba(15, 23, 42, 0.85);
+    font-size: 12px;
+}
+
+.empty-secondary {
+    margin-top: 2px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.hidden {
+    display: none !important;
+}
+
+@media (max-width: 1024px) {
+    .kpi-section {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .filters {
+        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1.5fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .app-shell {
+        padding: 16px 12px 24px;
+    }
+
+    .topbar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .topbar-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .controls-right {
+        align-self: flex-end;
+    }
+
+    .filters {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .log-row {
+        grid-template-columns: minmax(0, 180px) 60px 80px 90px;
+    }
+}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <header class="topbar">
+    <div class="title-block">
+      <h1>Price Change Dashboard</h1>
+      <p class="subtitle">PAPAN PENUKARAN HARGA</p>
+    </div>
+    <div class="topbar-actions">
+      <button id="refresh-btn" class="btn primary">REFRESH SEKARANG</button>
+      <div class="topbar-meta">
+        <span id="last-updated">MASA TERAKHIR UPDATE：--</span>
+        <span class="divider"></span>
+        <span>AUTO REFRESH：SETIAP 5 MINIT</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="main">
+    <section class="kpi-section">
+      <div class="kpi-card">
+        <div class="kpi-label">TOTAL ITEMS</div>
+        <div class="kpi-value" id="kpi-total-items">--</div>
+        <div class="kpi-sub" id="kpi-total-logs">TOTAL REKOD -- LINE</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">PENDING ITEMS</div>
+        <div class="kpi-value kpi-accent" id="kpi-pending-items">--</div>
+        <div class="kpi-sub">TERMASUK BELUM BACA</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">COMPLETED ITEMS</div>
+        <div class="kpi-value" id="kpi-complete-items">--</div>
+        <div class="kpi-sub">SEMUA DIBACA</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">LAST 7 DAYS</div>
+        <div class="kpi-value" id="kpi-last7-logs">--</div>
+        <div class="kpi-sub">LAST 7 DAYS</div>
+      </div>
+    </section>
+
+    <section class="controls">
+      <div class="tabs" role="tablist">
+        <button class="tab-button active" data-tab="pending">PENDING</button>
+        <button class="tab-button" data-tab="complete">COMPLETE</button>
+        <button class="tab-button" data-tab="all">ALL</button>
+      </div>
+      <div class="controls-right">
+        <label class="control-label">
+          SUSUNAN
+          <select id="sort-select" class="select">
+            <option value="lastChangeDesc">SUSUN DARI LAMA KE BARU</option>
+            <option value="lastChangeAsc">SUSUN DARI BARU KE LAMA</option>
+            <option value="unreadDesc">BELUM BACA（TINGGI → RENDAH）</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="filters">
+      <div class="filter-group">
+        <label class="control-label">
+          CARI BARANG
+          <input id="keyword-input" class="input" placeholder="ITEMNO / DESCRIPTION">
+        </label>
+      </div>
+
+      <div class="filter-group">
+        <label class="control-label">
+          TARIKH HARGA TUKAR
+          <div class="date-range">
+            <input type="date" id="date-from" class="input">
+            <span class="date-separator">SEHINGGA</span>
+            <input type="date" id="date-to" class="input">
+          </div>
+        </label>
+      </div>
+
+      <div class="filter-group">
+        <span class="control-label">PILIHAN</span>
+        <div class="pill-group" id="quick-range-group">
+          <button class="pill active" data-range="all">SEMUA</button>
+          <button class="pill" data-range="7">DALAM 7 HARI</button>
+          <button class="pill" data-range="30">DALAM 30 HARI</button>
+        </div>
+      </div>
+
+      <div class="filter-group filter-actions">
+        <button id="reset-filters-btn" class="btn ghost">RESET FILTERS</button>
+        <button id="mark-all-read-btn" class="btn ghost">SEMUA MARK DIBACA</button>
+      </div>
+    </section>
+
+    <section id="status-bar" class="status-bar">
+      <span id="status-text">SEDANG LOAD DATA...</span>
+    </section>
+
+    <section id="container" class="cards-container"></section>
+    <section id="empty-state" class="empty-state hidden">
+      <p>TIADA KEPUTUSAN PENCARIAN。</p>
+      <p class="empty-secondary">SILA ADJUST TARIKH，ATAU PADAM KATA PENCARIAN CUBA LAGI。</p>
+    </section>
+  </main>
+</div>
+
+<script>
+// ===== 配置 =====
+const API_URL = "https://script.google.com/macros/s/AKfycbyanvd_3_hcEXOUSYqZ55NaRhEQnRGGmnawvsL_Dvhn5nvEwhY8QaI0CqKMLcndS3hX/exec";
+const STORAGE_KEY = "price_read_logs_v2"; // 保持与原版本一致，沿用已读记录
+
+let allData = [];
+let currentTab = "pending";    // pending | complete | all
+let quickRange = "all";        // all | 7 | 30
+let keywordFilter = "";
+let dateFromFilter = "";
+let dateToFilter = "";
+let sortKey = "lastChangeDesc"; // lastChangeDesc | lastChangeAsc | unreadDesc
+let isLoading = false;
+let lastUpdated = null;
+
+// ===== localStorage：读取 / 保存已读记录 =====
+function getReadLogs() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}") || {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveReadLogs(obj) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(obj || {}));
+}
+
+// 标记一个商品的全部记录为已读（保持原有逻辑）
+function markItemRead(logs) {
+  const readLogs = getReadLogs();
+  logs.forEach(row => {
+    if (row && row.log_id != null) {
+      readLogs[row.log_id] = true;
+    }
+  });
+  saveReadLogs(readLogs);
+  render();
+}
+
+// 将当前数据全部标记为已读
+function markAllRead() {
+  if (!allData || !allData.length) return;
+  const readLogs = getReadLogs();
+  allData.forEach(row => {
+    if (row && row.log_id != null) {
+      readLogs[row.log_id] = true;
+    }
+  });
+  saveReadLogs(readLogs);
+  render();
+}
+
+// ===== 过滤条件 & Tab / 排序 =====
+function switchTab(tab) {
+  currentTab = tab;
+  const buttons = document.querySelectorAll(".tab-button");
+  buttons.forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.tab === tab);
+  });
+  render();
+}
+
+function setQuickRange(range) {
+  quickRange = range;
+  const pills = document.querySelectorAll("#quick-range-group .pill");
+  pills.forEach(pill => {
+    pill.classList.toggle("active", pill.dataset.range === range);
+  });
+  render();
+}
+
+function setSortKey(value) {
+  sortKey = value;
+  render();
+}
+
+function resetFilters() {
+  keywordFilter = "";
+  dateFromFilter = "";
+  dateToFilter = "";
+  quickRange = "all";
+
+  const keywordInput = document.getElementById("keyword-input");
+  const fromInput = document.getElementById("date-from");
+  const toInput = document.getElementById("date-to");
+  keywordInput.value = "";
+  fromInput.value = "";
+  toInput.value = "";
+
+  setQuickRange("all");
+}
+
+// ===== 数据加载 =====
+function loadData() {
+  isLoading = true;
+  updateStatusBar();
+
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(res => {
+      if (res && res.status === "success" && Array.isArray(res.data)) {
+        allData = res.data.slice();
+
+        // 按时间排序（最新在前）
+        allData.sort((a, b) => new Date(b.change_date) - new Date(a.change_date));
+
+        lastUpdated = new Date();
+        isLoading = false;
+        render();
+      } else {
+        throw new Error(res && res.message ? res.message : "接口返回异常");
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      isLoading = false;
+      const statusEl = document.getElementById("status-text");
+      statusEl.textContent = "数据加载失败：" + err.message;
+    });
+}
+
+// ===== KPI 统计（企业看板级别总览） =====
+function computeStats() {
+  const readLogs = getReadLogs();
+  const itemMap = {};
+  let last7Count = 0;
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+  (allData || []).forEach(row => {
+    if (!row) return;
+    const itemno = row.itemno || "UNKNOWN";
+    if (!itemMap[itemno]) {
+      itemMap[itemno] = { hasUnread: false, hasRead: false };
+    }
+    const isRead = !!readLogs[row.log_id];
+    if (isRead) itemMap[itemno].hasRead = true;
+    else itemMap[itemno].hasUnread = true;
+
+    const d = new Date(row.change_date);
+    if (!isNaN(d) && d >= sevenDaysAgo) {
+      last7Count++;
+    }
+  });
+
+  const totalItems = Object.keys(itemMap).length;
+  let pendingItems = 0;
+  let completeItems = 0;
+  Object.keys(itemMap).forEach(key => {
+    const info = itemMap[key];
+    if (info.hasUnread) pendingItems++;
+    else if (info.hasRead) completeItems++;
+  });
+
+  return {
+    totalItems,
+    pendingItems,
+    completeItems,
+    totalLogs: allData.length || 0,
+    last7Count
+  };
+}
+
+function updateKpis(stats) {
+  const totalItemsEl = document.getElementById("kpi-total-items");
+  const totalLogsEl = document.getElementById("kpi-total-logs");
+  const pendingItemsEl = document.getElementById("kpi-pending-items");
+  const completeItemsEl = document.getElementById("kpi-complete-items");
+  const last7LogsEl = document.getElementById("kpi-last7-logs");
+
+  totalItemsEl.textContent = stats.totalItems;
+  totalLogsEl.textContent = "TOTAL PERUBAHAN HARGA " + stats.totalLogs + " LINE";
+  pendingItemsEl.textContent = stats.pendingItems;
+  completeItemsEl.textContent = stats.completeItems;
+  last7LogsEl.textContent = stats.last7Count;
+}
+
+// ===== 过滤 + 分组 + 排序 =====
+function buildGroupsForCurrentFilters() {
+  const readLogs = getReadLogs();
+
+  const now = new Date();
+  const baseMs = now.getTime();
+  const fromDate = dateFromFilter ? new Date(dateFromFilter) : null;
+  const toDate = dateToFilter ? new Date(dateToFilter) : null;
+  const toDateEnd = toDate ? new Date(toDate.getTime() + 24 * 60 * 60 * 1000 - 1) : null;
+
+  let data = (allData || []).filter(row => {
+    if (!row) return false;
+
+    const d = new Date(row.change_date);
+    if (fromDate && (!d || d < fromDate)) return false;
+    if (toDateEnd && (!d || d > toDateEnd)) return false;
+
+    if (quickRange === "7" || quickRange === "30") {
+      if (!d || isNaN(d)) return false;
+      const days = quickRange === "7" ? 7 : 30;
+      const threshold = new Date(baseMs - days * 24 * 60 * 60 * 1000);
+      if (d < threshold) return false;
+    }
+
+    if (keywordFilter) {
+      const kw = keywordFilter.toLowerCase();
+      const no = String(row.itemno || "").toLowerCase();
+      const name = String(row.itemname || "").toLowerCase();
+      if (!no.includes(kw) && !name.includes(kw)) return false;
+    }
+
+    return true;
+  });
+
+  const groupsMap = {};
+  data.forEach(row => {
+    const key = row.itemno || "UNKNOWN";
+    if (!groupsMap[key]) {
+      groupsMap[key] = {
+        itemno: key,
+        itemname: row.itemname || "",
+        logs: [],
+        lastChangeDate: null,
+        unreadCount: 0,
+        totalCount: 0
+      };
+    }
+    const g = groupsMap[key];
+    g.logs.push(row);
+    g.totalCount++;
+
+    const isRead = !!readLogs[row.log_id];
+    if (!isRead) {
+      g.unreadCount++;
+    }
+    const d = new Date(row.change_date);
+    if (!g.lastChangeDate || d > g.lastChangeDate) {
+      g.lastChangeDate = d;
+    }
+  });
+
+  let groups = Object.keys(groupsMap).map(key => groupsMap[key]);
+
+  // 按 Tab 过滤商品级别
+  groups = groups.filter(g => {
+    if (currentTab === "pending") return g.unreadCount > 0;
+    if (currentTab === "complete") return g.unreadCount === 0;
+    return true;
+  });
+
+  // 每个商品内的记录，从新到旧
+  groups.forEach(g => {
+    g.logs.sort((a, b) => new Date(b.change_date) - new Date(a.change_date));
+  });
+
+  // 商品级排序
+  groups.sort((a, b) => {
+    if (sortKey === "lastChangeAsc") {
+      return (a.lastChangeDate || 0) - (b.lastChangeDate || 0);
+    }
+    if (sortKey === "unreadDesc") {
+      if (b.unreadCount !== a.unreadCount) {
+        return b.unreadCount - a.unreadCount;
+      }
+      return (b.lastChangeDate || 0) - (a.lastChangeDate || 0);
+    }
+    // 默认：最新变价 新 → 旧
+    return (b.lastChangeDate || 0) - (a.lastChangeDate || 0);
+  });
+
+  return { groups, readLogs };
+}
+
+// ===== 渲染卡片视图 =====
+function renderCards(groups, readLogs) {
+  const container = document.getElementById("container");
+  const emptyEl = document.getElementById("empty-state");
+  container.innerHTML = "";
+
+  if (!groups.length) {
+    emptyEl.classList.remove("hidden");
+    return;
+  }
+  emptyEl.classList.add("hidden");
+
+  groups.forEach(group => {
+    const card = document.createElement("article");
+    card.className = "item-card";
+
+    const header = document.createElement("header");
+    header.className = "item-header";
+
+    const main = document.createElement("div");
+    main.className = "item-header-main";
+    const titleHtml = "[" + escapeHtml(group.itemno) + "] " + escapeHtml(group.itemname || "");
+    main.innerHTML = `
+      <div class="item-title">${titleHtml}</div>
+      <div class="item-meta">
+        <span>HARGA BARU：${group.lastChangeDate ? formatDate(group.lastChangeDate) : "--"}</span>
+        <span class="dot-separator"></span>
+        <span>REKOD PERUBAHAN：${group.totalCount} LINE</span>
+        ${group.unreadCount > 0
+          ? '<span class="badge badge-danger">BELUM BACA ' + group.unreadCount + '</span>'
+          : '<span class="badge badge-success">SEMUA DIBACA</span>'
+        }
+      </div>
+    `;
+
+    const actions = document.createElement("div");
+    actions.className = "item-header-actions";
+
+    const collapseBtn = document.createElement("button");
+    collapseBtn.className = "btn ghost btn-sm";
+    collapseBtn.textContent = "EXPAND/DISBAND";
+
+    const body = document.createElement("div");
+    body.className = "item-body";
+
+    collapseBtn.addEventListener("click", function () {
+      body.classList.toggle("hidden");
+    });
+
+    actions.appendChild(collapseBtn);
+
+    if (group.unreadCount > 0) {
+      const markBtn = document.createElement("button");
+      markBtn.className = "btn primary btn-sm";
+      markBtn.textContent = "MARK SUDAH BACA";
+      markBtn.addEventListener("click", function () {
+        markItemRead(group.logs);
+      });
+      actions.appendChild(markBtn);
+    }
+
+    header.appendChild(main);
+    header.appendChild(actions);
+    card.appendChild(header);
+
+    // 表头
+    const headRow = document.createElement("div");
+    headRow.className = "log-row log-row-head";
+    headRow.innerHTML = `
+      <div>MASA TUKAR</div>
+      <div>JENIS</div>
+      <div>HARGA SEBELUM</div>
+      <div>HARGA BARU</div>
+    `;
+    body.appendChild(headRow);
+
+    const latestLogId = group.logs.length ? group.logs[0].log_id : null;
+
+    group.logs.forEach(row => {
+      const isRead = !!readLogs[row.log_id];
+      if (currentTab === "pending" && isRead) return;
+      if (currentTab === "complete" && !isRead) return;
+
+      const rowDiv = document.createElement("div");
+      rowDiv.className = "log-row";
+
+      const isLatest = row.log_id === latestLogId;
+      if (isLatest && !isRead) {
+        rowDiv.classList.add("new-log");
+      }
+      if (isRead) {
+        rowDiv.classList.add("complete-log");
+      }
+
+      const badgeHtml = isLatest && !isRead
+        ? '<span class="badge badge-new">NEW</span>'
+        : "";
+
+      rowDiv.innerHTML = `
+        <div>
+          ${formatDate(row.change_date)}
+          ${badgeHtml}
+        </div>
+        <div>${escapeHtml(row.uom)}</div>
+        <div>${formatNumber(row.oldprice)}</div>
+        <div class="price-highlight">${formatNumber(row.newprice)}</div>
+      `;
+
+      body.appendChild(rowDiv);
+    });
+
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+}
+
+// ===== 通用工具函数 =====
+function formatDate(d) {
+  const date = d instanceof Date ? d : new Date(d);
+  if (isNaN(date)) return d || "--";
+  return date.toLocaleString();
+}
+
+function formatNumber(v) {
+  if (v === null || v === undefined || v === "") return "-";
+  const num = Number(v);
+  if (isNaN(num)) return String(v);
+  return num.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 });
+}
+
+function escapeHtml(str) {
+  if (str === null || str === undefined) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function updateStatusBar() {
+  const statusEl = document.getElementById("status-text");
+  const lastUpdatedEl = document.getElementById("last-updated");
+
+  if (isLoading) {
+    statusEl.textContent = "SEDANG LOAD DATA...";
+  } else if (!allData || !allData.length) {
+    statusEl.textContent = "TIADA DATA。";
+  } else {
+    const count = allData.length;
+    statusEl.textContent = "SUDAH LOAD " + count + " LINE PERUBAHAN HARGA REKOD。";
+  }
+
+  if (lastUpdated) {
+    lastUpdatedEl.textContent = "LASTUPDATE：" + formatDate(lastUpdated);
+  } else {
+    lastUpdatedEl.textContent = "LASTUPDATE：--";
+  }
+}
+
+// ===== 主渲染入口 =====
+function render() {
+  if (!allData || !allData.length) {
+    updateKpis({ totalItems: 0, pendingItems: 0, completeItems: 0, totalLogs: 0, last7Count: 0 });
+    document.getElementById("container").innerHTML = "";
+    document.getElementById("empty-state").classList.remove("hidden");
+    updateStatusBar();
+    return;
+  }
+
+  const stats = computeStats();
+  updateKpis(stats);
+
+  const { groups, readLogs } = buildGroupsForCurrentFilters();
+  renderCards(groups, readLogs);
+  updateStatusBar();
+}
+
+// ===== 事件绑定 =====
+function bindEvents() {
+  // Tab
+  document.querySelectorAll(".tab-button").forEach(btn => {
+    btn.addEventListener("click", function () {
+      const tab = this.dataset.tab;
+      switchTab(tab);
+    });
+  });
+
+  // 排序
+  document.getElementById("sort-select").addEventListener("change", function () {
+    setSortKey(this.value);
+  });
+
+  // 关键字搜索
+  document.getElementById("keyword-input").addEventListener("input", function () {
+    keywordFilter = this.value.trim();
+    render();
+  });
+
+  // 日期
+  document.getElementById("date-from").addEventListener("change", function () {
+    dateFromFilter = this.value;
+    render();
+  });
+  document.getElementById("date-to").addEventListener("change", function () {
+    dateToFilter = this.value;
+    render();
+  });
+
+  // 快速筛选
+  document.querySelectorAll("#quick-range-group .pill").forEach(pill => {
+    pill.addEventListener("click", function () {
+      const range = this.dataset.range;
+      setQuickRange(range);
+    });
+  });
+
+  // 按钮
+  document.getElementById("reset-filters-btn").addEventListener("click", function () {
+    resetFilters();
+    render();
+  });
+
+  document.getElementById("mark-all-read-btn").addEventListener("click", function () {
+    markAllRead();
+  });
+
+  document.getElementById("refresh-btn").addEventListener("click", function () {
+    loadData();
+  });
+}
+
+// ===== 自动刷新（5 分钟） =====
+function startAutoRefresh() {
+  setInterval(loadData, 300000);
+}
+
+// ===== 初始化 =====
+document.addEventListener("DOMContentLoaded", function () {
+  bindEvents();
+  loadData();
+  startAutoRefresh();
+});
+</script>
+
+</body>
+</html>
