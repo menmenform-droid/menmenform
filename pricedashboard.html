@@ -603,6 +603,7 @@ body {
       <div class="filter-group filter-actions">
         <button id="reset-filters-btn" class="btn ghost">RESET FILTERS</button>
         <button id="mark-all-read-btn" class="btn ghost">SEMUA MARK DIBACA</button>
+        <button id="export-csv-btn" class="btn ghost">EXPORT CSV</button>
       </div>
     </section>
 
@@ -1029,6 +1030,84 @@ function escapeHtml(str) {
     .replace(/'/g, "&#39;");
 }
 
+function toCsvValue(value) {
+  if (value === null || value === undefined) return "";
+  const str = String(value);
+  if (/[",\n\r]/.test(str)) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+function exportCurrentViewToCsv() {
+  if (!allData || !allData.length) {
+    alert("TIADA DATA UNTUK EXPORT.");
+    return;
+  }
+
+  const result = buildGroupsForCurrentFilters();
+  const groups = result.groups || [];
+  const readLogs = result.readLogs || {};
+
+  if (!groups.length) {
+    alert("TIADA DATA UNTUK EXPORT MENGIKUT FILTER SEKARANG.");
+    return;
+  }
+
+  const rows = [];
+  rows.push([
+    "ItemNo",
+    "ItemName",
+    "ChangeDate",
+    "UOM",
+    "OldPrice",
+    "NewPrice",
+    "Status",
+    "LogId"
+  ]);
+
+  groups.forEach(group => {
+    const latestLogId = group.logs.length ? group.logs[0].log_id : null;
+    group.logs.forEach(row => {
+      const isRead = !!readLogs[row.log_id];
+      if (currentTab === "pending" && isRead) return;
+      if (currentTab === "complete" && !isRead) return;
+
+      const status = isRead ? "READ" : "UNREAD";
+      const changeDate = formatDate(row.change_date);
+      const csvRow = [
+        group.itemno || "",
+        group.itemname || "",
+        changeDate,
+        row.uom || "",
+        row.oldprice,
+        row.newprice,
+        status,
+        row.log_id
+      ].map(toCsvValue);
+
+      rows.push(csvRow);
+    });
+  });
+
+  if (rows.length <= 1) {
+    alert("TIADA DATA UNTUK EXPORT MENGIKUT VIEW SEKARANG.");
+    return;
+  }
+
+  const csvContent = rows.map(cols => cols.join(",")).join("\r\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const timestamp = new Date().toISOString().replace(/[:T]/g, "-").split(".")[0];
+  a.href = url;
+  a.download = "price_change_" + timestamp + ".csv";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function updateStatusBar() {
   const statusEl = document.getElementById("status-text");
   const lastUpdatedEl = document.getElementById("last-updated");
@@ -1115,6 +1194,13 @@ function bindEvents() {
   document.getElementById("mark-all-read-btn").addEventListener("click", function () {
     markAllRead();
   });
+
+  const exportBtn = document.getElementById("export-csv-btn");
+  if (exportBtn) {
+    exportBtn.addEventListener("click", function () {
+      exportCurrentViewToCsv();
+    });
+  }
 
   document.getElementById("refresh-btn").addEventListener("click", function () {
     loadData();
