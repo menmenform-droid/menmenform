@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Pemulangan Dokumen (Return)</title>
+    <script src="setting.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            background: #f3f4f6;
+            color: #111827;
+        }
+
+        .container {
+            max-width: 1180px;
+            margin: 0 auto;
+            padding: 24px 16px 48px;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            margin: 12px 0 18px;
+            gap: 4px;
+        }
+
+        .tab-button {
+            border: none;
+            background: transparent;
+            padding: 8px 14px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #6b7280;
+            border-radius: 999px 999px 0 0;
+        }
+
+        .tab-button-active {
+            background: #ffffff;
+            color: #111827;
+            border: 1px solid #e5e7eb;
+            border-bottom-color: #ffffff;
+        }
+
+        .page-title {
+            margin: 0 0 4px;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .page-subtitle {
+            margin: 0 0 24px;
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        section {
+            background: #ffffff;
+            padding: 20px 20px 18px;
+            margin-bottom: 18px;
+            border-radius: 10px;
+            box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+            border: 1px solid #e5e7eb;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .section-title {
+            margin: 0;
+            font-size: 16px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #111827;
+        }
+
+        .section-subtitle {
+            margin: 0;
+            font-size: 11px;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .hidden { display: none !important; }
+
+        .grey-out {
+            background: #f3f4f6;
+            pointer-events: none;
+            color: #6b7280;
+        }
+
+        label {
+            display: block;
+            margin-top: 10px;
+            margin-bottom: 2px;
+            font-weight: 600;
+            font-size: 13px;
+            color: #374151;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 8px 10px;
+            margin-top: 2px;
+            box-sizing: border-box;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            font-size: 13px;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2);
+        }
+
+        button {
+            cursor: pointer;
+            border-radius: 6px;
+            border: none;
+            font-weight: 600;
+            font-size: 13px;
+            padding: 9px 14px;
+            transition: background 0.16s ease, transform 0.05s ease, box-shadow 0.16s ease;
+        }
+
+        button:active {
+            transform: translateY(1px);
+            box-shadow: none;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+        }
+
+        .btn-secondary {
+            background: #059669;
+            color: #ffffff;
+            box-shadow: 0 2px 6px rgba(5, 150, 105, 0.35);
+        }
+
+        .btn-secondary:hover {
+            background: #047857;
+        }
+
+        .btn-neutral {
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        .btn-neutral:hover {
+            background: #d1d5db;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: #ffffff;
+        }
+
+        .btn-danger:hover {
+            background: #b91c1c;
+        }
+
+        .btn-link {
+            background: transparent;
+            color: #2563eb;
+            padding-left: 0;
+        }
+
+        .btn-link:hover {
+            text-decoration: underline;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        th, td {
+            border: 1px solid #e5e7eb;
+            padding: 6px 8px;
+            text-align: left;
+        }
+
+        th {
+            background: #f9fafb;
+            font-weight: 600;
+        }
+
+        .report-btn {
+            background: #059669;
+            color: #ffffff;
+            margin-top: 5px;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+        }
+
+        .badge-temp {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            margin-bottom: 6px;
+        }
+
+        .local-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .local-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 6px;
+        }
+
+        .local-empty {
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        #preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 10px;
+        }
+
+        .preview-chip {
+            padding: 4px 8px;
+            border-radius: 999px;
+            background: #f3f4f6;
+            font-size: 11px;
+            color: #374151;
+        }
+
+        .report-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .report-controls-left,
+        .report-controls-right {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .report-summary {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 4px;
+        }
+
+        .report-search {
+            min-width: 180px;
+        }
+
+        .pagination {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .pagination button {
+            padding: 4px 8px;
+            font-size: 11px;
+            border-radius: 999px;
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        .pagination button.active {
+            background: #2563eb;
+            color: #ffffff;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        @media (min-width: 768px) {
+            .flex-row {
+                display: flex;
+                gap: 16px;
+            }
+
+            .flex-2 {
+                flex: 2;
+            }
+
+            .flex-1 {
+                flex: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+    <h1 class="page-title">SISTEM PEMULANGAN DOKUMEN (RETURN)</h1>
+    <p class="page-subtitle">Tanpa login · Sesuai untuk operasi cawangan & vendor · Siap sedia untuk production</p>
+
+    <div class="tabs">
+        <button id="tabbtn-return" class="tab-button tab-button-active" onclick="switchTab('return')">RETURN</button>
+        <button id="tabbtn-dashboard" class="tab-button" onclick="switchTab('dashboard')">DASHBOARD</button>
+    </div>
+
+    <div id="tab-return">
+    <section id="sec-generate">
+        <div class="section-header">
+            <h2 class="section-title">1. SAVE DOCUMENT</h2>
+            <p class="section-subtitle">Generate & simpan dokumen pemulangan</p>
+        </div>
+        <label>CARA TRANSIT:</label>
+        <select id="transitMethod"></select>
+
+        <label>DARI CAWANGAN:</label>
+        <input type="text" id="branchName" readonly>
+
+        <label>NAMA VENDOR:</label>
+        <select id="vendorSelect" onchange="checkVendor()"></select>
+        <input type="text" id="manualVendor" class="hidden" placeholder="Masukkan Nama Vendor Manual">
+
+        <label>JENIS DOCUMENT:</label>
+        <select id="docType" onchange="handleDocTypeChange()">
+            <option value="PR CN IRSPOS">PR CN IRSPOS</option>
+            <option value="CONSGINMENT TIADA PR">CONSGINMENT TIADA PR</option>
+        </select>
+
+        <label>DOCUMENT NO:</label>
+        <input type="text" id="docNo" placeholder="Sila isi PR No">
+
+        <div id="consignmentFields" class="hidden">
+            <h3>DETAILS ITEM (CONSIGNMENT)</h3>
+            <table id="itemTable">
+                <thead>
+                    <tr>
+                        <th>Item No</th>
+                        <th>Item Name</th>
+                        <th>Unit</th>
+                        <th>Qty</th>
+                    </tr>
+                </thead>
+                <tbody id="itemBody">
+                    <tr>
+                        <td><input type="text" class="i-no"></td>
+                        <td><input type="text" class="i-name"></td>
+                        <td><input type="text" class="i-unit" value="UNIT"></td>
+                        <td><input type="number" class="i-qty"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <button onclick="addRow()" style="background:#6c757d">+ Tambah Baris</button>
+        </div>
+
+        <label>TOTAL QUANTITY:</label>
+        <input type="text" id="totalPkg" placeholder="cth: 10 CARTON / 2 PALLET">
+
+        <div style="margin-top:20px; display: flex; gap: 10px;">
+            <button onclick="saveToLocal()">SAVE DOCUMENT (TEMPORARY)</button>
+        </div>
+    </section>
+
+    <section id="sec-device-save">
+        <div class="section-header">
+            <h2 class="section-title">2. EDIT / REPRINT DEVICE SAVE</h2>
+            <p class="section-subtitle">Tempoh simpanan di dalam peranti (local storage)</p>
+        </div>
+        <div id="localList" class="local-empty">Tiada dokumen disimpan dalam peranti ini.</div>
+    </section>
+
+    <section id="sec-upload" class="hidden">
+        <div class="section-header">
+            <h2 class="section-title">3. UPLOAD DOCUMENT</h2>
+            <p class="section-subtitle">Hanya untuk dokumen jenis PR CN IRSPOS</p>
+        </div>
+        <p id="uploadMsg" style="color: red; font-weight: bold;"></p>
+        <div id="uploadDetails"></div>
+        <label>Ambil Gambar (Hingga 50 gambar):</label>
+        <input type="file" id="fileInput" accept="image/*" capture="environment" multiple onchange="processImages()">
+        <div id="preview"></div>
+        <button onclick="uploadToGAS()" id="btnUploadFinal" class="report-btn">UPLOAD SEKARANG</button>
+    </section>
+
+    </section>
+
+    </div>
+
+    <div id="tab-dashboard" class="hidden">
+    <section id="sec-report">
+        <div class="section-header">
+            <h2 class="section-title">4. REPORT DASHBOARD</h2>
+            <p class="section-subtitle">Data live dari Google Sheet (GAS)</p>
+        </div>
+        <div class="report-controls">
+            <div class="report-controls-left">
+                <button class="btn-primary" onclick="loadReport()">Refresh Data</button>
+                <button class="btn-neutral" onclick="exportReportCsv()">Export .CSV</button>
+            </div>
+            <div class="report-controls-right">
+                <input id="reportSearch" class="report-search" type="text" placeholder="Cari vendor / cawangan / doc no..." oninput="applyReportFilter()">
+                <label style="margin-top:0;">Per Page:</label>
+                <select id="reportPageSize" onchange="changeReportPageSize()">
+                    <option value="10">10</option>
+                    <option value="25" selected>25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+            </div>
+        </div>
+        <div id="reportSummary" class="report-summary"></div>
+        <div id="reportTableArea"></div>
+        <div id="reportPagination" class="pagination"></div>
+    </section>
+    </div>
+
+    <script>
+        // --- INITIALIZATION ---
+        window.onload = function() {
+            document.getElementById('branchName').value = SETTINGS.BRANCH_NAME;
+            const vSelect = document.getElementById('vendorSelect');
+            SETTINGS.ALL_VENDORS.forEach(v => {
+                let opt = new Option(v, v);
+                vSelect.add(opt);
+            });
+            const tSelect = document.getElementById('transitMethod');
+            SETTINGS.TRANSIT_METHODS.forEach(t => {
+                let opt = new Option(t, t);
+                tSelect.add(opt);
+            });
+            refreshLocalList();
+        };
+
+        let editingId = null;
+        let reportState = {
+            headers: [],
+            rows: [],
+            filteredRows: [],
+            pageSize: 25,
+            currentPage: 1,
+            search: ""
+        };
+
+        function switchTab(tab) {
+            const tabReturn = document.getElementById('tab-return');
+            const tabDashboard = document.getElementById('tab-dashboard');
+            const btnReturn = document.getElementById('tabbtn-return');
+            const btnDashboard = document.getElementById('tabbtn-dashboard');
+
+            if (tab === 'dashboard') {
+                tabReturn.classList.add('hidden');
+                tabDashboard.classList.remove('hidden');
+                btnReturn.classList.remove('tab-button-active');
+                btnDashboard.classList.add('tab-button-active');
+            } else {
+                tabReturn.classList.remove('hidden');
+                tabDashboard.classList.add('hidden');
+                btnReturn.classList.add('tab-button-active');
+                btnDashboard.classList.remove('tab-button-active');
+            }
+        }
+
+        function checkVendor() {
+            const v = document.getElementById('vendorSelect').value;
+            const docType = document.getElementById('docType');
+            const manual = document.getElementById('manualVendor');
+            
+            manual.classList.toggle('hidden', v !== 'OTHER');
+            
+            if(SETTINGS.CONSIGNMENT_VENDORS.includes(v)) {
+                docType.value = "CONSGINMENT TIADA PR";
+            } else {
+                docType.value = "PR CN IRSPOS";
+            }
+            handleDocTypeChange();
+        }
+
+        function handleDocTypeChange() {
+            const type = document.getElementById('docType').value;
+            const docNoInput = document.getElementById('docNo');
+            const consFields = document.getElementById('consignmentFields');
+
+            if(type === "CONSGINMENT TIADA PR") {
+                docNoInput.classList.add('grey-out');
+                docNoInput.value = generateConsNo();
+                consFields.classList.remove('hidden');
+            } else {
+                docNoInput.classList.remove('grey-out');
+                docNoInput.value = "";
+                consFields.classList.add('hidden');
+                alert("SILA ISI PR NO DAN BUKA PR DI SYSTEM IRSPOS SEBELUM SIMPAN.");
+            }
+        }
+
+        function generateConsNo() {
+            const now = new Date();
+            const pad = (n) => n.toString().padStart(2, '0');
+            const ts = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
+            const vendor = document.getElementById('vendorSelect').value;
+            return `${SETTINGS.BRANCH_NAME}${ts}${vendor}`.replace(/[^a-zA-Z0-9]/g, "");
+        }
+
+        function addRow() {
+            const tbody = document.getElementById('itemBody');
+            const row = tbody.insertRow();
+            row.innerHTML = `<td><input type="text" class="i-no"></td><td><input type="text" class="i-name"></td><td><input type="text" class="i-unit" value="UNIT"></td><td><input type="number" class="i-qty"></td>`;
+        }
+
+        // --- LOCAL STORAGE LOGIC ---
+        function saveToLocal() {
+            const data = {
+                id: editingId || Date.now(),
+                transit: document.getElementById('transitMethod').value,
+                branch: SETTINGS.BRANCH_NAME,
+                vendor: document.getElementById('vendorSelect').value === 'OTHER' ? document.getElementById('manualVendor').value : document.getElementById('vendorSelect').value,
+                type: document.getElementById('docType').value,
+                docNo: document.getElementById('docNo').value,
+                totalPkg: document.getElementById('totalPkg').value,
+                items: []
+            };
+
+            if(data.type === "CONSGINMENT TIADA PR") {
+                const rows = document.querySelectorAll('#itemBody tr');
+                rows.forEach(r => {
+                    data.items.push({
+                        no: r.querySelector('.i-no').value,
+                        name: r.querySelector('.i-name').value,
+                        unit: r.querySelector('.i-unit').value,
+                        qty: r.querySelector('.i-qty').value
+                    });
+                });
+            }
+
+            let saved = JSON.parse(localStorage.getItem('temp_returns') || "[]");
+            if (editingId) {
+                const idx = saved.findIndex(x => x.id === editingId);
+                if (idx > -1) {
+                    saved[idx] = data;
+                } else {
+                    saved.push(data);
+                }
+            } else {
+                saved.push(data);
+            }
+            localStorage.setItem('temp_returns', JSON.stringify(saved));
+
+            if (data.type === "PR CN IRSPOS") {
+                alert("Berjaya disimpan! Sila buat PR di sistem IRS POS, chop & sain penerima dan upload dokumen di Seksyen 3.");
+            } else {
+                alert("Berjaya disimpan! Sila print label & dokumen untuk rekod consignment, dan upload gambar bukti di Seksyen 3.");
+            }
+            showUploadSection(data);
+
+            editingId = null;
+            refreshLocalList();
+        }
+
+        function refreshLocalList() {
+            const list = JSON.parse(localStorage.getItem('temp_returns') || "[]");
+            const div = document.getElementById('localList');
+            if (list.length === 0) {
+                div.classList.add('local-empty');
+                div.innerHTML = "Tiada dokumen disimpan dalam peranti ini.";
+                return;
+            }
+
+            div.classList.remove('local-empty');
+            div.innerHTML = `
+                <div class="badge badge-temp">
+                    TEMPORARY STORAGE · ${list.length} dokumen
+                </div>
+            ` + list.map((d, index) => `
+                <div style="border-bottom:1px solid #e5e7eb; padding:10px 0;">
+                    <div class="local-item-header">
+                        <div>
+                            <div style="font-weight:600;font-size:13px;">${d.docNo || "(Tiada No Dokumen)"}</div>
+                            <div style="font-size:11px;color:#6b7280;">
+                                ${d.vendor} · ${d.type} · ${d.totalPkg || "-"} CTN/IKAT/PALLET
+                            </div>
+                        </div>
+                    </div>
+                    <div class="local-actions">
+                        <button class="btn-secondary" onclick="printDoc('${d.id}', 1)">Print Label Box</button>
+                        <button class="btn-secondary" onclick="printDoc('${d.id}', 2)">Print Dokumen Return</button>
+                        <button class="btn-neutral" onclick="startEdit('${d.id}')">Edit / Re-open</button>
+                        <button class="btn-primary" onclick="showUploadSection(${JSON.stringify(d).replace(/"/g, '&quot;')})">Upload Document</button>
+                        <button class="btn-danger" onclick="deleteLocal(${index})">Padam</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showUploadSection(data) {
+            if (!data) {
+                document.getElementById('sec-upload').classList.add('hidden');
+                window.currentUploadData = null;
+                return;
+            }
+
+            switchTab('return');
+            document.getElementById('sec-upload').classList.remove('hidden');
+
+            const isPR = data.type === "PR CN IRSPOS";
+            document.getElementById('uploadMsg').innerText = isPR
+                ? "SILA BUAT PR DI SYSTEM IRS POS, CHOP SIGN OLEH PENERIMA DAN UPLOAD GAMBAR SEKARANG."
+                : "Sila pastikan dokumen CONSIGNMENT telah dicetak & ditandatangani penerima, kemudian upload gambar bukti di sini.";
+            document.getElementById('uploadDetails').innerHTML = `
+                <table>
+                    <tr><th>Cara Transit</th><td>${data.transit}</td></tr>
+                    <tr><th>Dari Cawangan</th><td>${data.branch}</td></tr>
+                    <tr><th>Nama Vendor</th><td>${data.vendor}</td></tr>
+                    <tr><th>Jenis Dokumen</th><td>${data.type}</td></tr>
+                    <tr><th>No Dokumen</th><td>${data.docNo}</td></tr>
+                </table>
+                <p style="margin-top:8px;font-size:11px;color:#6b7280;">
+                    * Maksimum 50 gambar. Sistem akan mengecilkan saiz & kualiti gambar seperti WhatsApp sebelum dihantar ke Google Drive (GAS).
+                </p>
+            `;
+            window.currentUploadData = data;
+        }
+
+        // --- PRINTING LOGIC ---
+        function printDoc(id, type) {
+            const list = JSON.parse(localStorage.getItem('temp_returns') || "[]");
+            const d = list.find(x => x.id == id);
+            
+            if (!d) {
+                alert("Rekod tidak dijumpai.");
+                return;
+            }
+
+            // Generate QR code image for DOC NO
+            let qrDataUrl = "";
+            try {
+                const tempDiv = document.createElement('div');
+                document.body.appendChild(tempDiv);
+                const qr = new QRCode(tempDiv, {
+                    text: d.docNo || "",
+                    width: 120,
+                    height: 120,
+                    correctLevel: QRCode.CorrectLevel.M
+                });
+                const img = tempDiv.querySelector('img') || tempDiv.querySelector('canvas');
+                if (img) {
+                    qrDataUrl = img.tagName === 'IMG' ? img.src : img.toDataURL('image/png');
+                }
+                document.body.removeChild(tempDiv);
+            } catch (e) {
+                console.warn("Gagal jana QR code:", e);
+            }
+
+            let printWindow = window.open('', '_blank');
+            let content = "";
+
+            if(type === 1) { // LABEL BOX
+                content = `
+                    <html>
+                    <head>
+                        <title>Label Packing</title>
+                        <style>
+                            body { font-family: system-ui, sans-serif; margin: 10mm; }
+                            .labels-grid {
+                                display: grid;
+                                grid-template-columns: 1fr 1fr;
+                                gap: 8px;
+                                page-break-inside: avoid;
+                            }
+                            .label-card {
+                                border:1px solid #111827;
+                                padding:10px;
+                                min-height: 90mm;
+                                box-sizing: border-box;
+                            }
+                            .label-header { font-weight:700; font-size:14px; text-transform:uppercase; margin-bottom:6px; }
+                            .label-row { font-size:12px; margin-bottom:2px; }
+                            .qr { float:right; margin-left:8px; }
+                            .docno { font-size:13px; font-weight:700; }
+                        </style>
+                    </head>
+                    <body onload="window.print(); window.close();">
+                        <div class="labels-grid">
+                            ${[1,2,3,4].map(()=>`
+                            <div class="label-card">
+                                <div class="label-header">WAYBILL RETURN</div>
+                                <div style="overflow:hidden;">
+                                    ${qrDataUrl ? `<div class="qr"><img src="${qrDataUrl}" width="90" height="90"></div>` : ``}
+                                    <div>
+                                        <div class="label-row docno">DOCUMENT NO: <b>${d.docNo}</b></div>
+                                        <div class="label-row">KEPADA VENDOR: <b>${d.vendor}</b></div>
+                                        <div class="label-row">DARI CAWANGAN: <b>${d.branch}</b></div>
+                                        <div class="label-row">CARA TRANSIT: <b>${d.transit}</b></div>
+                                        <div class="label-row">QUANTITY: <b>${d.totalPkg}</b></div>
+                                    </div>
+                                </div>
+                            </div>
+                            `).join('')}
+                        </div>
+                    </body>
+                    </html>
+                `;
+            } else { // FULL DOCUMENT
+                content = `
+                    <html>
+                    <head>
+                        <title>Dokumen Return Consignment</title>
+                        <style>
+                            body { font-family: system-ui, sans-serif; margin: 24px; font-size:12px; }
+                            h1 { font-size:18px; margin-bottom:4px; text-transform:uppercase; }
+                            .meta { margin-bottom:10px; }
+                            .meta-row { margin-bottom:2px; }
+                            table { width:100%; border-collapse: collapse; margin-top:8px; }
+                            th, td { border:1px solid #000; padding:4px 6px; font-size:11px; }
+                            th { background:#f3f4f6; }
+                            .footer { margin-top:40px; border-top:1px solid #000; padding-top:10px; }
+                        </style>
+                    </head>
+                    <body onload="window.print(); window.close();">
+                        <h1>DOKUMEN RETURN CONSIGNMENT</h1>
+                        <div class="meta">
+                            <div class="meta-row">KEPADA VENDOR: <b>${d.vendor}</b></div>
+                            <div class="meta-row">DARI CAWANGAN: <b>${d.branch}</b></div>
+                            <div class="meta-row">CARA TRANSIT: <b>${d.transit}</b></div>
+                            <div class="meta-row">DOCUMENT NO: <b>${d.docNo}</b></div>
+                            <div class="meta-row">QUANTITY: <b>${d.totalPkg}</b></div>
+                            ${qrDataUrl ? `<div style="margin-top:6px;"><img src="${qrDataUrl}" width="100" height="100"></div>` : ``}
+                        </div>
+                        <table>
+                            <tr>
+                                <th>Item No</th>
+                                <th>Item Name</th>
+                                <th>Unit</th>
+                                <th>Quantity</th>
+                            </tr>
+                            ${d.items && d.items.length ? d.items.map(i => `
+                                <tr>
+                                    <td>${i.no || ""}</td>
+                                    <td>${i.name || ""}</td>
+                                    <td>${i.unit || ""}</td>
+                                    <td>${i.qty || ""}</td>
+                                </tr>
+                            `).join('') : `
+                                <tr><td colspan="4" style="text-align:center;">TIADA BUTIRAN ITEM DIREKODKAN</td></tr>
+                            `}
+                        </table>
+                        <div class="footer">
+                            <p><b>PROOF PENERIMA (UNTUK DIISI DI KERTAS):</b></p>
+                            <p>Nama Penerima / Chop / Tandatangan:</p>
+                            <p>No. Telefon:</p>
+                            <p>No. Plat Kenderaan:</p>
+                            <p>No. IC:</p>
+                        </div>
+                    </body>
+                    </html>
+                `;
+            }
+
+            printWindow.document.write(content);
+        }
+
+        function startEdit(id) {
+            const list = JSON.parse(localStorage.getItem('temp_returns') || "[]");
+            const d = list.find(x => x.id == id);
+            if (!d) {
+                alert("Rekod tidak dijumpai.");
+                return;
+            }
+
+            editingId = d.id;
+
+            document.getElementById('transitMethod').value = d.transit;
+            document.getElementById('branchName').value = d.branch;
+
+            const vendorSelect = document.getElementById('vendorSelect');
+            const manual = document.getElementById('manualVendor');
+            if (SETTINGS.ALL_VENDORS.includes(d.vendor)) {
+                vendorSelect.value = d.vendor;
+                manual.classList.add('hidden');
+                manual.value = "";
+            } else {
+                vendorSelect.value = 'OTHER';
+                manual.classList.remove('hidden');
+                manual.value = d.vendor;
+            }
+
+            const docTypeSelect = document.getElementById('docType');
+            docTypeSelect.value = d.type;
+            handleDocTypeChange();
+
+            document.getElementById('docNo').value = d.docNo;
+            document.getElementById('totalPkg').value = d.totalPkg;
+
+            if (d.type === "CONSGINMENT TIADA PR") {
+                const tbody = document.getElementById('itemBody');
+                tbody.innerHTML = "";
+                (d.items || []).forEach(item => {
+                    const row = tbody.insertRow();
+                    row.innerHTML = `
+                        <td><input type="text" class="i-no" value="${item.no || ""}"></td>
+                        <td><input type="text" class="i-name" value="${item.name || ""}"></td>
+                        <td><input type="text" class="i-unit" value="${item.unit || "UNIT"}"></td>
+                        <td><input type="number" class="i-qty" value="${item.qty || ""}"></td>
+                    `;
+                });
+                if (!d.items || d.items.length === 0) {
+                    addRow();
+                }
+            }
+
+            window.scrollTo({ top: document.getElementById('sec-generate').offsetTop - 12, behavior: 'smooth' });
+        }
+
+        // --- IMAGE & GAS UPLOAD ---
+        function processImages() {
+            const fileInput = document.getElementById('fileInput');
+            const files = Array.from(fileInput.files || []);
+            if (!files.length) {
+                document.getElementById('preview').innerHTML = "";
+                return;
+            }
+            if (files.length > 50) {
+                alert("Maksimum 50 gambar dibenarkan dalam satu upload.");
+            }
+            const shown = files.slice(0, 50);
+            document.getElementById('preview').innerHTML = shown
+                .map(f => `<span class="preview-chip">${f.name}</span>`)
+                .join('');
+        }
+
+// Fungsi mengecilkan gambar (Compression)
+async function compressImage(file) {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+            const img = new Image();
+            img.src = event.target.result;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const MAX_WIDTH = 800; // Kecilkan saiz width
+                const scaleSize = MAX_WIDTH / img.width;
+                canvas.width = MAX_WIDTH;
+                canvas.height = img.height * scaleSize;
+
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                // Kualiti 0.6 (60%) seperti WhatsApp
+                resolve(canvas.toDataURL('image/jpeg', 0.6)); 
+            };
+        };
+    });
+}
+
+// Fungsi hantar data ke GAS dengan compression & multi-gambar
+async function uploadToGAS() {
+    const fileInput = document.getElementById('fileInput');
+    const btn = document.getElementById('btnUploadFinal');
+    
+    if (!window.currentUploadData) {
+        alert("Tiada maklumat dokumen untuk upload.");
+        return;
+    }
+
+    if (fileInput.files.length === 0) {
+        alert("Sila ambil sekurang-kurangnya 1 gambar bukti!");
+        return;
+    }
+
+    const uploadedId = window.currentUploadData.id;
+    const files = Array.from(fileInput.files).slice(0, 50);
+
+    btn.innerText = "SEDANG MEMPROSES GAMBAR...";
+    btn.disabled = true;
+
+    try {
+        const imagePromises = files.map(file => compressImage(file));
+        const base64Images = await Promise.all(imagePromises);
+
+        const payload = {
+            ...window.currentUploadData,
+            images: base64Images
+        };
+
+        btn.innerText = "SEDANG MENGHANTAR KE CLOUD...";
+
+        const response = await fetch(SETTINGS.GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        const text = await response.text();
+        let result = null;
+        try { result = JSON.parse(text); } catch (_) {}
+
+        if (!response.ok) {
+            throw new Error(result && result.message ? result.message : "HTTP " + response.status + " " + text);
+        }
+        if (result && result.status === "error") {
+            throw new Error(result.message || "GAS ralat");
+        }
+
+        // Hanya buang dokumen ini dari local storage, bukan semua
+        const saved = JSON.parse(localStorage.getItem('temp_returns') || "[]");
+        const newList = saved.filter(function (d) { return d.id !== uploadedId; });
+        localStorage.setItem('temp_returns', JSON.stringify(newList));
+
+        document.getElementById('sec-upload').classList.add('hidden');
+        window.currentUploadData = null;
+        fileInput.value = "";
+        document.getElementById('preview').innerHTML = "";
+        refreshLocalList();
+
+        alert("ALHAMDULILLAH! DATA & GAMBAR BERJAYA DIHANTAR KE GOOGLE SHEET.");
+    } catch (err) {
+        alert("Ralat upload / Google Sheet: " + err.message + "\n\nPastikan GAS Web App di-deploy sebagai 'Anyone' dan ada sheet bernama DATA_RETURN.");
+        btn.disabled = false;
+        btn.innerText = "UPLOAD SEKARANG";
+    }
+}
+
+// -------- REPORT DASHBOARD (SEARCH + PAGINATION + CSV) --------
+async function loadReport() {
+    const tableDiv = document.getElementById('reportTableArea');
+    const summaryDiv = document.getElementById('reportSummary');
+    const paginationDiv = document.getElementById('reportPagination');
+
+    tableDiv.innerHTML = "<i>Sedang mengambil data terbaru...</i>";
+    summaryDiv.textContent = "";
+    paginationDiv.innerHTML = "";
+
+    try {
+        const response = await fetch(SETTINGS.GAS_URL);
+        const data = await response.json();
+
+        if (data && data.length > 1) {
+            reportState.headers = data[0];
+            reportState.rows = data.slice(1);
+            reportState.search = "";
+            const pageSizeSelect = document.getElementById('reportPageSize');
+            reportState.pageSize = parseInt(pageSizeSelect.value, 10) || 25;
+            reportState.currentPage = 1;
+            applyReportFilter();
+        } else {
+            tableDiv.innerHTML = "Tiada data ditemui.";
+        }
+    } catch (error) {
+        tableDiv.innerHTML = "<span style='color:red'>Ralat memuatkan report. Pastikan Web App GAS telah di-deploy sebagai 'Anyone'.</span>";
+        console.error(error);
+    }
+}
+
+function applyReportFilter() {
+    const input = document.getElementById('reportSearch');
+    const term = (input.value || "").toLowerCase();
+    reportState.search = term;
+
+    if (!term) {
+        reportState.filteredRows = reportState.rows.slice();
+    } else {
+        reportState.filteredRows = reportState.rows.filter(row =>
+            row.some(cell => String(cell || "").toLowerCase().includes(term))
+        );
+    }
+    reportState.currentPage = 1;
+    renderReportTable();
+}
+
+function changeReportPageSize() {
+    const pageSizeSelect = document.getElementById('reportPageSize');
+    reportState.pageSize = parseInt(pageSizeSelect.value, 10) || 25;
+    reportState.currentPage = 1;
+    renderReportTable();
+}
+
+function changeReportPage(page) {
+    const totalPages = Math.max(1, Math.ceil(reportState.filteredRows.length / reportState.pageSize));
+    if (page < 1 || page > totalPages) return;
+    reportState.currentPage = page;
+    renderReportTable();
+}
+
+function renderReportTable() {
+    const tableDiv = document.getElementById('reportTableArea');
+    const summaryDiv = document.getElementById('reportSummary');
+    const paginationDiv = document.getElementById('reportPagination');
+
+    if (!reportState.headers.length) {
+        tableDiv.innerHTML = "";
+        summaryDiv.textContent = "";
+        paginationDiv.innerHTML = "";
+        return;
+    }
+
+    const totalRows = reportState.filteredRows.length;
+    const pageSize = reportState.pageSize;
+    const currentPage = reportState.currentPage;
+    const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalRows);
+    const pageRows = reportState.filteredRows.slice(startIndex, endIndex);
+
+    let html = "<table><thead><tr>";
+    reportState.headers.forEach(h => {
+        html += `<th>${h}</th>`;
+    });
+    html += "</tr></thead><tbody>";
+
+    pageRows.forEach(row => {
+        html += "<tr>";
+        row.forEach((cell, index) => {
+            if (index === 6 && cell) {
+                html += `<td><a href="${cell}" target="_blank">Lihat Folder Gambar</a></td>`;
+            } else {
+                html += `<td>${cell}</td>`;
+            }
+        });
+        html += "</tr>";
+    });
+
+    if (!pageRows.length) {
+        html += `<tr><td colspan="${reportState.headers.length}" style="text-align:center;">Tiada data untuk dipaparkan.</td></tr>`;
+    }
+
+    html += "</tbody></table>";
+    tableDiv.innerHTML = html;
+
+    summaryDiv.textContent = totalRows
+        ? `Menunjukkan rekod ${startIndex + 1}–${endIndex} daripada ${totalRows} (` + `Halaman ${currentPage}/${totalPages})`
+        : "Tiada data ditemui.";
+
+    // Pagination (lazy render by page)
+    let pagHtml = "";
+    pagHtml += `<button onclick="changeReportPage(${currentPage - 1})" ${currentPage === 1 ? "disabled" : ""}>«</button>`;
+
+    const maxButtons = 7;
+    let startPage = Math.max(1, currentPage - 3);
+    let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+    if (endPage - startPage + 1 < maxButtons) {
+        startPage = Math.max(1, endPage - maxButtons + 1);
+    }
+
+    for (let p = startPage; p <= endPage; p++) {
+        pagHtml += `<button onclick="changeReportPage(${p})" class="${p === currentPage ? "active" : ""}">${p}</button>`;
+    }
+
+    pagHtml += `<button onclick="changeReportPage(${currentPage + 1})" ${currentPage === totalPages ? "disabled" : ""}>»</button>`;
+
+    paginationDiv.innerHTML = pagHtml;
+}
+
+// Export CSV (menggunakan data selepas filter)
+function exportReportCsv() {
+    if (!reportState.headers.length || !reportState.filteredRows.length) {
+        alert("Tiada data untuk diexport.");
+        return;
+    }
+
+    const rows = [reportState.headers].concat(reportState.filteredRows);
+    const csv = rows
+        .map(r => r
+            .map(value => {
+                const v = String(value ?? "");
+                const escaped = v.replace(/"/g, '""');
+                return `"${escaped}"`;
+            })
+            .join(",")
+        )
+        .join("\r\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "return_report.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
+
+        function deleteLocal(index) {
+            let saved = JSON.parse(localStorage.getItem('temp_returns') || "[]");
+            saved.splice(index, 1);
+            localStorage.setItem('temp_returns', JSON.stringify(saved));
+            refreshLocalList();
+        }
+    </script>
+    </div>
+</body>
+</html>
