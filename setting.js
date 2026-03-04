@@ -8,9 +8,9 @@ const SETTINGS = {
 
     // Senarai vendor mengikut jenis
     VENDORS_BY_TYPE: {
-        STATIONERY: ["Ana Muslim", "APT Inventions", "Aras MegaT", "Exploria skillseed", "Gaintech", "Kaize Trading", "Prestasi", "Rabak Literature", "Sinchor Marketing ", "SSH Toys", "Toad Publication"],
-        BUKU: ["Iman Publication", "Toad Publication"],
-        MAKANAN: ["Choco Albab", "CP INTEGRATED", "Kemves", "Soon Lee Seng", "Vinnpower", "Wiroes", "HR DISTRIBUTORS"]
+        STATIONERY: ["APT Inventions", "Soon Lee Seng", "Vinnpower", "Aras MegaT", "Exploria skillseed", "Gaintech", "Kaize Trading", "Prestasi", "Rabak Literature", "Sinchor Marketing ", "SSH Toys"],
+        BUKU: ["Ana Muslim","Iman Publication", "Toad Publication"],
+        MAKANAN: ["Choco Albab", "CP INTEGRATED", "Kemves", "Wiroes", "HR DISTRIBUTORS"]
     },
 
     // Untuk backward compatibility (jika perlu guna senarai penuh)
@@ -27,5 +27,6 @@ const SETTINGS = {
 
     // (Opsyenal) maksimum width semasa resize sebelum upload
     IMAGE_MAX_WIDTH: 800
+
 
 };
