@@ -357,6 +357,27 @@
             color: #ffffff;
         }
 
+        .mgmt-section { margin-bottom: 24px; }
+        .mgmt-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+        .mgmt-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .mgmt-row input { flex: 1; max-width: 280px; }
+        .mgmt-list { list-style: none; margin: 0; padding: 0; }
+        .mgmt-list li { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px; border-bottom: 1px solid #e5e7eb; gap: 6px; }
+        .mgmt-list li span { flex: 1; }
+        .mgmt-vendor-cards { display: flex; flex-wrap: wrap; gap: 16px; }
+        .mgmt-card { border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px; min-width: 200px; max-width: 280px; background: #f9fafb; }
+        .mgmt-card h3 { margin: 0 0 8px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em; color: #374151; }
+        .mgmt-card ul { list-style: none; margin: 0; padding: 0; }
+        .mgmt-card li { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; gap: 4px; font-size: 12px; }
+        .mgmt-card .card-actions { margin-top: 8px; }
+        .mgmt-card.pending-card { border-color: #f59e0b; background: #fffbeb; }
+        body.theme-dark .mgmt-card.pending-card { background: #422006; border-color: #f59e0b; }
+        .mgmt-arrows { display: flex; gap: 2px; flex-shrink: 0; }
+        .mgmt-arrow { width: 26px; height: 26px; padding: 0; font-size: 12px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+        body.theme-dark .mgmt-card { background: #111827; border-color: #374151; }
+        body.theme-dark .mgmt-card h3 { color: #e5e7eb; }
+        body.theme-dark .mgmt-list li { border-color: #374151; }
+
         /* --- THEME (LIGHT / DARK MODE) --- */
         body.theme-dark {
             background: #020617;
@@ -510,6 +531,7 @@
     <div class="tabs">
         <button id="tabbtn-return" class="tab-button tab-button-active" onclick="switchTab('return')">RETURN</button>
         <button id="tabbtn-dashboard" class="tab-button" onclick="switchTab('dashboard')">DASHBOARD</button>
+        <button id="tabbtn-management" class="tab-button" onclick="switchTab('management')">BRANCH & VENDOR</button>
     </div>
 
     <div id="tab-return">
@@ -641,57 +663,67 @@
     </section>
     </div>
 
+    <div id="tab-management" class="hidden">
+    <section class="mgmt-section">
+        <div class="section-header">
+            <h2 class="section-title">Branch & Vendor Management</h2>
+            <p class="section-subtitle">Data disimpan dalam peranti (localStorage). Load = ambil dari Google Sheet dan timbus localStorage. Save = hantar ke Google Sheet dan timbus sheet.</p>
+        </div>
+        <div class="mgmt-actions">
+            <button type="button" class="btn-primary" onclick="mgmtLoadFromGAS()">Load from GAS</button>
+            <button type="button" class="btn-secondary" id="btnMgmtSave" onclick="mgmtSaveToGAS()">Save to GAS</button>
+            <span id="mgmtPendingWarn" style="display:none; color:#b45309; font-size:12px; align-self:center;"></span>
+        </div>
+    </section>
+    <section class="mgmt-section">
+        <div class="section-header">
+            <h2 class="section-title">Branch</h2>
+            <p class="section-subtitle">Senarai cawangan</p>
+        </div>
+        <div class="mgmt-row">
+            <input type="text" id="mgmtBranchInput" placeholder="Nama cawangan baru">
+            <button type="button" class="btn-neutral" onclick="mgmtAddBranch()">Tambah</button>
+        </div>
+        <ul id="mgmtBranchList" class="mgmt-list"></ul>
+    </section>
+    <section class="mgmt-section">
+        <div class="section-header">
+            <h2 class="section-title">Consignment Vendors</h2>
+            <p class="section-subtitle">Vendor dalam senarai ini akan auto pilih CONSGINMENT TIADA PR. Vendor baru akan muncul di Waiting Zone (Vendor by Type) dahulu.</p>
+        </div>
+        <div class="mgmt-row">
+            <input type="text" id="mgmtConsignmentInput" placeholder="Nama vendor consignment">
+            <button type="button" class="btn-neutral" onclick="mgmtAddConsignment()">Tambah</button>
+        </div>
+        <ul id="mgmtConsignmentList" class="mgmt-list"></ul>
+    </section>
+    <section class="mgmt-section">
+        <div class="section-header">
+            <h2 class="section-title">Vendor by Type</h2>
+            <p class="section-subtitle">Waiting Zone = dari Consignment sahaja. ↑↓ susun dalam jenis, ← pindah ke Waiting Zone, → pindah ke jenis. Jika Waiting Zone masih ada vendor, Save tidak dibenarkan.</p>
+        </div>
+        <div id="mgmtVendorByType" class="mgmt-vendor-cards"></div>
+    </section>
+    </div>
+
     <script>
         // --- INITIALIZATION ---
         window.onload = function() {
             initTheme();
 
-            // Init branch dropdown dengan senarai dari SETTINGS + localStorage
+            // Init branch & vendor dari localStorage (guna applyAppDataToForm)
             const bSelect = document.getElementById('branchName');
-            if (bSelect) {
-                const branches = (SETTINGS.BRANCHES && SETTINGS.BRANCHES.length)
-                    ? SETTINGS.BRANCHES.slice()
-                    : [SETTINGS.BRANCH_NAME];
-
-                branches.forEach(b => {
-                    const opt = new Option(b, b);
-                    bSelect.add(opt);
-                });
-
-                const savedBranch = localStorage.getItem('selected_branch');
-                const defaultBranch = savedBranch && branches.includes(savedBranch)
-                    ? savedBranch
-                    : SETTINGS.BRANCH_NAME;
-
-                bSelect.value = defaultBranch;
-
-                // 每次切换分行时刷新 Save 按钮状态
-                bSelect.addEventListener('change', updateSaveBranchButton);
-
-                // 初始化当前已保存分行
-                window.currentSavedBranch = defaultBranch;
-                updateSaveBranchButton();
-            } else {
+            if (bSelect) bSelect.addEventListener('change', updateSaveBranchButton);
+            applyAppDataToForm();
+            if (!getAppBranches().length && !getAppVendorTypes().length) {
                 window.currentSavedBranch = SETTINGS.BRANCH_NAME;
             }
-
-            // Init vendor type & vendor list
-            const vTypeSelect = document.getElementById('vendorType');
-            if (vTypeSelect && Array.isArray(SETTINGS.VENDOR_TYPES)) {
-                SETTINGS.VENDOR_TYPES.forEach(t => {
-                    const opt = new Option(t, t);
-                    vTypeSelect.add(opt);
-                });
-                // Default ke pertama dalam senarai
-                vTypeSelect.value = SETTINGS.VENDOR_TYPES[0];
-            }
-            onVendorTypeChange();
 
             // Init default doc type (read-only, akan diubah oleh checkVendor / consignment logic)
             const docTypeInput = document.getElementById('docType');
             if (docTypeInput) {
                 docTypeInput.value = "PR CN IRSPOS";
-                handleDocTypeChange();
+                handleDocTypeChange(true);
             }
 
             const tSelect = document.getElementById('transitMethod');
@@ -701,6 +733,341 @@
             });
             refreshLocalList();
         };
+
+        const LS_KEYS = { BRANCHES: "app_branches", VENDOR_TYPES: "app_vendor_types", VENDORS_BY_TYPE: "app_vendors_by_type", CONSIGNMENT: "app_consignment_vendors" };
+        const PENDING_SCOPE = "_pending";
+
+        function getAppBranches() {
+            try { return JSON.parse(localStorage.getItem(LS_KEYS.BRANCHES) || "[]"); } catch (e) { return []; }
+        }
+        function setAppBranches(arr) {
+            localStorage.setItem(LS_KEYS.BRANCHES, JSON.stringify(Array.isArray(arr) ? arr : []));
+        }
+        function getAppVendorTypes() {
+            try { return JSON.parse(localStorage.getItem(LS_KEYS.VENDOR_TYPES) || "[]"); } catch (e) { return []; }
+        }
+        function setAppVendorTypes(arr) {
+            localStorage.setItem(LS_KEYS.VENDOR_TYPES, JSON.stringify(Array.isArray(arr) ? arr : []));
+        }
+        function getAppVendorsByType() {
+            try { return JSON.parse(localStorage.getItem(LS_KEYS.VENDORS_BY_TYPE) || "{}"); } catch (e) { return {}; }
+        }
+        function setAppVendorsByType(obj) {
+            localStorage.setItem(LS_KEYS.VENDORS_BY_TYPE, JSON.stringify(obj && typeof obj === "object" ? obj : {}));
+        }
+        function getAppConsignmentVendors() {
+            try { return JSON.parse(localStorage.getItem(LS_KEYS.CONSIGNMENT) || "[]"); } catch (e) { return []; }
+        }
+        function setAppConsignmentVendors(arr) {
+            localStorage.setItem(LS_KEYS.CONSIGNMENT, JSON.stringify(Array.isArray(arr) ? arr : []));
+        }
+        function getAppVendorsPending() {
+            var cons = getAppConsignmentVendors();
+            return cons.filter(function(name) { return !isVendorInAnyType(name); });
+        }
+        function isVendorInAnyType(name) {
+            const byType = getAppVendorsByType();
+            return (getAppVendorTypes() || []).some(function(t) { return (byType[t] || []).indexOf(name) >= 0; });
+        }
+
+        function applyAppDataToForm() {
+            const branches = getAppBranches();
+            const bSelect = document.getElementById('branchName');
+            if (bSelect) {
+                bSelect.innerHTML = "";
+                branches.forEach(b => { const opt = new Option(b, b); bSelect.add(opt); });
+                const savedBranch = localStorage.getItem('selected_branch');
+                const defaultBranch = savedBranch && branches.includes(savedBranch) ? savedBranch : (branches[0] || SETTINGS.BRANCH_NAME);
+                bSelect.value = defaultBranch;
+                window.currentSavedBranch = defaultBranch;
+                updateSaveBranchButton();
+            }
+            const types = getAppVendorTypes();
+            const vTypeSelect = document.getElementById('vendorType');
+            if (vTypeSelect) {
+                vTypeSelect.innerHTML = "";
+                const optBlank = new Option("— Pilih jenis —", "");
+                vTypeSelect.add(optBlank);
+                types.forEach(t => { const opt = new Option(t, t); vTypeSelect.add(opt); });
+                vTypeSelect.value = "";
+            }
+            onVendorTypeChange();
+        }
+
+        function renderMgmtAll() {
+            renderMgmtBranchList();
+            renderMgmtVendorByType();
+            renderMgmtConsignmentList();
+            var n = getAppVendorsPending().length;
+            var warn = document.getElementById("mgmtPendingWarn");
+            if (warn) {
+                if (n > 0) { warn.style.display = "inline"; warn.textContent = "Waiting Zone ada " + n + " vendor — Save tidak dibenarkan sehingga kosong."; }
+                else { warn.style.display = "none"; warn.textContent = ""; }
+            }
+        }
+        function renderMgmtBranchList() {
+            const ul = document.getElementById('mgmtBranchList');
+            if (!ul) return;
+            const list = getAppBranches();
+            ul.innerHTML = list.map((b, i) => '<li><span>' + b + '</span><button type="button" class="btn-neutral" onclick="mgmtRemoveBranch(' + i + ')">Padam</button></li>').join('') || '<li style="color:#6b7280">Tiada cawangan. Klik Load dari GAS atau tambah manual.</li>';
+        }
+        function mgmtAddBranch() {
+            const input = document.getElementById('mgmtBranchInput');
+            const name = input && input.value ? input.value.trim() : '';
+            if (!name) return;
+            const list = getAppBranches();
+            if (list.includes(name)) { alert('Cawangan sudah wujud.'); return; }
+            list.push(name);
+            setAppBranches(list);
+            input.value = '';
+            renderMgmtBranchList();
+            applyAppDataToForm();
+        }
+        function mgmtRemoveBranch(i) {
+            const list = getAppBranches();
+            list.splice(i, 1);
+            setAppBranches(list);
+            renderMgmtBranchList();
+            applyAppDataToForm();
+        }
+
+        function esc(s) { return (s || "").replace(/\\/g, "\\\\").replace(/'/g, "\\'"); }
+        function renderMgmtVendorByType() {
+            const types = getAppVendorTypes();
+            const byType = getAppVendorsByType();
+            const pending = getAppVendorsPending();
+            const container = document.getElementById('mgmtVendorByType');
+            if (!container) return;
+            var html = "";
+            html += '<div class="mgmt-card pending-card" data-type="' + PENDING_SCOPE + '"><h3>Waiting Zone</h3><p style="font-size:11px;color:#6b7280;margin:0 0 6px;">From Consignment only. Use → to assign to a type.</p><ul>';
+            pending.forEach(function(v, i) {
+                html += '<li><span>' + v + '</span><div class="mgmt-arrows">';
+                html += '<button type="button" class="btn-neutral mgmt-arrow" title="Right: assign to type" onclick="mgmtVendorMove(\'' + PENDING_SCOPE + '\',' + i + ',\'right\')">→</button>';
+                html += '</div></li>';
+            });
+            if (!pending.length) html += '<li style="color:#9ca3af">Tiada vendor (tambah di Consignment Vendors)</li>';
+            html += '</ul></div>';
+            types.forEach(function(type) {
+                const vendors = byType[type] || [];
+                html += '<div class="mgmt-card" data-type="' + type + '"><h3>' + type + '</h3><ul>';
+                vendors.forEach(function(v, i) {
+                    html += '<li><span>' + v + '</span><div class="mgmt-arrows">';
+                    html += '<button type="button" class="btn-neutral mgmt-arrow" title="Up" onclick="mgmtVendorMove(\'' + esc(type) + '\',' + i + ',\'up\')">↑</button>';
+                    html += '<button type="button" class="btn-neutral mgmt-arrow" title="Down" onclick="mgmtVendorMove(\'' + esc(type) + '\',' + i + ',\'down\')">↓</button>';
+                    html += '<button type="button" class="btn-neutral mgmt-arrow" title="Left" onclick="mgmtVendorMove(\'' + esc(type) + '\',' + i + ',\'left\')">←</button>';
+                    html += '<button type="button" class="btn-neutral mgmt-arrow" title="Right" onclick="mgmtVendorMove(\'' + esc(type) + '\',' + i + ',\'right\')">→</button>';
+                    html += '</div></li>';
+                });
+                if (!vendors.length) html += '<li style="color:#9ca3af">Tiada vendor</li>';
+                html += '</ul></div>';
+            });
+            container.innerHTML = html || '<p style="color:#6b7280">Load dari GAS untuk jenis vendor.</p>';
+            var n = getAppVendorsPending().length;
+            var warn = document.getElementById("mgmtPendingWarn");
+            if (warn) {
+                if (n > 0) { warn.style.display = "inline"; warn.textContent = "Waiting Zone ada " + n + " vendor — Save tidak dibenarkan sehingga kosong."; }
+                else { warn.style.display = "none"; warn.textContent = ""; }
+            }
+        }
+        function mgmtVendorMove(scope, index, dir) {
+            var pending = getAppVendorsPending();
+            var byType = getAppVendorsByType();
+            var types = getAppVendorTypes();
+            var list = scope === PENDING_SCOPE ? pending : (byType[scope] || []);
+            if (index < 0 || index >= list.length) return;
+            var name = list[index];
+            if (dir === "up") {
+                if (index === 0) return;
+                list.splice(index, 1);
+                list.splice(index - 1, 0, name);
+            } else if (dir === "down") {
+                if (index === list.length - 1) return;
+                list.splice(index, 1);
+                list.splice(index + 1, 0, name);
+            } else if (dir === "left") {
+                if (scope === PENDING_SCOPE) return;
+                byType[scope].splice(index, 1);
+                setAppVendorsByType(byType);
+            } else if (dir === "right") {
+                if (scope === PENDING_SCOPE) {
+                    if (!types.length) return;
+                    var first = types[0];
+                    if (!byType[first]) byType[first] = [];
+                    byType[first].push(name);
+                    setAppVendorsByType(byType);
+                } else {
+                    var idx = types.indexOf(scope);
+                    if (idx < 0 || idx >= types.length - 1) return;
+                    var nextType = types[idx + 1];
+                    byType[scope].splice(index, 1);
+                    if (!byType[nextType]) byType[nextType] = [];
+                    byType[nextType].push(name);
+                    setAppVendorsByType(byType);
+                }
+            }
+            if (dir === "up" || dir === "down") {
+                if (scope !== PENDING_SCOPE) { byType[scope] = list; setAppVendorsByType(byType); }
+            }
+            renderMgmtVendorByType();
+            applyAppDataToForm();
+        }
+        function mgmtAddVendorType() {
+            const input = document.getElementById('mgmtNewTypeInput');
+            const name = input && input.value ? input.value.trim().toUpperCase() : '';
+            if (!name) return;
+            let types = getAppVendorTypes();
+            if (types.includes(name)) { alert('Jenis sudah wujud.'); return; }
+            types = types.concat(name);
+            setAppVendorTypes(types);
+            const byType = getAppVendorsByType();
+            if (!byType[name]) byType[name] = [];
+            setAppVendorsByType(byType);
+            input.value = '';
+            renderMgmtVendorByType();
+            applyAppDataToForm();
+        }
+        function mgmtAddVendor(type) {
+            if (type === PENDING_SCOPE) return;
+            const inp = document.getElementById('inp_' + type);
+            const name = inp && inp.value ? inp.value.trim() : '';
+            if (!name) return;
+            if (getAppConsignmentVendors().indexOf(name) < 0) {
+                alert('Vendor mesti ditambah di Consignment Vendors dahulu.');
+                return;
+            }
+            const byType = getAppVendorsByType();
+            if (!byType[type]) byType[type] = [];
+            if (byType[type].includes(name)) { alert('Vendor sudah dalam jenis ini.'); return; }
+            getAppVendorTypes().forEach(function(t) {
+                if (t !== type && (byType[t] || []).indexOf(name) >= 0) {
+                    byType[t] = byType[t].filter(function(v) { return v !== name; });
+                }
+            });
+            byType[type].push(name);
+            setAppVendorsByType(byType);
+            if (inp) inp.value = '';
+            renderMgmtVendorByType();
+            applyAppDataToForm();
+        }
+        function mgmtRemoveVendor(scope, i) {
+            var name;
+            if (scope === PENDING_SCOPE) {
+                var pending = getAppVendorsPending();
+                name = pending[i];
+                if (name) {
+                    var cons = getAppConsignmentVendors().filter(function(v) { return v !== name; });
+                    setAppConsignmentVendors(cons);
+                }
+            } else {
+                const byType = getAppVendorsByType();
+                if (byType[scope]) {
+                    name = byType[scope][i];
+                    byType[scope].splice(i, 1);
+                    setAppVendorsByType(byType);
+                    if (name) {
+                        var c = getAppConsignmentVendors().filter(function(v) { return v !== name; });
+                        setAppConsignmentVendors(c);
+                    }
+                }
+            }
+            renderMgmtVendorByType();
+            renderMgmtConsignmentList();
+            applyAppDataToForm();
+        }
+
+        function renderMgmtConsignmentList() {
+            const ul = document.getElementById('mgmtConsignmentList');
+            if (!ul) return;
+            const list = getAppConsignmentVendors();
+            ul.innerHTML = list.map((v, i) => '<li><span>' + v + '</span><button type="button" class="btn-neutral" onclick="mgmtRemoveConsignment(' + i + ')">Padam</button></li>').join('') || '<li style="color:#6b7280">Tiada vendor consignment.</li>';
+        }
+        function mgmtAddConsignment() {
+            const input = document.getElementById('mgmtConsignmentInput');
+            const name = input && input.value ? input.value.trim() : '';
+            if (!name) return;
+            const list = getAppConsignmentVendors();
+            if (list.includes(name)) { alert('Sudah dalam senarai.'); return; }
+            list.push(name);
+            setAppConsignmentVendors(list);
+            if (input) input.value = '';
+            renderMgmtConsignmentList();
+            renderMgmtVendorByType();
+            applyAppDataToForm();
+        }
+        function mgmtRemoveConsignment(i) {
+            const list = getAppConsignmentVendors();
+            var name = list[i];
+            list.splice(i, 1);
+            setAppConsignmentVendors(list);
+            if (name) {
+                var byType = getAppVendorsByType();
+                getAppVendorTypes().forEach(function(t) {
+                    if (byType[t]) byType[t] = byType[t].filter(function(v) { return v !== name; });
+                });
+                setAppVendorsByType(byType);
+            }
+            renderMgmtConsignmentList();
+            renderMgmtVendorByType();
+            applyAppDataToForm();
+        }
+
+        async function mgmtLoadFromGAS() {
+            showGlobalBlocker("LOAD FROM GAS", "Sedang memuat data dari Google Sheet...");
+            var url = SETTINGS.GAS_URL;
+            try {
+                var q = url.indexOf("?") >= 0 ? "&" : "?";
+                var branchRes = await fetch(url + q + "sheet=branch");
+                var vendorRes = await fetch(url + q + "sheet=vendor");
+                var consignmentRes = await fetch(url + q + "sheet=consignment");
+                var branch = await branchRes.json();
+                var vendor = await vendorRes.json();
+                var consignment = await consignmentRes.json();
+                setAppBranches(Array.isArray(branch) ? branch : []);
+                setAppVendorTypes(Array.isArray(vendor.types) ? vendor.types : []);
+                setAppConsignmentVendors(Array.isArray(consignment) ? consignment : []);
+                var cons = getAppConsignmentVendors();
+                var byType = (vendor.byType && typeof vendor.byType === "object") ? vendor.byType : {};
+                getAppVendorTypes().forEach(function(t) {
+                    if (byType[t]) byType[t] = byType[t].filter(function(v) { return cons.indexOf(v) >= 0; });
+                });
+                setAppVendorsByType(byType);
+                renderMgmtAll();
+                applyAppDataToForm();
+                alert("Data telah dimuat dari GAS dan disimpan ke peranti (localStorage).");
+            } catch (e) {
+                alert("Ralat memuat data: " + (e && e.message ? e.message : e));
+            } finally {
+                hideGlobalBlocker();
+            }
+        }
+        async function mgmtSaveToGAS() {
+            var pending = getAppVendorsPending();
+            if (pending.length > 0) {
+                alert("Waiting Zone masih ada " + pending.length + " vendor. Sila pindah semua ke jenis sebelum Save.");
+                return;
+            }
+            showGlobalBlocker("SAVE TO GAS", "Sedang menghantar data ke Google Sheet...");
+            try {
+                var payload = {
+                    action: "saveConfig",
+                    branch: getAppBranches(),
+                    vendor: getAppVendorsByType(),
+                    vendorTypes: getAppVendorTypes(),
+                    consignment: getAppConsignmentVendors()
+                };
+                var res = await fetch(SETTINGS.GAS_URL, { method: "POST", body: JSON.stringify(payload) });
+                var result = await res.json();
+                if (result && result.status === "success") {
+                    alert("Data telah dihantar ke Google Sheet.");
+                } else {
+                    alert("Gagal: " + (result && result.message ? result.message : "Unknown"));
+                }
+            } catch (e) {
+                alert("Ralat menghantar: " + (e && e.message ? e.message : e));
+            } finally {
+                hideGlobalBlocker();
+            }
+        }
 
         let editingId = null;
         // 维护当前已选择的上传项（图片文件或由 PDF 转换来的图片）
@@ -734,12 +1101,7 @@
 
         function getCurrentVendorType() {
             const sel = document.getElementById('vendorType');
-            if (sel && sel.value) return sel.value;
-            // fallback: jika tiada, ambil jenis pertama
-            if (Array.isArray(SETTINGS.VENDOR_TYPES) && SETTINGS.VENDOR_TYPES.length) {
-                return SETTINGS.VENDOR_TYPES[0];
-            }
-            return "";
+            return (sel && sel.value) ? sel.value : "";
         }
 
         function initTheme() {
@@ -800,19 +1162,28 @@
         function switchTab(tab) {
             const tabReturn = document.getElementById('tab-return');
             const tabDashboard = document.getElementById('tab-dashboard');
+            const tabMgmt = document.getElementById('tab-management');
             const btnReturn = document.getElementById('tabbtn-return');
             const btnDashboard = document.getElementById('tabbtn-dashboard');
+            const btnMgmt = document.getElementById('tabbtn-management');
+
+            tabReturn.classList.add('hidden');
+            tabDashboard.classList.add('hidden');
+            if (tabMgmt) tabMgmt.classList.add('hidden');
+            btnReturn.classList.remove('tab-button-active');
+            btnDashboard.classList.remove('tab-button-active');
+            if (btnMgmt) btnMgmt.classList.remove('tab-button-active');
 
             if (tab === 'dashboard') {
-                tabReturn.classList.add('hidden');
                 tabDashboard.classList.remove('hidden');
-                btnReturn.classList.remove('tab-button-active');
                 btnDashboard.classList.add('tab-button-active');
+            } else if (tab === 'management') {
+                if (tabMgmt) tabMgmt.classList.remove('hidden');
+                if (btnMgmt) btnMgmt.classList.add('tab-button-active');
+                renderMgmtAll();
             } else {
                 tabReturn.classList.remove('hidden');
-                tabDashboard.classList.add('hidden');
                 btnReturn.classList.add('tab-button-active');
-                btnDashboard.classList.remove('tab-button-active');
             }
         }
 
@@ -823,7 +1194,7 @@
             
             manual.classList.toggle('hidden', v !== 'OTHER');
             
-            if(SETTINGS.CONSIGNMENT_VENDORS.includes(v)) {
+            if (getAppConsignmentVendors().includes(v)) {
                 docType.value = "CONSGINMENT TIADA PR";
             } else {
                 docType.value = "PR CN IRSPOS";
@@ -837,29 +1208,25 @@
             const manual = document.getElementById('manualVendor');
             if (!vSelect) return;
 
-            // Reset vendor list berdasarkan jenis
             vSelect.innerHTML = "";
-            const listByType = (SETTINGS.VENDORS_BY_TYPE && SETTINGS.VENDORS_BY_TYPE[type]) || [];
-
+            const optBlank = new Option("— Pilih vendor —", "");
+            vSelect.add(optBlank);
+            const listByType = (type ? (getAppVendorsByType()[type]) || [] : []);
             listByType.forEach(v => {
                 const opt = new Option(v, v);
                 vSelect.add(opt);
             });
-
-            // Sentiasa tambah OTHER 作为 manual pilihan
             const optOther = new Option("OTHER", "OTHER");
             vSelect.add(optOther);
 
-            vSelect.value = listByType.length ? listByType[0] : "OTHER";
-            manual.classList.toggle('hidden', vSelect.value !== 'OTHER');
-            if (vSelect.value !== 'OTHER') {
-                manual.value = "";
-            }
+            vSelect.value = "";
+            manual.classList.add('hidden');
+            manual.value = "";
 
             checkVendor();
         }
 
-        function handleDocTypeChange() {
+        function handleDocTypeChange(skipAlert) {
             const type = document.getElementById('docType').value;
             const docNoInput = document.getElementById('docNo');
             const consFields = document.getElementById('consignmentFields');
@@ -872,7 +1239,7 @@
                 docNoInput.classList.remove('grey-out');
                 docNoInput.value = "";
                 consFields.classList.add('hidden');
-                alert("SILA ISI PR NO DAN BUKA PR DI SYSTEM IRSPOS SEBELUM SIMPAN.");
+                if (!skipAlert) alert("SILA ISI PR NO DAN BUKA PR DI SYSTEM IRSPOS SEBELUM SIMPAN.");
             }
         }
 
@@ -1200,7 +1567,7 @@ const qrDataUrl =
 
             // Restore vendor type + vendor list
             const vTypeSelect = document.getElementById('vendorType');
-            if (vTypeSelect && d.vendorType && SETTINGS.VENDOR_TYPES.includes(d.vendorType)) {
+            if (vTypeSelect && d.vendorType && getAppVendorTypes().includes(d.vendorType)) {
                 vTypeSelect.value = d.vendorType;
             }
             onVendorTypeChange();
@@ -1223,7 +1590,7 @@ const qrDataUrl =
             if (docTypeInput) {
                 docTypeInput.value = d.type;
             }
-            handleDocTypeChange();
+            handleDocTypeChange(true);
 
             document.getElementById('docNo').value = d.docNo;
             document.getElementById('totalPkg').value = d.totalPkg;
