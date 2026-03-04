@@ -2,6 +2,18 @@ const SETTINGS = {
     BRANCH_NAME: "pilih", // Cawangan default (fallback jika tiada dalam BRANCHES)
     // NOTE: Pastikan ini sama dengan URL Web App GAS yang bekerja (rujuk `test.html`).
     GAS_URL: "https://script.google.com/macros/s/AKfycbxe6l1PA8kTTm3rCAAKazNQRyCvAnLeuFopYjGbfkEAbwfRlyAHwfXu8C11ZhACr_8p0g/exec",
+
+    // Jenis vendor (kategori utama)
+    VENDOR_TYPES: ["STATIONERY", "BUKU", "MAKANAN"],
+
+    // Senarai vendor mengikut jenis
+    VENDORS_BY_TYPE: {
+        STATIONERY: ["Ana Muslim", "APT Inventions", "Aras MegaT", "Exploria skillseed", "Gaintech", "Kaize Trading", "Prestasi", "Rabak Literature", "Sinchor Marketing ", "SSH Toys", "Toad Publication"],
+        BUKU: ["Iman Publication", "Toad Publication"],
+        MAKANAN: ["Choco Albab", "CP INTEGRATED", "Kemves", "Soon Lee Seng", "Vinnpower", "Wiroes", "HR DISTRIBUTORS"]
+    },
+
+    // Untuk backward compatibility (jika perlu guna senarai penuh)
     CONSIGNMENT_VENDORS: ["Ana Muslim", "APT Inventions", "Aras MegaT", "Choco Albab", "CP INTEGRATED", "Exploria skillseed", "Gaintech", "Iman Publication", "Kaize Trading", "Kemves", "Prestasi", "Rabak Literature", "Sinchor Marketing ", "Soon Lee Seng", "SSH Toys", "Toad Publication", "Vinnpower", "Wiroes", "HR DISTRIBUTORS"], // Jika pilih ini, auto jadi Consignment
     ALL_VENDORS: ["Ana Muslim", "APT Inventions", "Aras MegaT", "Choco Albab", "CP INTEGRATED", "Exploria skillseed", "Gaintech", "Iman Publication", "Kaize Trading", "Kemves", "Prestasi", "Rabak Literature", "Sinchor Marketing ", "Soon Lee Seng", "SSH Toys", "Toad Publication", "Vinnpower", "Wiroes", "HR DISTRIBUTORS"],
     TRANSIT_METHODS: ["WAREHOUSE TRANSIT POINT", "VENDOR SELF PICKUP"],

@@ -527,15 +527,15 @@
             <button type="button" id="btnSaveBranch" class="btn-neutral flex-1" onclick="saveBranchPreference()" disabled>Save Branch (Device)</button>
         </div>
 
+        <label>VENDOR TYPE:</label>
+        <select id="vendorType" onchange="onVendorTypeChange()"></select>
+
         <label>NAMA VENDOR:</label>
         <select id="vendorSelect" onchange="checkVendor()"></select>
         <input type="text" id="manualVendor" class="hidden" placeholder="Masukkan Nama Vendor Manual">
 
         <label>JENIS DOCUMENT:</label>
-        <select id="docType" onchange="handleDocTypeChange()">
-            <option value="PR CN IRSPOS">PR CN IRSPOS</option>
-            <option value="CONSGINMENT TIADA PR">CONSGINMENT TIADA PR</option>
-        </select>
+        <input type="text" id="docType" readonly>
 
         <label>DOCUMENT NO:</label>
         <input type="text" id="docNo" placeholder="Sila isi PR No">
@@ -675,11 +675,25 @@
                 window.currentSavedBranch = SETTINGS.BRANCH_NAME;
             }
 
-            const vSelect = document.getElementById('vendorSelect');
-            SETTINGS.ALL_VENDORS.forEach(v => {
-                let opt = new Option(v, v);
-                vSelect.add(opt);
-            });
+            // Init vendor type & vendor list
+            const vTypeSelect = document.getElementById('vendorType');
+            if (vTypeSelect && Array.isArray(SETTINGS.VENDOR_TYPES)) {
+                SETTINGS.VENDOR_TYPES.forEach(t => {
+                    const opt = new Option(t, t);
+                    vTypeSelect.add(opt);
+                });
+                // Default ke pertama dalam senarai
+                vTypeSelect.value = SETTINGS.VENDOR_TYPES[0];
+            }
+            onVendorTypeChange();
+
+            // Init default doc type (read-only, akan diubah oleh checkVendor / consignment logic)
+            const docTypeInput = document.getElementById('docType');
+            if (docTypeInput) {
+                docTypeInput.value = "PR CN IRSPOS";
+                handleDocTypeChange();
+            }
+
             const tSelect = document.getElementById('transitMethod');
             SETTINGS.TRANSIT_METHODS.forEach(t => {
                 let opt = new Option(t, t);
@@ -716,6 +730,16 @@
             const sel = document.getElementById('branchName');
             if (sel && sel.value) return sel.value;
             return SETTINGS.BRANCH_NAME;
+        }
+
+        function getCurrentVendorType() {
+            const sel = document.getElementById('vendorType');
+            if (sel && sel.value) return sel.value;
+            // fallback: jika tiada, ambil jenis pertama
+            if (Array.isArray(SETTINGS.VENDOR_TYPES) && SETTINGS.VENDOR_TYPES.length) {
+                return SETTINGS.VENDOR_TYPES[0];
+            }
+            return "";
         }
 
         function initTheme() {
@@ -807,6 +831,34 @@
             handleDocTypeChange();
         }
 
+        function onVendorTypeChange() {
+            const type = getCurrentVendorType();
+            const vSelect = document.getElementById('vendorSelect');
+            const manual = document.getElementById('manualVendor');
+            if (!vSelect) return;
+
+            // Reset vendor list berdasarkan jenis
+            vSelect.innerHTML = "";
+            const listByType = (SETTINGS.VENDORS_BY_TYPE && SETTINGS.VENDORS_BY_TYPE[type]) || [];
+
+            listByType.forEach(v => {
+                const opt = new Option(v, v);
+                vSelect.add(opt);
+            });
+
+            // Sentiasa tambah OTHER 作为 manual pilihan
+            const optOther = new Option("OTHER", "OTHER");
+            vSelect.add(optOther);
+
+            vSelect.value = listByType.length ? listByType[0] : "OTHER";
+            manual.classList.toggle('hidden', vSelect.value !== 'OTHER');
+            if (vSelect.value !== 'OTHER') {
+                manual.value = "";
+            }
+
+            checkVendor();
+        }
+
         function handleDocTypeChange() {
             const type = document.getElementById('docType').value;
             const docNoInput = document.getElementById('docNo');
@@ -871,6 +923,7 @@ function generateConsNo() {
                 id: editingId || Date.now(),
                 transit: document.getElementById('transitMethod').value,
                 branch: getCurrentBranch(),
+                vendorType: getCurrentVendorType(),
                 vendor: document.getElementById('vendorSelect').value === 'OTHER' ? document.getElementById('manualVendor').value : document.getElementById('vendorSelect').value,
                 type: document.getElementById('docType').value,
                 docNo: document.getElementById('docNo').value,
@@ -952,7 +1005,7 @@ function generateConsNo() {
                         <div>
                             <div style="font-weight:600;font-size:13px;">${d.docNo || "(Tiada No Dokumen)"}</div>
                             <div style="font-size:11px;color:#6b7280;">
-                                ${d.vendor} · ${d.type} · ${d.totalPkg || "-"} CTN/IKAT/PALLET
+                                ${d.vendorType ? d.vendorType + " · " : ""}${d.vendor} · ${d.type} · ${d.totalPkg || "-"} CTN/IKAT/PALLET
                             </div>
                         </div>
                     </div>
@@ -988,6 +1041,7 @@ function generateConsNo() {
                 <table>
                     <tr><th>Cara Transit</th><td>${data.transit}</td></tr>
                     <tr><th>Dari Cawangan</th><td>${data.branch}</td></tr>
+                    <tr><th>Vendor Type</th><td>${data.vendorType || "-"}</td></tr>
                     <tr><th>Nama Vendor</th><td>${data.vendor}</td></tr>
                     <tr><th>Jenis Dokumen</th><td>${data.type}</td></tr>
                     <tr><th>No Dokumen</th><td>${data.docNo}</td></tr>
@@ -1144,20 +1198,31 @@ const qrDataUrl =
                 }
             }
 
+            // Restore vendor type + vendor list
+            const vTypeSelect = document.getElementById('vendorType');
+            if (vTypeSelect && d.vendorType && SETTINGS.VENDOR_TYPES.includes(d.vendorType)) {
+                vTypeSelect.value = d.vendorType;
+            }
+            onVendorTypeChange();
+
             const vendorSelect = document.getElementById('vendorSelect');
             const manual = document.getElementById('manualVendor');
-            if (SETTINGS.ALL_VENDORS.includes(d.vendor)) {
-                vendorSelect.value = d.vendor;
-                manual.classList.add('hidden');
-                manual.value = "";
-            } else {
-                vendorSelect.value = 'OTHER';
-                manual.classList.remove('hidden');
-                manual.value = d.vendor;
+            if (vendorSelect) {
+                if ([...vendorSelect.options].some(o => o.value === d.vendor)) {
+                    vendorSelect.value = d.vendor;
+                    manual.classList.add('hidden');
+                    manual.value = "";
+                } else {
+                    vendorSelect.value = 'OTHER';
+                    manual.classList.remove('hidden');
+                    manual.value = d.vendor;
+                }
             }
 
-            const docTypeSelect = document.getElementById('docType');
-            docTypeSelect.value = d.type;
+            const docTypeInput = document.getElementById('docType');
+            if (docTypeInput) {
+                docTypeInput.value = d.type;
+            }
             handleDocTypeChange();
 
             document.getElementById('docNo').value = d.docNo;
@@ -1745,7 +1810,7 @@ function renderReportTable() {
     pageRows.forEach(row => {
         html += "<tr>";
         row.forEach((cell, index) => {
-            if (index === 6 && cell) {
+            if (index === 7 && cell) {
                 html += `<td><a href="${cell}" target="_blank">Lihat Folder Gambar</a></td>`;
             } else {
                 html += `<td>${cell}</td>`;
