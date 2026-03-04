@@ -5,7 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Pemulangan Dokumen (Return)</title>
     <script src="setting.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="qrcode.min.js"></script>
+    <!-- PDF.js 用于将 PDF 每页渲染成图片 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        if (window['pdfjsLib']) {
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+                "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        }
+    </script>
     <style>
         body {
             margin: 0;
@@ -124,6 +132,11 @@
             outline: none;
             border-color: #2563eb;
             box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2);
+        }
+
+        .input-error {
+            border-color: #f97373 !important;
+            background: #fef2f2 !important;
         }
 
         button {
@@ -257,11 +270,51 @@
         }
 
         .preview-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
             padding: 4px 8px;
             border-radius: 999px;
             background: #f3f4f6;
             font-size: 11px;
             color: #374151;
+        }
+
+        .chip-remove {
+            background: transparent;
+            border-radius: 999px;
+            border: none;
+            padding: 0 4px;
+            font-size: 12px;
+            line-height: 1;
+            color: #ef4444;
+            cursor: pointer;
+        }
+
+        .chip-remove:hover {
+            background: #fee2e2;
+        }
+
+        /* 全局页面阻塞遮罩，用于 PDF 排队转换时 */
+        #globalBlocker {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .global-blocker-content {
+            background: #111827;
+            color: #f9fafb;
+            padding: 20px 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.6);
+            max-width: 320px;
+            text-align: center;
+            font-size: 14px;
         }
 
         .report-controls {
@@ -284,6 +337,82 @@
             font-size: 11px;
             color: #6b7280;
             margin-top: 4px;
+        }
+
+        .report-date-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 4px;
+            font-size: 11px;
+        }
+
+        .report-date-filters button {
+            padding: 4px 8px;
+            font-size: 11px;
+        }
+
+        .report-date-filters button.active {
+            background: #2563eb;
+            color: #ffffff;
+        }
+
+        /* --- THEME (LIGHT / DARK MODE) --- */
+        body.theme-dark {
+            background: #020617;
+            color: #e5e7eb;
+        }
+
+        body.theme-dark section {
+            background: #020617;
+            border-color: #1f2937;
+            box-shadow: 0 8px 24px rgba(15, 23, 42, 0.9);
+        }
+
+        body.theme-dark .page-title {
+            color: #e5e7eb;
+        }
+
+        body.theme-dark .page-subtitle {
+            color: #9ca3af;
+        }
+
+        body.theme-dark input,
+        body.theme-dark select {
+            background: #020617;
+            border-color: #374151;
+            color: #e5e7eb;
+        }
+
+        body.theme-dark input::placeholder {
+            color: #6b7280;
+        }
+
+        body.theme-dark table {
+            background: #020617;
+        }
+
+        body.theme-dark th {
+            background: #111827;
+            color: #e5e7eb;
+        }
+
+        body.theme-dark td {
+            border-color: #1f2937;
+        }
+
+        body.theme-dark .report-summary {
+            color: #9ca3af;
+        }
+
+        body.theme-dark .pagination button {
+            background: #111827;
+            color: #e5e7eb;
+        }
+
+        body.theme-dark .pagination button.active {
+            background: #2563eb;
+            color: #ffffff;
         }
 
         .report-search {
@@ -316,6 +445,37 @@
             cursor: default;
         }
 
+        /* Global disabled button + loading style (enterprise feel) */
+        button:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-loading {
+            position: relative;
+        }
+
+        .btn-loading::after {
+            content: "";
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            width: 12px;
+            height: 12px;
+            margin-top: -6px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.7);
+            border-top-color: transparent;
+            animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
         @media (min-width: 768px) {
             .flex-row {
                 display: flex;
@@ -333,9 +493,19 @@
     </style>
 </head>
 <body>
+    <div id="globalBlocker">
+        <div class="global-blocker-content">
+            <div id="globalBlockerTitle" style="font-weight:700;margin-bottom:4px;">SEDANG MEMPROSES...</div>
+            <div id="globalBlockerMsg" style="font-size:12px;color:#e5e7eb;"></div>
+        </div>
+    </div>
     <div class="container">
     <h1 class="page-title">SISTEM PEMULANGAN DOKUMEN (RETURN)</h1>
     <p class="page-subtitle">Tanpa login · Sesuai untuk operasi cawangan & vendor · Siap sedia untuk production</p>
+
+    <div style="display:flex; justify-content:flex-end; margin-bottom:8px; gap:8px;">
+        <button id="btnThemeToggle" class="btn-neutral" type="button" onclick="toggleTheme()">Dark mode</button>
+    </div>
 
     <div class="tabs">
         <button id="tabbtn-return" class="tab-button tab-button-active" onclick="switchTab('return')">RETURN</button>
@@ -352,7 +522,10 @@
         <select id="transitMethod"></select>
 
         <label>DARI CAWANGAN:</label>
-        <input type="text" id="branchName" readonly>
+        <div class="flex-row">
+            <select id="branchName" class="flex-2"></select>
+            <button type="button" id="btnSaveBranch" class="btn-neutral flex-1" onclick="saveBranchPreference()" disabled>Save Branch (Device)</button>
+        </div>
 
         <label>NAMA VENDOR:</label>
         <select id="vendorSelect" onchange="checkVendor()"></select>
@@ -390,7 +563,7 @@
             <button onclick="addRow()" style="background:#6c757d">+ Tambah Baris</button>
         </div>
 
-        <label>TOTAL QUANTITY:</label>
+        <label>TOTAL QUANTITY(BOX,IKAT,PALLET):</label>
         <input type="text" id="totalPkg" placeholder="cth: 10 CARTON / 2 PALLET">
 
         <div style="margin-top:20px; display: flex; gap: 10px;">
@@ -413,8 +586,13 @@
         </div>
         <p id="uploadMsg" style="color: red; font-weight: bold;"></p>
         <div id="uploadDetails"></div>
-        <label>Ambil Gambar (Hingga 50 gambar):</label>
+        <label>Pilih Gambar (Hingga 50 gambar):</label>
         <input type="file" id="fileInput" accept="image/*" capture="environment" multiple onchange="processImages()">
+        <div style="margin-top:6px; display:flex; flex-wrap:wrap; gap:8px; align-items:center;">
+            <button type="button" class="btn-neutral" id="btnPdfConvert" onclick="openPdfChooser()">PILIH PDF & CONVERT KE GAMBAR</button>
+            <span id="pdfConvertStatus" style="font-size:11px;color:#6b7280;"></span>
+        </div>
+        <input type="file" id="pdfInput" accept="application/pdf" multiple class="hidden" onchange="handlePdfFiles()">
         <div id="preview"></div>
         <button onclick="uploadToGAS()" id="btnUploadFinal" class="report-btn">UPLOAD SEKARANG</button>
     </section>
@@ -436,6 +614,12 @@
             </div>
             <div class="report-controls-right">
                 <input id="reportSearch" class="report-search" type="text" placeholder="Cari vendor / cawangan / doc no..." oninput="applyReportFilter()">
+                <select id="reportFilterVendor" onchange="applyReportFilter()">
+                    <option value="">Semua Vendor</option>
+                </select>
+                <select id="reportFilterBranch" onchange="applyReportFilter()">
+                    <option value="">Semua Cawangan</option>
+                </select>
                 <label style="margin-top:0;">Per Page:</label>
                 <select id="reportPageSize" onchange="changeReportPageSize()">
                     <option value="10">10</option>
@@ -444,6 +628,12 @@
                     <option value="100">100</option>
                 </select>
             </div>
+        </div>
+        <div class="report-date-filters">
+            <span style="color:#6b7280;">Tarikh:</span>
+            <button type="button" id="btnDateAll" class="btn-neutral active" onclick="setReportDateRange('all')">All</button>
+            <button type="button" id="btnDate7" class="btn-neutral" onclick="setReportDateRange('7')">Last 7 days</button>
+            <button type="button" id="btnDate30" class="btn-neutral" onclick="setReportDateRange('30')">Last 30 days</button>
         </div>
         <div id="reportSummary" class="report-summary"></div>
         <div id="reportTableArea"></div>
@@ -454,7 +644,37 @@
     <script>
         // --- INITIALIZATION ---
         window.onload = function() {
-            document.getElementById('branchName').value = SETTINGS.BRANCH_NAME;
+            initTheme();
+
+            // Init branch dropdown dengan senarai dari SETTINGS + localStorage
+            const bSelect = document.getElementById('branchName');
+            if (bSelect) {
+                const branches = (SETTINGS.BRANCHES && SETTINGS.BRANCHES.length)
+                    ? SETTINGS.BRANCHES.slice()
+                    : [SETTINGS.BRANCH_NAME];
+
+                branches.forEach(b => {
+                    const opt = new Option(b, b);
+                    bSelect.add(opt);
+                });
+
+                const savedBranch = localStorage.getItem('selected_branch');
+                const defaultBranch = savedBranch && branches.includes(savedBranch)
+                    ? savedBranch
+                    : SETTINGS.BRANCH_NAME;
+
+                bSelect.value = defaultBranch;
+
+                // 每次切换分行时刷新 Save 按钮状态
+                bSelect.addEventListener('change', updateSaveBranchButton);
+
+                // 初始化当前已保存分行
+                window.currentSavedBranch = defaultBranch;
+                updateSaveBranchButton();
+            } else {
+                window.currentSavedBranch = SETTINGS.BRANCH_NAME;
+            }
+
             const vSelect = document.getElementById('vendorSelect');
             SETTINGS.ALL_VENDORS.forEach(v => {
                 let opt = new Option(v, v);
@@ -469,14 +689,89 @@
         };
 
         let editingId = null;
+        // 维护当前已选择的上传项（图片文件或由 PDF 转换来的图片）
+        // { id, label, sourceType: 'file' | 'base64', file?, dataUrl? }
+        let selectedItems = [];
+        let nextItemId = 1;
         let reportState = {
             headers: [],
             rows: [],
             filteredRows: [],
             pageSize: 25,
             currentPage: 1,
-            search: ""
+            search: "",
+            filters: {
+                vendor: "",
+                branch: "",
+                dateRange: "all" // all | 7 | 30
+            },
+            sort: {
+                key: "",
+                dir: "asc",
+                index: -1
+            }
         };
+
+        function getCurrentBranch() {
+            const sel = document.getElementById('branchName');
+            if (sel && sel.value) return sel.value;
+            return SETTINGS.BRANCH_NAME;
+        }
+
+        function initTheme() {
+            const saved = localStorage.getItem('ui_theme') || 'light';
+            applyTheme(saved);
+        }
+
+        function applyTheme(theme) {
+            const body = document.body;
+            const btn = document.getElementById('btnThemeToggle');
+            const nextTheme = theme === 'dark' ? 'dark' : 'light';
+
+            if (nextTheme === 'dark') {
+                body.classList.add('theme-dark');
+                localStorage.setItem('ui_theme', 'dark');
+                if (btn) btn.textContent = 'Light mode';
+            } else {
+                body.classList.remove('theme-dark');
+                localStorage.setItem('ui_theme', 'light');
+                if (btn) btn.textContent = 'Dark mode';
+            }
+        }
+
+        function toggleTheme() {
+            const isDark = document.body.classList.contains('theme-dark');
+            applyTheme(isDark ? 'light' : 'dark');
+        }
+
+        function updateSaveBranchButton() {
+            const btn = document.getElementById('btnSaveBranch');
+            const sel = document.getElementById('branchName');
+            if (!btn || !sel) return;
+
+            const current = sel.value;
+            const saved = window.currentSavedBranch || SETTINGS.BRANCH_NAME;
+
+            if (current && current !== saved) {
+                // 有变更：按钮醒目为绿色且可点击
+                btn.disabled = false;
+                btn.classList.remove('btn-neutral');
+                btn.classList.add('btn-secondary');
+            } else {
+                // 没有变更：按钮灰色且禁用
+                btn.disabled = true;
+                btn.classList.remove('btn-secondary');
+                btn.classList.add('btn-neutral');
+            }
+        }
+
+        function saveBranchPreference() {
+            const branch = getCurrentBranch();
+            localStorage.setItem('selected_branch', branch);
+            window.currentSavedBranch = branch;
+            updateSaveBranchButton();
+            alert("Cawangan '" + branch + "' telah disimpan dalam peranti ini.");
+        }
 
         function switchTab(tab) {
             const tabReturn = document.getElementById('tab-return');
@@ -529,13 +824,32 @@
             }
         }
 
-        function generateConsNo() {
-            const now = new Date();
-            const pad = (n) => n.toString().padStart(2, '0');
-            const ts = `${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}`;
-            const vendor = document.getElementById('vendorSelect').value;
-            return `${SETTINGS.BRANCH_NAME}${ts}${vendor}`.replace(/[^a-zA-Z0-9]/g, "");
-        }
+function generateConsNo() {
+
+    const now = new Date();
+    const pad = (n) => n.toString().padStart(2, '0');
+
+    // 分行 3 位（ ikut cawangan semasa yang dipilih ）
+    const branch = getCurrentBranch()
+        .replace(/[^a-zA-Z0-9]/g, "")
+        .substring(0, 3)
+        .toUpperCase()
+        .padEnd(3, "X");  // 不够3位补X
+
+    // 年月日 (6位)
+    const date =
+        pad(now.getFullYear() % 100) +  // 取年份后两位
+        pad(now.getMonth() + 1) +
+        pad(now.getDate());
+
+    // 时分秒 (6位)
+    const time =
+        pad(now.getHours()) +
+        pad(now.getMinutes()) +
+        pad(now.getSeconds());
+
+    return branch + date + time; // 总共 15 位
+}
 
         function addRow() {
             const tbody = document.getElementById('itemBody');
@@ -545,16 +859,42 @@
 
         // --- LOCAL STORAGE LOGIC ---
         function saveToLocal() {
+            // 清除上一次校验的红框
+            const vendorSelectEl = document.getElementById('vendorSelect');
+            const manualVendorEl = document.getElementById('manualVendor');
+            const docNoEl = document.getElementById('docNo');
+            [vendorSelectEl, manualVendorEl, docNoEl].forEach(el => {
+                if (el) el.classList.remove('input-error');
+            });
+
             const data = {
                 id: editingId || Date.now(),
                 transit: document.getElementById('transitMethod').value,
-                branch: SETTINGS.BRANCH_NAME,
+                branch: getCurrentBranch(),
                 vendor: document.getElementById('vendorSelect').value === 'OTHER' ? document.getElementById('manualVendor').value : document.getElementById('vendorSelect').value,
                 type: document.getElementById('docType').value,
                 docNo: document.getElementById('docNo').value,
                 totalPkg: document.getElementById('totalPkg').value,
                 items: []
             };
+
+            // 强制必须有 Document No 才允许暂存
+            if (!data.docNo || !String(data.docNo).trim()) {
+                if (docNoEl) docNoEl.classList.add('input-error');
+                alert("SILA ISI / JANA DOCUMENT NO TERLEBIH DAHULU SEBELUM SAVE.");
+                return;
+            }
+
+            // 强制必须有 Nama Vendor（无论是选项还是手动 OTHER）才允许暂存
+            if (!data.vendor || !String(data.vendor).trim()) {
+                if (vendorSelectEl && vendorSelectEl.value === 'OTHER') {
+                    if (manualVendorEl) manualVendorEl.classList.add('input-error');
+                } else if (vendorSelectEl) {
+                    vendorSelectEl.classList.add('input-error');
+                }
+                alert("SILA PILIH / ISI NAMA VENDOR TERLEBIH DAHULU SEBELUM SAVE.");
+                return;
+            }
 
             if(data.type === "CONSGINMENT TIADA PR") {
                 const rows = document.querySelectorAll('#itemBody tr');
@@ -620,7 +960,10 @@
                         <button class="btn-secondary" onclick="printDoc('${d.id}', 1)">Print Label Box</button>
                         <button class="btn-secondary" onclick="printDoc('${d.id}', 2)">Print Dokumen Return</button>
                         <button class="btn-neutral" onclick="startEdit('${d.id}')">Edit / Re-open</button>
-                        <button class="btn-primary" onclick="showUploadSection(${JSON.stringify(d).replace(/"/g, '&quot;')})">Upload Document</button>
+                        ${d.uploaded ?
+                            `<button class="btn-neutral" disabled>SUDAH UPLOAD</button>` :
+                            `<button class="btn-primary" onclick="showUploadSection(${JSON.stringify(d).replace(/"/g, '&quot;')})">Upload Document</button>`
+                        }
                         <button class="btn-danger" onclick="deleteLocal(${index})">Padam</button>
                     </div>
                 </div>
@@ -667,24 +1010,8 @@
             }
 
             // Generate QR code image for DOC NO
-            let qrDataUrl = "";
-            try {
-                const tempDiv = document.createElement('div');
-                document.body.appendChild(tempDiv);
-                const qr = new QRCode(tempDiv, {
-                    text: d.docNo || "",
-                    width: 120,
-                    height: 120,
-                    correctLevel: QRCode.CorrectLevel.M
-                });
-                const img = tempDiv.querySelector('img') || tempDiv.querySelector('canvas');
-                if (img) {
-                    qrDataUrl = img.tagName === 'IMG' ? img.src : img.toDataURL('image/png');
-                }
-                document.body.removeChild(tempDiv);
-            } catch (e) {
-                console.warn("Gagal jana QR code:", e);
-            }
+const qrDataUrl =
+    `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(d.docNo)}`;
 
             let printWindow = window.open('', '_blank');
             let content = "";
@@ -708,10 +1035,10 @@
                                 min-height: 90mm;
                                 box-sizing: border-box;
                             }
-                            .label-header { font-weight:700; font-size:14px; text-transform:uppercase; margin-bottom:6px; }
-                            .label-row { font-size:12px; margin-bottom:2px; }
+                            .label-header { font-weight:700; font-size:22px; text-transform:uppercase; margin-bottom:6px; }
+                            .label-row { font-size:35px; margin-bottom:2px; }
                             .qr { float:right; margin-left:8px; }
-                            .docno { font-size:13px; font-weight:700; }
+                            .docno { font-size:20px; font-weight:700; }
                         </style>
                     </head>
                     <body onload="window.print(); window.close();">
@@ -722,8 +1049,8 @@
                                 <div style="overflow:hidden;">
                                     ${qrDataUrl ? `<div class="qr"><img src="${qrDataUrl}" width="90" height="90"></div>` : ``}
                                     <div>
-                                        <div class="label-row docno">DOCUMENT NO: <b>${d.docNo}</b></div>
-                                        <div class="label-row">KEPADA VENDOR: <b>${d.vendor}</b></div>
+                                        <div class="label-row docno">DOC NO: <b>${d.docNo}</b></div>
+                                        <div class="label-row">KE VENDOR: <b>${d.vendor}</b></div>
                                         <div class="label-row">DARI CAWANGAN: <b>${d.branch}</b></div>
                                         <div class="label-row">CARA TRANSIT: <b>${d.transit}</b></div>
                                         <div class="label-row">QUANTITY: <b>${d.totalPkg}</b></div>
@@ -805,7 +1132,17 @@
             editingId = d.id;
 
             document.getElementById('transitMethod').value = d.transit;
-            document.getElementById('branchName').value = d.branch;
+            const branchSel = document.getElementById('branchName');
+            if (branchSel) {
+                if ([...branchSel.options].some(o => o.value === d.branch)) {
+                    branchSel.value = d.branch;
+                } else {
+                    // Jika branch dari rekod tiada dalam dropdown, tambah sekali
+                    const opt = new Option(d.branch, d.branch);
+                    branchSel.add(opt);
+                    branchSel.value = d.branch;
+                }
+            }
 
             const vendorSelect = document.getElementById('vendorSelect');
             const manual = document.getElementById('manualVendor');
@@ -851,16 +1188,155 @@
             const fileInput = document.getElementById('fileInput');
             const files = Array.from(fileInput.files || []);
             if (!files.length) {
-                document.getElementById('preview').innerHTML = "";
                 return;
             }
-            if (files.length > 50) {
-                alert("Maksimum 50 gambar dibenarkan dalam satu upload.");
+
+            const newItems = files.map(f => ({
+                id: nextItemId++,
+                label: f.name,
+                sourceType: 'file',
+                file: f
+            }));
+
+            selectedItems = selectedItems.concat(newItems);
+
+            if (selectedItems.length > 50) {
+                alert("Maksimum 50 gambar dibenarkan dalam satu upload. Sistem hanya akan simpan 50 yang pertama.");
+                selectedItems = selectedItems.slice(0, 50);
             }
-            const shown = files.slice(0, 50);
-            document.getElementById('preview').innerHTML = shown
-                .map(f => `<span class="preview-chip">${f.name}</span>`)
+
+            // 清空 input 的 FileList，避免浏览器限制多选时只保留最后一次
+            fileInput.value = "";
+
+            renderSelectedFilesPreview();
+        }
+
+        function renderSelectedFilesPreview() {
+            const preview = document.getElementById('preview');
+            if (!selectedItems.length) {
+                preview.innerHTML = "";
+                return;
+            }
+
+            preview.innerHTML = selectedItems
+                .map((item, idx) => {
+                    return `<span class="preview-chip">
+                        <span>${item.label}</span>
+                        <button type="button" class="chip-remove" onclick="removeSelectedItem(${idx})">&times;</button>
+                    </span>`;
+                })
                 .join('');
+        }
+
+        function removeSelectedItem(index) {
+            if (index < 0 || index >= selectedItems.length) return;
+            selectedItems.splice(index, 1);
+            renderSelectedFilesPreview();
+        }
+
+        function openPdfChooser() {
+            const input = document.getElementById('pdfInput');
+            if (input) {
+                input.click();
+            }
+        }
+
+        function setPdfConvertBusy(isBusy, msg) {
+            const btnPdf = document.getElementById('btnPdfConvert');
+            const btnUpload = document.getElementById('btnUploadFinal');
+            const imgInput = document.getElementById('fileInput');
+            const statusSpan = document.getElementById('pdfConvertStatus');
+
+            if (statusSpan) {
+                statusSpan.textContent = isBusy ? (msg || "Sedang convert PDF ke gambar...") : "";
+            }
+
+            [btnPdf, btnUpload, imgInput].forEach(el => {
+                if (!el) return;
+                el.disabled = !!isBusy;
+            });
+
+            if (btnPdf) {
+                if (isBusy) {
+                    btnPdf.classList.add('btn-loading');
+                } else {
+                    btnPdf.classList.remove('btn-loading');
+                }
+            }
+        }
+
+        function showGlobalBlocker(title, msg) {
+            const overlay = document.getElementById('globalBlocker');
+            if (!overlay) return;
+            const t = document.getElementById('globalBlockerTitle');
+            const m = document.getElementById('globalBlockerMsg');
+            if (t) t.textContent = title || "SEDANG MEMPROSES...";
+            if (m) m.textContent = msg || "";
+            overlay.style.display = "flex";
+        }
+
+        function updateGlobalBlocker(msg) {
+            const m = document.getElementById('globalBlockerMsg');
+            if (m) m.textContent = msg || "";
+        }
+
+        function hideGlobalBlocker() {
+            const overlay = document.getElementById('globalBlocker');
+            if (overlay) overlay.style.display = "none";
+        }
+
+        async function handlePdfFiles() {
+            const input = document.getElementById('pdfInput');
+            const files = Array.from(input.files || []);
+            if (!files.length) return;
+
+            setPdfConvertBusy(true, "Sedang convert PDF ke gambar, sila tunggu...");
+            showGlobalBlocker("SEDANG CONVERT PDF", "PDF ke gambar sedang beratur (queue)...");
+
+            try {
+                const allImages = [];
+                const totalFiles = files.length;
+                let fileIndex = 0;
+
+                for (const file of files) {
+                    fileIndex++;
+                    updateGlobalBlocker(`Sedang convert PDF ${fileIndex}/${totalFiles} (${file.name})...`);
+
+                    const pages = await pdfFileToImages(file, (pageNum, totalPages) => {
+                        updateGlobalBlocker(`Sedang convert PDF ${fileIndex}/${totalFiles} (${file.name}) - Halaman ${pageNum}/${totalPages}`);
+                    });
+
+                    pages.forEach((dataUrl, idx) => {
+                        allImages.push({
+                            from: file.name,
+                            page: idx + 1,
+                            dataUrl
+                        });
+                    });
+                }
+
+                const newItems = allImages.map(info => ({
+                    id: nextItemId++,
+                    label: `${info.from} - Page ${info.page}`,
+                    sourceType: 'base64',
+                    dataUrl: info.dataUrl
+                }));
+
+                selectedItems = selectedItems.concat(newItems);
+
+                if (selectedItems.length > 50) {
+                    alert("Maksimum 50 gambar / halaman akan dimasukkan ke dalam senarai. Sistem hanya akan guna 50 yang pertama.");
+                    selectedItems = selectedItems.slice(0, 50);
+                }
+
+                input.value = "";
+                renderSelectedFilesPreview();
+            } catch (e) {
+                alert("Ralat convert PDF ke gambar: " + (e && e.message ? e.message : e));
+            } finally {
+                hideGlobalBlocker();
+                setPdfConvertBusy(false, "");
+            }
         }
 
 // Fungsi mengecilkan gambar (Compression)
@@ -873,19 +1349,60 @@ async function compressImage(file) {
             img.src = event.target.result;
             img.onload = () => {
                 const canvas = document.createElement('canvas');
-                const MAX_WIDTH = 800; // Kecilkan saiz width
-                const scaleSize = MAX_WIDTH / img.width;
-                canvas.width = MAX_WIDTH;
+                const maxWidth = (window.SETTINGS && typeof SETTINGS.IMAGE_MAX_WIDTH === "number")
+                    ? SETTINGS.IMAGE_MAX_WIDTH
+                    : 800;
+                const scaleSize = maxWidth / img.width;
+                canvas.width = maxWidth;
                 canvas.height = img.height * scaleSize;
 
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 
-                // Kualiti 0.6 (60%) seperti WhatsApp
-                resolve(canvas.toDataURL('image/jpeg', 0.6)); 
+                const quality = (window.SETTINGS && typeof SETTINGS.IMAGE_QUALITY === "number")
+                    ? SETTINGS.IMAGE_QUALITY
+                    : 0.6;
+                resolve(canvas.toDataURL('image/jpeg', quality)); 
             };
         };
     });
+}
+
+// 将 PDF 文件每一页渲染成压缩后的 JPEG 图片（返回 base64 数组）
+async function pdfFileToImages(file, onProgress) {
+    if (!window['pdfjsLib']) {
+        throw new Error("PDF.js tidak dimuatkan. Sila semak sambungan internet.");
+    }
+
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+
+    const images = [];
+    const maxPages = Math.min(pdf.numPages, 50); // 最多 50 页，避免过大
+
+    for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+        const page = await pdf.getPage(pageNum);
+        const viewport = page.getViewport({ scale: 1.2 });
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+
+        await page.render({ canvasContext: ctx, viewport }).promise;
+
+        const quality = (window.SETTINGS && typeof SETTINGS.IMAGE_QUALITY === "number")
+            ? SETTINGS.IMAGE_QUALITY
+            : 0.6;
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        images.push(dataUrl);
+
+        if (typeof onProgress === "function") {
+            onProgress(pageNum, maxPages);
+        }
+    }
+
+    return images;
 }
 
 // Fungsi hantar data ke GAS dengan compression & multi-gambar
@@ -893,25 +1410,45 @@ async function uploadToGAS() {
     const fileInput = document.getElementById('fileInput');
     const btn = document.getElementById('btnUploadFinal');
     
+    // 防呆：如已在上传中，直接忽略再次点击
+    if (btn.disabled) {
+        return;
+    }
+
     if (!window.currentUploadData) {
         alert("Tiada maklumat dokumen untuk upload.");
         return;
     }
 
-    if (fileInput.files.length === 0) {
-        alert("Sila ambil sekurang-kurangnya 1 gambar bukti!");
+    if (!selectedItems.length) {
+        alert("Sila pilih sekurang-kurangnya 1 gambar (atau convert PDF ke gambar dahulu)!");
         return;
     }
 
     const uploadedId = window.currentUploadData.id;
-    const files = Array.from(fileInput.files).slice(0, 50);
 
     btn.innerText = "SEDANG MEMPROSES GAMBAR...";
     btn.disabled = true;
+    btn.classList.add('btn-loading');
 
     try {
-        const imagePromises = files.map(file => compressImage(file));
-        const base64Images = await Promise.all(imagePromises);
+        const imagePromises = selectedItems.map(async (item) => {
+            if (item.sourceType === 'file' && item.file) {
+                return await compressImage(item.file);
+            }
+            if (item.sourceType === 'base64' && item.dataUrl) {
+                return item.dataUrl;
+            }
+            return null;
+        });
+
+        let base64Images = await Promise.all(imagePromises);
+        base64Images = base64Images.filter(Boolean);
+
+        if (base64Images.length > 50) {
+            alert("Maksimum 50 gambar / halaman akan dihantar. Sistem hanya akan guna 50 yang pertama.");
+            base64Images = base64Images.slice(0, 50);
+        }
 
         const payload = {
             ...window.currentUploadData,
@@ -933,14 +1470,18 @@ async function uploadToGAS() {
             throw new Error((result && result.message) ? result.message : "GAS tidak pulangkan status success.");
         }
 
-        // Hanya buang dokumen ini dari local storage, bukan semua
+        // 在 local storage 中标记该 dokumen 已经 upload（不删除）
         const saved = JSON.parse(localStorage.getItem('temp_returns') || "[]");
-        const newList = saved.filter(function (d) { return d.id !== uploadedId; });
-        localStorage.setItem('temp_returns', JSON.stringify(newList));
+        const idx = saved.findIndex(d => d.id === uploadedId);
+        if (idx > -1) {
+            saved[idx].uploaded = true;
+        }
+        localStorage.setItem('temp_returns', JSON.stringify(saved));
 
         document.getElementById('sec-upload').classList.add('hidden');
         window.currentUploadData = null;
         fileInput.value = "";
+        selectedItems = [];
         document.getElementById('preview').innerHTML = "";
         refreshLocalList();
 
@@ -949,6 +1490,7 @@ async function uploadToGAS() {
         alert("Ralat upload / Google Sheet: " + (err && err.message ? err.message : err) + "\n\nPastikan GAS Web App di-deploy sebagai 'Anyone' dan ada sheet bernama DATA_RETURN.");
         btn.disabled = false;
         btn.innerText = "UPLOAD SEKARANG";
+        btn.classList.remove('btn-loading');
     }
 }
 
@@ -973,6 +1515,8 @@ async function loadReport() {
             const pageSizeSelect = document.getElementById('reportPageSize');
             reportState.pageSize = parseInt(pageSizeSelect.value, 10) || 25;
             reportState.currentPage = 1;
+
+            initReportFiltersAndSort();
             applyReportFilter();
         } else {
             tableDiv.innerHTML = "Tiada data ditemui.";
@@ -983,18 +1527,140 @@ async function loadReport() {
     }
 }
 
+function getHeaderIndex(keyword) {
+    return reportState.headers.findIndex(h =>
+        String(h || "").toLowerCase().includes(keyword)
+    );
+}
+
+function getDateHeaderIndex() {
+    const lower = reportState.headers.map(h => String(h || "").toLowerCase());
+    const candidates = ["tarikh", "timestamp", "masa", "date", "time"];
+    for (let i = 0; i < lower.length; i++) {
+        if (candidates.some(c => lower[i].includes(c))) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+function initReportFiltersAndSort() {
+    const vendorIdx = getHeaderIndex("vendor");
+    const branchIdx = getHeaderIndex("cawangan");
+
+    const vendorSelect = document.getElementById('reportFilterVendor');
+    const branchSelect = document.getElementById('reportFilterBranch');
+
+    if (vendorIdx > -1 && vendorSelect) {
+        const vendors = Array.from(new Set(reportState.rows.map(r => r[vendorIdx]).filter(Boolean))).sort();
+        vendorSelect.innerHTML = `<option value="">Semua Vendor</option>` +
+            vendors.map(v => `<option value="${v}">${v}</option>`).join("");
+    }
+
+    if (branchIdx > -1 && branchSelect) {
+        const branches = Array.from(new Set(reportState.rows.map(r => r[branchIdx]).filter(Boolean))).sort();
+        branchSelect.innerHTML = `<option value="">Semua Cawangan</option>` +
+            branches.map(b => `<option value="${b}">${b}</option>`).join("");
+    }
+
+    reportState.filters.vendor = "";
+    reportState.filters.branch = "";
+    reportState.filters.dateRange = "all";
+    reportState.sort.key = "";
+    reportState.sort.dir = "asc";
+    reportState.sort.index = -1;
+
+    // Reset date filter buttons状态
+    setActiveDateButton("all");
+}
+
 function applyReportFilter() {
     const input = document.getElementById('reportSearch');
     const term = (input.value || "").toLowerCase();
     reportState.search = term;
 
-    if (!term) {
-        reportState.filteredRows = reportState.rows.slice();
-    } else {
-        reportState.filteredRows = reportState.rows.filter(row =>
+    const vendorSelect = document.getElementById('reportFilterVendor');
+    const branchSelect = document.getElementById('reportFilterBranch');
+
+    reportState.filters.vendor = vendorSelect ? vendorSelect.value : "";
+    reportState.filters.branch = branchSelect ? branchSelect.value : "";
+
+    // 1) 基础数据
+    let rows = reportState.rows.slice();
+
+    // 2) 过滤 vendor / branch
+    const vendorIdx = getHeaderIndex("vendor");
+    const branchIdx = getHeaderIndex("cawangan");
+    const dateIdx = getDateHeaderIndex();
+
+    if (vendorIdx > -1 && reportState.filters.vendor) {
+        rows = rows.filter(r => String(r[vendorIdx] || "") === reportState.filters.vendor);
+    }
+
+    if (branchIdx > -1 && reportState.filters.branch) {
+        rows = rows.filter(r => String(r[branchIdx] || "") === reportState.filters.branch);
+    }
+
+    // 3) 按日期范围过滤（last 7 / 30 days）
+    if (dateIdx > -1 && reportState.filters.dateRange !== "all") {
+        const now = new Date();
+        const days = reportState.filters.dateRange === "7" ? 7 : 30;
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1));
+
+        rows = rows.filter(row => {
+            const raw = row[dateIdx];
+            if (!raw) return false;
+            const d = new Date(raw);
+            if (isNaN(d)) return false;
+            const onlyDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            return onlyDate >= start && onlyDate <= now;
+        });
+    }
+
+    // 4) 搜索关键字（在全部栏位里找）
+    if (term) {
+        rows = rows.filter(row =>
             row.some(cell => String(cell || "").toLowerCase().includes(term))
         );
     }
+
+    // 5) 点击表头后的排序逻辑（使用固定列 index 和方向）
+    const sortIndex = reportState.sort.index;
+    const dir = reportState.sort.dir === "desc" ? -1 : 1;
+
+    if (sortIndex != null && sortIndex >= 0) {
+        rows.sort((a, b) => {
+            const vaRaw = a[sortIndex];
+            const vbRaw = b[sortIndex];
+            const va = vaRaw != null ? String(vaRaw) : "";
+            const vb = vbRaw != null ? String(vbRaw) : "";
+
+            // 如果是日期列（尝试解析，如果成功则按日期比较）
+            if (sortIndex === dateIdx) {
+                const da = new Date(va);
+                const db = new Date(vb);
+                if (!isNaN(da) && !isNaN(db)) {
+                    return (da - db) * dir;
+                }
+            }
+
+            if (!isNaN(parseFloat(va)) && !isNaN(parseFloat(vb))) {
+                const na = parseFloat(va);
+                const nb = parseFloat(vb);
+                if (na < nb) return -1 * dir;
+                if (na > nb) return 1 * dir;
+                return 0;
+            }
+
+            const vLower = va.toLowerCase();
+            const wLower = vb.toLowerCase();
+            if (vLower < wLower) return -1 * dir;
+            if (vLower > wLower) return 1 * dir;
+            return 0;
+        });
+    }
+
+    reportState.filteredRows = rows;
     reportState.currentPage = 1;
     renderReportTable();
 }
@@ -1011,6 +1677,39 @@ function changeReportPage(page) {
     if (page < 1 || page > totalPages) return;
     reportState.currentPage = page;
     renderReportTable();
+}
+
+function setActiveDateButton(range) {
+    const allBtn = document.getElementById('btnDateAll');
+    const btn7 = document.getElementById('btnDate7');
+    const btn30 = document.getElementById('btnDate30');
+    [allBtn, btn7, btn30].forEach(btn => {
+        if (!btn) return;
+        btn.classList.remove('active');
+    });
+
+    if (range === "7" && btn7) btn7.classList.add('active');
+    else if (range === "30" && btn30) btn30.classList.add('active');
+    else if (allBtn) allBtn.classList.add('active');
+}
+
+function setReportDateRange(range) {
+    reportState.filters.dateRange = range;
+    setActiveDateButton(range);
+    applyReportFilter();
+}
+
+function toggleReportSort(colIndex) {
+    if (reportState.sort.index === colIndex) {
+        // 同一个字段连续点击，切换 asc/desc
+        reportState.sort.dir = reportState.sort.dir === "asc" ? "desc" : "asc";
+    } else {
+        // 新字段，默认从 asc 开始
+        reportState.sort.index = colIndex;
+        reportState.sort.dir = "asc";
+    }
+    reportState.currentPage = 1;
+    applyReportFilter();
 }
 
 function renderReportTable() {
@@ -1034,8 +1733,12 @@ function renderReportTable() {
     const pageRows = reportState.filteredRows.slice(startIndex, endIndex);
 
     let html = "<table><thead><tr>";
-    reportState.headers.forEach(h => {
-        html += `<th>${h}</th>`;
+    reportState.headers.forEach((h, idx) => {
+        let sortIndicator = "";
+        if (reportState.sort.index === idx) {
+            sortIndicator = reportState.sort.dir === "asc" ? " ▲" : " ▼";
+        }
+        html += `<th onclick="toggleReportSort(${idx})" style="cursor:pointer;">${h}${sortIndicator}</th>`;
     });
     html += "</tr></thead><tbody>";
 
