@@ -920,21 +920,17 @@ async function uploadToGAS() {
 
         btn.innerText = "SEDANG MENGHANTAR KE CLOUD...";
 
+        // IMPORTANT:
+        // Ikut cara `test.html`: jangan set headers Content-Type untuk elak CORS preflight,
+        // supaya Web App GAS boleh terima POST dengan stabil (terutama GitHub Pages / mobile).
         const response = await fetch(SETTINGS.GAS_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
 
-        const text = await response.text();
-        let result = null;
-        try { result = JSON.parse(text); } catch (_) {}
-
-        if (!response.ok) {
-            throw new Error(result && result.message ? result.message : "HTTP " + response.status + " " + text);
-        }
-        if (result && result.status === "error") {
-            throw new Error(result.message || "GAS ralat");
+        const result = await response.json();
+        if (!result || result.status !== "success") {
+            throw new Error((result && result.message) ? result.message : "GAS tidak pulangkan status success.");
         }
 
         // Hanya buang dokumen ini dari local storage, bukan semua
@@ -950,7 +946,7 @@ async function uploadToGAS() {
 
         alert("ALHAMDULILLAH! DATA & GAMBAR BERJAYA DIHANTAR KE GOOGLE SHEET.");
     } catch (err) {
-        alert("Ralat upload / Google Sheet: " + err.message + "\n\nPastikan GAS Web App di-deploy sebagai 'Anyone' dan ada sheet bernama DATA_RETURN.");
+        alert("Ralat upload / Google Sheet: " + (err && err.message ? err.message : err) + "\n\nPastikan GAS Web App di-deploy sebagai 'Anyone' dan ada sheet bernama DATA_RETURN.");
         btn.disabled = false;
         btn.innerText = "UPLOAD SEKARANG";
     }
