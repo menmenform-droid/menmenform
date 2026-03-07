@@ -1040,34 +1040,47 @@
                 hideGlobalBlocker();
             }
         }
-        async function mgmtSaveToGAS() {
-            var pending = getAppVendorsPending();
-            if (pending.length > 0) {
-                alert("Waiting Zone masih ada " + pending.length + " vendor. Sila pindah semua ke jenis sebelum Save.");
-                return;
-            }
-            showGlobalBlocker("SAVE TO GAS", "Sedang menghantar data ke Google Sheet...");
-            try {
-                var payload = {
-                    action: "saveConfig",
-                    branch: getAppBranches(),
-                    vendor: getAppVendorsByType(),
-                    vendorTypes: getAppVendorTypes(),
-                    consignment: getAppConsignmentVendors()
-                };
-                var res = await fetch(SETTINGS.GAS_URL, { method: "POST", body: JSON.stringify(payload) });
-                var result = await res.json();
-                if (result && result.status === "success") {
-                    alert("Data telah dihantar ke Google Sheet.");
-                } else {
-                    alert("Gagal: " + (result && result.message ? result.message : "Unknown"));
-                }
-            } catch (e) {
-                alert("Ralat menghantar: " + (e && e.message ? e.message : e));
-            } finally {
-                hideGlobalBlocker();
-            }
+async function mgmtSaveToGAS() {
+
+    const pass = prompt("Admin Password");
+
+    if(pass !== "menmenaccount"){
+        alert("Wrong password");
+        return;
+    }
+
+    var pending = getAppVendorsPending();
+    if (pending.length > 0) {
+        alert("Waiting Zone masih ada " + pending.length + " vendor. Sila pindah semua ke jenis sebelum Save.");
+        return;
+    }
+
+    showGlobalBlocker("SAVE TO GAS", "Sedang menghantar data ke Google Sheet...");
+
+    try {
+        var payload = {
+            action: "saveConfig",
+            branch: getAppBranches(),
+            vendor: getAppVendorsByType(),
+            vendorTypes: getAppVendorTypes(),
+            consignment: getAppConsignmentVendors()
+        };
+
+        var res = await fetch(SETTINGS.GAS_URL, { method: "POST", body: JSON.stringify(payload) });
+        var result = await res.json();
+
+        if (result && result.status === "success") {
+            alert("Data telah dihantar ke Google Sheet.");
+        } else {
+            alert("Gagal: " + (result && result.message ? result.message : "Unknown"));
         }
+
+    } catch (e) {
+        alert("Ralat menghantar: " + (e && e.message ? e.message : e));
+    } finally {
+        hideGlobalBlocker();
+    }
+}
 
         let editingId = null;
         // 维护当前已选择的上传项（图片文件或由 PDF 转换来的图片）
@@ -2256,4 +2269,5 @@ function exportReportCsv() {
     </script>
     </div>
 </body>
+
 </html>
