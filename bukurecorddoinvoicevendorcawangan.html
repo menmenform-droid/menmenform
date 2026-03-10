@@ -16,6 +16,40 @@ body{background:linear-gradient(180deg,#f7fafc 0%,#eef3f6 100%);padding:16px;fon
 .surface{border:1px solid var(--border);border-radius:14px;padding:14px;background:#fbfdff}.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:14px;background:#fff}.toolbar{display:flex;gap:10px;flex-wrap:wrap}.toolbar>*{flex:1 1 170px}.dashboard-actions,.page-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.dashboard-actions{justify-content:space-between;margin:12px 0}.click-doc{font-weight:700;color:var(--primary);cursor:pointer}.click-doc:hover{text-decoration:underline}.drawer-hint{border:1px dashed rgba(11,94,215,.28);background:rgba(11,94,215,.04);border-radius:12px;padding:10px 12px;color:var(--muted);font-size:13px}
 #preview{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px}.preview-tile{position:relative;width:92px;height:112px;border-radius:10px;border:1px solid var(--border);overflow:hidden;background:#f8fafc}.preview-tile img{width:100%;height:100%;object-fit:cover}.preview-remove{position:absolute;top:6px;right:6px;width:26px;height:26px;display:flex;align-items:center;justify-content:center;border-radius:999px;background:rgba(255,255,255,.92);border:1px solid var(--border);color:#dc3545;font-weight:800;cursor:pointer}
 .loading{display:none;text-align:center;margin-top:16px;font-weight:700;color:var(--primary)}#whatsappBtn{display:none;margin-top:12px;background-color:#25d366;border-color:#25d366;color:#fff}#whatsappBtn:hover{background-color:#128c7e;border-color:#128c7e}.checklist-summary{border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#f8fbff;margin-bottom:12px}.scan-frame{display:none;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:#000;margin:12px 0}.busy-btn{pointer-events:none;opacity:.7}
+@media (max-width:768px){
+body{padding:10px}
+.app-topbar,.main,.side{border-radius:12px}
+.app-topbar{padding:12px}
+.main{padding:12px}
+.brand-title{font-size:18px}
+.kpi{grid-template-columns:1fr}
+.toolbar{display:grid;grid-template-columns:1fr}
+.dashboard-actions{flex-direction:column;align-items:stretch}
+.page-controls,.dashboard-actions .d-flex{width:100%;justify-content:space-between}
+.page-controls button,.dashboard-actions .d-flex button{flex:1 1 0}
+.table{font-size:12px}
+.table th,.table td{white-space:nowrap;padding:.45rem}
+.surface{padding:10px}
+.preview-tile{width:78px;height:96px}
+.modal-dialog{margin:.5rem;max-width:calc(100vw - 1rem)}
+.modal-content{border-radius:14px}
+.modal-body{padding:12px}
+.modal-footer{padding:10px;flex-direction:column;align-items:stretch}
+.modal-footer .btn{width:100%}
+.modal-footer .mr-auto{margin-right:0!important;margin-bottom:8px}
+#scannerReader{min-height:220px!important}
+}
+@media (max-width:576px){
+.app-topbar .d-flex.align-items-center.flex-wrap{width:100%;margin-top:8px}
+.pill{width:100%;justify-content:center}
+.form-row{display:block}
+.form-group[class*="col-"]{max-width:100%;padding-right:0;padding-left:0}
+.d-flex[style*="gap:8px"],.d-flex[style*="gap:10px"]{flex-wrap:wrap}
+#saveBranchBtn{width:100%}
+#submitBtn,#whatsappBtn{font-size:16px}
+.modal-dialog.modal-xl,.modal-dialog.modal-sm{max-width:calc(100vw - .75rem);margin:.375rem}
+.modal-body .form-row{display:block}
+}
 </style>
 </head>
 <body>
