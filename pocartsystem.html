@@ -313,7 +313,21 @@ function showLoading(show, text) {
   el.style.display = show ? 'flex' : 'none';
   if (textEl) textEl.textContent = text || 'Please wait while data is loading.';
 }
-function showTab(id) { document.querySelectorAll('.tab-page').forEach(function(page) { page.style.display = page.id === id ? '' : 'none'; }); document.querySelectorAll('.side .nav-link').forEach(function(link) { link.classList.toggle('active', link.getAttribute('data-tab') === id); }); }
+function showTab(id) {
+  document.querySelectorAll('.tab-page').forEach(function(page) { page.style.display = page.id === id ? '' : 'none'; });
+  document.querySelectorAll('.side .nav-link').forEach(function(link) { link.classList.toggle('active', link.getAttribute('data-tab') === id); });
+  if (id === 'tab-catalogue') {
+    refreshCatalogueFromRemote().catch(function(error) {
+      console.error('Unable to refresh catalogue on tab switch.', error);
+    });
+  }
+  if (id === 'tab-dashboard') {
+    applySavedDashboardBranch();
+    refreshDashboard().catch(function(error) {
+      console.error('Unable to refresh dashboard on tab switch.', error);
+    });
+  }
+}
 function readStorage(key, fallback) { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (error) { return fallback; } }
 function writeStorage(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
 function hydrateLocalCache() { state.settings = readStorage(STORAGE_KEYS.settings, DEFAULT_SETTINGS); state.catalogue = readStorage(STORAGE_KEYS.catalogue, []); state.poHeaders = readStorage(STORAGE_KEYS.poHeaders, []); state.completedDocuments = readStorage('pocart_completed_docs_v1', []); state.tempCarts = readStorage(STORAGE_KEYS.tempCarts, []); state.activeTempCartNumber = readStorage(STORAGE_KEYS.activeTempCartNumber, ''); state.currentPoHeader = readStorage(STORAGE_KEYS.currentPo, null); }
@@ -552,13 +566,19 @@ function populateBranchSelects() {
   dashboardBranch.innerHTML = dashboardOptions;
   if (savedBranch && (isAllBranchValue(savedBranch) || branches.some(function(branch) { return branch.name === savedBranch; }))) {
     if (headerBranch) headerBranch.value = savedBranch;
-    if (dashboardBranch) dashboardBranch.value = '';
+    if (dashboardBranch) dashboardBranch.value = isAllBranchValue(savedBranch) ? '' : savedBranch;
   } else if (branches.length) {
     if (headerBranch) headerBranch.value = branches[0].name;
-    if (dashboardBranch) dashboardBranch.value = '';
+    if (dashboardBranch) dashboardBranch.value = branches[0].name;
     saveCurrentBranch(branches[0].name);
   }
   updateSaveBranchButton();
+}
+function applySavedDashboardBranch() {
+  const dashboardBranch = document.getElementById('dashboardBranch');
+  const savedBranch = normalizeBranchSelection(getSavedBranch());
+  if (!dashboardBranch) return;
+  dashboardBranch.value = isAllBranchValue(savedBranch) ? '' : savedBranch;
 }
 function populateCatalogueVendorFilter() {
   const select = document.getElementById('catalogueVendorFilter');
@@ -602,7 +622,7 @@ function saveBranchSelection() {
   }
   saveCurrentBranch(value);
   const dashboardBranch = document.getElementById('dashboardBranch');
-  if (dashboardBranch) dashboardBranch.value = value;
+  if (dashboardBranch) dashboardBranch.value = isAllBranchValue(value) ? '' : value;
   updateSaveBranchButton();
   renderDashboard();
   refreshPendingList();
@@ -676,6 +696,7 @@ async function boot() {
     resetCatalogueForm();
     applySettings();
     await loadSettings();
+    applySavedDashboardBranch();
     resetCataloguePagination();
     await refreshDashboard();
     setTodayDefault();
@@ -1082,7 +1103,7 @@ function renderReadyPoList() {
     const docKey = row.poNumber || row.tempCartNumber || '';
     const generating = String(state.generatingPoNumber || '') === String(docKey);
     const generateBtn = '<button type="button" class="btn btn-sm ' + (generating ? 'btn-secondary' : 'btn-success') + ' mr-1" onclick="generateApprovedPoCsv(\'' + escapeJs(docKey) + '\')" ' + (generating ? 'disabled' : '') + '>' + (generating ? 'Generating...' : 'Generate PO') + '</button>';
-    return '<tr><td class="mono">' + escapeHtml(docKey) + '</td><td>' + escapeHtml(row.vendor || '-') + '</td><td>' + escapeHtml(row.branch || '-') + '</td><td>' + escapeHtml(completedDoc.timestamp || '') + '</td><td><span class="status-badge status-' + escapeAttr(row.status || 'APPROVED') + '">' + escapeHtml(row.status || 'APPROVED') + '</span></td><td class="text-right">' + escapeHtml(String(summary.qty || 0)) + '</td><td class="text-right">' + formatMoney(completedDoc.documentValue || summary.amount || 0) + '</td><td>' + csvLink + '</td><td class="text-right"><button type="button" class="btn btn-sm btn-outline-warning mr-1" onclick="cancelApprovedCart(\'' + escapeJs(docKey) + '\')">Cancel / Reedit</button>' + generateBtn + '<button type="button" class="btn btn-sm btn-outline-secondary" onclick="sharePoByNumber(\'' + escapeJs(docKey) + '\')">Share</button></td></tr>';
+    return '<tr><td class="mono">' + escapeHtml(docKey) + '</td><td>' + escapeHtml(row.vendor || '-') + '</td><td>' + escapeHtml(row.branch || '-') + '</td><td>' + escapeHtml(completedDoc.timestamp || '') + '</td><td><span class="status-badge status-' + escapeAttr(row.status || 'APPROVED') + '">' + escapeHtml(row.status || 'APPROVED') + '</span></td><td class="text-right">' + escapeHtml(String(summary.qty || 0)) + '</td><td class="text-right">' + formatMoney(completedDoc.documentValue || summary.amount || 0) + '</td><td>' + csvLink + '</td><td class="text-right"><button type="button" class="btn btn-sm btn-outline-warning mr-1" onclick="cancelApprovedCart(\'' + escapeJs(docKey) + '\')">Cancel / Reedit</button>' + generateBtn + '</td></tr>';
   }).join('');
 }
 async function cancelApprovedCart(docKey) {
@@ -1364,11 +1385,30 @@ function renderDashboard() {
   }
   tbody.innerHTML = pageRows.map(function(row) {
     const csvLink = row.urlLink ? '<a href="' + escapeAttr(row.urlLink) + '" target="_blank" rel="noopener">Open</a>' : '-';
-    const actionButtons = ['<button type="button" class="btn btn-sm btn-outline-primary" onclick="openCompletedDocument(\'' + escapeJs(row.urlLink || '') + '\')">Open Document</button>'];
+    const actionButtons = [
+      '<button type="button" class="btn btn-sm btn-outline-primary mr-1" onclick="openCompletedDocument(\'' + escapeJs(row.urlLink || '') + '\')">Open Document</button>',
+      '<button type="button" class="btn btn-sm btn-outline-success" onclick="shareDashboardDocument(\'' + escapeJs(row.docNumber || '') + '\')">Share</button>'
+    ];
     return '<tr><td>' + escapeHtml(row.timestamp || '') + '</td><td class="mono">' + escapeHtml(row.docNumber || '') + '</td><td>' + escapeHtml(row.branchName || '') + '</td><td>' + escapeHtml(row.vendorName || '') + '</td><td class="text-right">' + formatMoney(row.documentValue || 0) + '</td><td>' + csvLink + '</td><td class="text-right">' + actionButtons.join('') + '</td></tr>';
   }).join('');
 }
 function openCompletedDocument(url) { if (url) window.open(url, '_blank'); }
+function buildSimpleWhatsAppShareUrl(branchName, vendorName, documentUrl) {
+  const baseLink = String((state.settings && state.settings.whatsappLink) || DEFAULT_SETTINGS.whatsappLink || 'https://wa.me/').trim();
+  const message = 'New order from ' + String(branchName || '-') + ' to ' + String(vendorName || '-') + '-' + String(documentUrl || '');
+  const encoded = encodeURIComponent(message);
+  return baseLink.indexOf('?') >= 0 ? baseLink + '&text=' + encoded : baseLink + '?text=' + encoded;
+}
+function shareDashboardDocument(docNumber) {
+  const row = state.completedDocuments.find(function(item) {
+    return String(item.docNumber || '') === String(docNumber || '');
+  }) || null;
+  if (!row) {
+    alert('Document record not found.');
+    return;
+  }
+  window.open(buildSimpleWhatsAppShareUrl(row.branchName, row.vendorName, row.urlLink), '_blank');
+}
 function refreshPendingList() {
   renderReadyPoList();
 }
@@ -1577,9 +1617,9 @@ async function sharePoByNumber(poNumber) {
           status: completedDoc ? 'Complete' : 'APPROVED',
           items: []
         };
-    const result = await apiCall('buildWhatsAppShare', payload);
-    if (result.shareUrl) window.open(result.shareUrl, '_blank');
-    else alert(result.message || 'Unable to build share link.');
+    const shareUrl = buildSimpleWhatsAppShareUrl(payload.branch, payload.vendor, completedDoc ? completedDoc.urlLink : '');
+    if (shareUrl) window.open(shareUrl, '_blank');
+    else alert('Unable to share PO.');
   } catch (error) {
     alert(error.message || 'Unable to share PO.');
   }
