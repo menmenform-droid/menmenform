@@ -51,6 +51,7 @@
       <nav class="nav">
         <a class="nav-link active" href="javascript:void(0)" data-tab="tab-item-master" onclick="showTab('tab-item-master')">Item Master</a>
         <a class="nav-link" href="javascript:void(0)" data-tab="tab-catalogue" onclick="showTab('tab-catalogue')">Catalogue</a>
+        <a class="nav-link" href="javascript:void(0)" data-tab="tab-favourite" onclick="showTab('tab-favourite')">Kegemaran Saya</a>
         <a class="nav-link" href="javascript:void(0)" data-tab="tab-cart" onclick="showTab('tab-cart')">Cart / Waiting Zone</a>
         <a class="nav-link" href="javascript:void(0)" data-tab="tab-checking" onclick="showTab('tab-checking')">PO Ready</a>
         <a class="nav-link" href="javascript:void(0)" data-tab="tab-dashboard" onclick="showTab('tab-dashboard')">Dashboard</a>
@@ -115,6 +116,11 @@
           <div class="mt-3 d-flex flex-wrap" style="gap:8px;">
             <button type="button" class="btn btn-sm btn-secondary" id="catalogueCardViewBtn" onclick="setCatalogueViewMode('card')">Card View</button>
             <button type="button" class="btn btn-sm btn-outline-secondary" id="catalogueListViewBtn" onclick="setCatalogueViewMode('list')">List View</button>
+            <button type="button" class="btn btn-sm btn-outline-primary" id="catalogueSelectModeBtn" onclick="toggleCatalogueSelectMode()">Select Mode: Off</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleCatalogueSelectAll(true)">Select All</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleCatalogueSelectAll(false)">Clear</button>
+            <button type="button" class="btn btn-sm btn-outline-success" onclick="syncSelectedCatalogueToFavourite()">Sync To Kegemaran</button>
+            <button type="button" class="btn btn-sm btn-primary" onclick="bulkImportSelectedCatalogueToCart()">Bulk Import To Cart</button>
           </div>
           <div class="surface mt-3">
             <div class="d-flex flex-wrap" style="gap:8px;">
@@ -134,6 +140,40 @@
             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="changeCataloguePage(-1)">← Prev</button>
             <button type="button" class="btn btn-outline-secondary btn-sm" onclick="changeCataloguePage(1)">Next →</button>
           </div>
+          <div class="surface mt-3">
+            <div class="d-flex align-items-center justify-content-between flex-wrap" style="gap:8px;">
+              <div>
+                <b>Live PO Cart Items</b>
+                <div class="small-muted">Read-only mini window for current branch carts.</div>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="renderCatalogueCartMiniWindow()">Refresh Window</button>
+            </div>
+            <div id="catalogueCartMiniWindow" class="mt-3" style="max-height:280px;overflow:auto;">
+              <div class="small-muted">No cart data yet.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="tab-favourite" class="tab-page" style="display:none;">
+        <div class="d-flex align-items-start justify-content-between flex-wrap" style="gap:12px;">
+          <div>
+            <h2 class="section-title">Kegemaran Saya</h2>
+            <div class="section-desc">Star list (vendor, barcode, item) for current branch.</div>
+          </div>
+          <div class="d-flex flex-wrap" style="gap:8px;">
+            <button type="button" class="btn btn-primary" onclick="bulkAddFavouriteToCart()">Bulk Import To Cart</button>
+            <button type="button" class="btn btn-outline-secondary" onclick="toggleFavouriteSelectAll(true)">Select All</button>
+            <button type="button" class="btn btn-outline-secondary" onclick="toggleFavouriteSelectAll(false)">Clear Select</button>
+            <button type="button" class="btn btn-outline-secondary" onclick="startFirebaseFavouriteSync()">Refresh Star List</button>
+          </div>
+        </div>
+        <hr>
+        <div class="table-wrap mt-3">
+          <table class="table table-sm mb-0">
+            <thead class="thead-light"><tr><th style="width:42px;"><input type="checkbox" id="favouriteSelectAll" onchange="toggleFavouriteSelectAll(this.checked)"></th><th style="cursor:pointer;" onclick="sortFavouriteBy('vendor')">Vendor <span id="favouriteSort_vendor">↕</span></th><th style="cursor:pointer;" onclick="sortFavouriteBy('barcode')">Barcode <span id="favouriteSort_barcode">↕</span></th><th style="cursor:pointer;" onclick="sortFavouriteBy('itemName')">Item <span id="favouriteSort_itemName">↕</span></th></tr></thead>
+            <tbody id="historyTbody"><tr><td colspan="4" class="text-center small-muted p-3">No star list items yet.</td></tr></tbody>
+          </table>
         </div>
       </div>
 
@@ -298,12 +338,13 @@
 </script>
 
 <script>
-const STORAGE_KEYS = { settings: 'pocart_settings_v1', catalogue: 'pocart_catalogue_v1', poHeaders: 'pocart_po_headers_v1', tempCarts: 'pocart_temp_carts_v1', activeTempCartNumber: 'pocart_active_temp_cart_v1', currentPo: 'pocart_current_po_v1', currentBranch: 'pocart_current_branch_v1' };
+const STORAGE_KEYS = { settings: 'pocart_settings_v1', catalogue: 'pocart_catalogue_v1', poHeaders: 'pocart_po_headers_v1', tempCarts: 'pocart_temp_carts_v1', activeTempCartNumber: 'pocart_active_temp_cart_v1', currentPo: 'pocart_current_po_v1', currentBranch: 'pocart_current_branch_v1', favouriteItems: 'pocart_favourite_items_v1' };
 const DEFAULT_SETTINGS = { companyName: 'POCartSystem', whatsappLink: 'https://wa.me/', whatsappTemplate: 'PO {poNumber}\nVendor: {vendor}\nBranch: {branch}\nStatus: {status}\nTotal: {totalAmount}\nCSV: {csvUrl}', scriptUrl: 'https://script.google.com/macros/s/AKfycbyewTTgjiT7iDZ4BfIjjEmtQuChbpnpsxxbzZ6fW2db3YgYZ_mCA4KIL2GB9ayDL_ty/exec', branches: [] };
 const PRESET_BRANCHES = ["MBW-MBS WORLD","SMB-MBS SEMAMBU","JRT-MBS JERANTUT","LMB-MBS LIMBONG","BER-MBS BERA","JK1-MBS JENGKA","JK2-MBS JENGKA2","PKN-MBS PEKAN","MTK-MBS MENTAKAB","DUN-MBS DUNGUN","LPS-MBS LIPIS","CHK-MBS CHUKAI","BET-MBS BENTONG","MDZ-MBS MUADZAM","RAU-MBS RAUB","ROM-MBS ROMPIN","TML-MBS TEMERLOH","MRN-MBS MARAN","SGT-MBS SEGAMAT","WAH-MBS WAREHOUSE"];
 const DASHBOARD_PAGE_SIZE = 20;
 const APPROVE_PASSWORD = 'albert123';
-const state = { settings: { ...DEFAULT_SETTINGS }, catalogue: [], poHeaders: [], completedDocuments: [], tempCarts: [], activeTempCartNumber: '', itemMasterRows: [], currentPoHeader: null, currentPoItems: [], cataloguePage: 1, cataloguePageSize: 20, catalogueViewMode: 'card', catalogueSortKey: 'itemName', catalogueSortDir: 'asc', dashboardPage: 1, dashboardSortKey: 'timestamp', dashboardSortDir: 'desc', firebaseReady: false, firebaseBranchKey: '', firebaseUnsubscribe: null, suppressFirebaseWrites: false, cartDirty: false, cartEditorOpen: false, generatingPoNumber: '' };
+const EXPECTED_BRANCH_COUNT = 20;
+const state = { settings: { ...DEFAULT_SETTINGS }, catalogue: [], poHeaders: [], completedDocuments: [], tempCarts: [], favouriteItems: [], favouriteSelected: {}, catalogueSelected: {}, catalogueSelectMode: false, activeTempCartNumber: '', itemMasterRows: [], currentPoHeader: null, currentPoItems: [], cataloguePage: 1, cataloguePageSize: 20, catalogueViewMode: 'card', catalogueSortKey: 'itemName', catalogueSortDir: 'asc', favouriteSortKey: 'vendor', favouriteSortDir: 'asc', dashboardPage: 1, dashboardSortKey: 'timestamp', dashboardSortDir: 'desc', firebaseReady: false, firebaseBranchKey: '', firebaseUnsubscribe: null, favouriteUnsubscribe: null, suppressFirebaseWrites: false, cartDirty: false, cartEditorOpen: false, generatingPoNumber: '' };
 
 function setStatus(text) { document.getElementById('globalStatus').textContent = text; }
 function showLoading(show, text) {
@@ -316,10 +357,9 @@ function showLoading(show, text) {
 function showTab(id) {
   document.querySelectorAll('.tab-page').forEach(function(page) { page.style.display = page.id === id ? '' : 'none'; });
   document.querySelectorAll('.side .nav-link').forEach(function(link) { link.classList.toggle('active', link.getAttribute('data-tab') === id); });
-  if (id === 'tab-catalogue') {
-    refreshCatalogueFromRemote().catch(function(error) {
-      console.error('Unable to refresh catalogue on tab switch.', error);
-    });
+  if (id === 'tab-favourite') {
+    renderFavouriteHistory();
+    startFirebaseFavouriteSync();
   }
   if (id === 'tab-dashboard') {
     applySavedDashboardBranch();
@@ -330,8 +370,8 @@ function showTab(id) {
 }
 function readStorage(key, fallback) { try { const raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : fallback; } catch (error) { return fallback; } }
 function writeStorage(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
-function hydrateLocalCache() { state.settings = readStorage(STORAGE_KEYS.settings, DEFAULT_SETTINGS); state.catalogue = readStorage(STORAGE_KEYS.catalogue, []); state.poHeaders = readStorage(STORAGE_KEYS.poHeaders, []); state.completedDocuments = readStorage('pocart_completed_docs_v1', []); state.tempCarts = readStorage(STORAGE_KEYS.tempCarts, []); state.activeTempCartNumber = readStorage(STORAGE_KEYS.activeTempCartNumber, ''); state.currentPoHeader = readStorage(STORAGE_KEYS.currentPo, null); }
-function persistState() { writeStorage(STORAGE_KEYS.settings, state.settings); writeStorage(STORAGE_KEYS.catalogue, state.catalogue); writeStorage(STORAGE_KEYS.poHeaders, state.poHeaders); writeStorage('pocart_completed_docs_v1', state.completedDocuments); writeStorage(STORAGE_KEYS.tempCarts, state.tempCarts); writeStorage(STORAGE_KEYS.activeTempCartNumber, state.activeTempCartNumber); writeStorage(STORAGE_KEYS.currentPo, state.currentPoHeader); }
+function hydrateLocalCache() { state.settings = readStorage(STORAGE_KEYS.settings, DEFAULT_SETTINGS); state.catalogue = readStorage(STORAGE_KEYS.catalogue, []); state.poHeaders = readStorage(STORAGE_KEYS.poHeaders, []); state.completedDocuments = readStorage('pocart_completed_docs_v1', []); state.tempCarts = readStorage(STORAGE_KEYS.tempCarts, []); state.favouriteItems = readStorage(STORAGE_KEYS.favouriteItems, []); state.activeTempCartNumber = readStorage(STORAGE_KEYS.activeTempCartNumber, ''); state.currentPoHeader = readStorage(STORAGE_KEYS.currentPo, null); }
+function persistState() { writeStorage(STORAGE_KEYS.settings, state.settings); writeStorage(STORAGE_KEYS.catalogue, state.catalogue); writeStorage(STORAGE_KEYS.poHeaders, state.poHeaders); writeStorage('pocart_completed_docs_v1', state.completedDocuments); writeStorage(STORAGE_KEYS.tempCarts, state.tempCarts); writeStorage(STORAGE_KEYS.favouriteItems, state.favouriteItems); writeStorage(STORAGE_KEYS.activeTempCartNumber, state.activeTempCartNumber); writeStorage(STORAGE_KEYS.currentPo, state.currentPoHeader); }
 function applySettings() { document.getElementById('companyName').textContent = state.settings.companyName || DEFAULT_SETTINGS.companyName; populateBranchSelects(); }
 function getBranchOptions() {
   return PRESET_BRANCHES.map(function(label) {
@@ -386,7 +426,7 @@ async function waitForFirebaseBridge() {
   if (window.firebaseCartReadyPromise) return await window.firebaseCartReadyPromise;
   return null;
 }
-function normalizeFirebaseCart(payload) {
+function normalizeFirebaseCart(payload, fallbackBranch) {
   const cart = payload || {};
   const items = Array.isArray(cart.items) ? cart.items : [];
   return {
@@ -396,7 +436,7 @@ function normalizeFirebaseCart(payload) {
     poNumber: String(cart.poNumber || ''),
     notes: String(cart.notes || ''),
     createdAt: String(cart.createdAt || new Date().toISOString()),
-    branch: String(cart.branch || getCurrentBranchName() || ''),
+    branch: String(cart.branch || fallbackBranch || ''),
     items: items.map(function(item) {
       return {
         itemId: String(item.itemId || ''),
@@ -428,7 +468,24 @@ function getApprovedTempCarts() {
 function getCompletedTempCarts() {
   return state.tempCarts.filter(function(cart) { return String(cart.status || '').toUpperCase() === 'COMPLETE'; });
 }
-async function startFirebaseCartSync() {
+async function startFirebaseCartSync(options) {
+  const opts = options || {};
+  const waitForFirstSnapshot = opts.waitForFirstSnapshot === true;
+  let firstSnapshotHandled = false;
+  let resolveFirstSnapshot = null;
+  let rejectFirstSnapshot = null;
+  const firstSnapshotPromise = waitForFirstSnapshot
+    ? new Promise(function(resolve, reject) {
+        resolveFirstSnapshot = resolve;
+        rejectFirstSnapshot = reject;
+      })
+    : null;
+  function settleFirstSnapshot(resolve, payload) {
+    if (!waitForFirstSnapshot || firstSnapshotHandled) return;
+    firstSnapshotHandled = true;
+    if (resolve) resolveFirstSnapshot(payload);
+    else rejectFirstSnapshot(payload);
+  }
   const bridge = await waitForFirebaseBridge();
   const branch = getCurrentBranchName();
   if (state.firebaseUnsubscribe) {
@@ -439,24 +496,97 @@ async function startFirebaseCartSync() {
   if (!bridge) {
     state.firebaseReady = false;
     renderCart();
+    settleFirstSnapshot(false, new Error('Firebase bridge unavailable.'));
     return;
   }
-  const cartsRef = isAllBranchValue(branch) ? bridge.collectionGroup(bridge.db, 'vendorCarts') : bridge.collection(bridge.db, 'branches', toFirebaseBranchKey(branch), 'vendorCarts');
-  state.firebaseUnsubscribe = bridge.onSnapshot(bridge.query(cartsRef, bridge.orderBy('createdAt', 'asc')), function(snapshot) {
-    const remoteCarts = snapshot.docs.map(function(row) {
-      return normalizeFirebaseCart(row.data());
+  if (isAllBranchValue(branch)) {
+    const branchNames = getBranchOptions().map(function(row) { return String(row.name || '').trim(); }).filter(Boolean);
+    if (branchNames.length !== EXPECTED_BRANCH_COUNT) {
+      alert('Branch list count mismatch. Expected ' + String(EXPECTED_BRANCH_COUNT) + ', found ' + String(branchNames.length) + '. Please verify PRESET_BRANCHES.');
+    }
+    if (!branchNames.length) {
+      state.firebaseReady = true;
+      state.tempCarts = [];
+      persistState();
+      renderCart();
+      settleFirstSnapshot(true, true);
+      if (firstSnapshotPromise) await firstSnapshotPromise;
+      return;
+    }
+    const allBranchCarts = {};
+    let pendingFirstSnapshots = branchNames.length;
+    let completedFirstSnapshots = 0;
+    let firstSettled = false;
+    function mergeAndRender() {
+      const merged = branchNames.reduce(function(acc, branchName) {
+        return acc.concat(allBranchCarts[branchName] || []);
+      }, []);
+      state.suppressFirebaseWrites = true;
+      state.tempCarts = merged;
+      if (!state.tempCarts.some(function(cart) { return cart.tempCartNumber === state.activeTempCartNumber; })) state.activeTempCartNumber = state.tempCarts[0] ? state.tempCarts[0].tempCartNumber : '';
+      persistState();
+      renderCart();
+      state.suppressFirebaseWrites = false;
+      state.firebaseReady = true;
+    }
+    const unsubs = [];
+    branchNames.forEach(function(branchName) {
+      const cartsRef = bridge.collection(bridge.db, 'branches', toFirebaseBranchKey(branchName), 'vendorCarts');
+      const unsub = bridge.onSnapshot(cartsRef, function(snapshot) {
+        allBranchCarts[branchName] = snapshot.docs.map(function(row) {
+          return normalizeFirebaseCart(row.data(), branchName);
+        });
+        mergeAndRender();
+        if (pendingFirstSnapshots > 0) {
+          pendingFirstSnapshots -= 1;
+          completedFirstSnapshots += 1;
+        }
+        if (!firstSettled && pendingFirstSnapshots <= 0) {
+          firstSettled = true;
+          setStatus('All Branch Checked: ' + String(completedFirstSnapshots) + '/' + String(branchNames.length));
+          settleFirstSnapshot(true, true);
+        }
+      }, function(error) {
+        console.error('Firebase cart sync failed for branch.', branchName, error);
+        if (pendingFirstSnapshots > 0) {
+          pendingFirstSnapshots -= 1;
+          completedFirstSnapshots += 1;
+        }
+        if (!firstSettled && pendingFirstSnapshots <= 0) {
+          firstSettled = true;
+          setStatus('All Branch Checked: ' + String(completedFirstSnapshots) + '/' + String(branchNames.length));
+          // Do not fail whole All sync because one branch fails.
+          settleFirstSnapshot(true, true);
+        }
+      });
+      unsubs.push(unsub);
     });
-    state.suppressFirebaseWrites = true;
-    state.tempCarts = remoteCarts;
-    if (!state.tempCarts.some(function(cart) { return cart.tempCartNumber === state.activeTempCartNumber; })) state.activeTempCartNumber = state.tempCarts[0] ? state.tempCarts[0].tempCartNumber : '';
-    persistState();
-    renderCart();
-    state.suppressFirebaseWrites = false;
-    state.firebaseReady = true;
-  }, function(error) {
-    console.error('Firebase cart sync failed.', error);
-    state.firebaseReady = false;
-  });
+    state.firebaseUnsubscribe = function() {
+      unsubs.forEach(function(unsub) {
+        try { if (typeof unsub === 'function') unsub(); } catch (e) {}
+      });
+    };
+  } else {
+    const cartsRef = bridge.collection(bridge.db, 'branches', toFirebaseBranchKey(branch), 'vendorCarts');
+    state.firebaseUnsubscribe = bridge.onSnapshot(cartsRef, function(snapshot) {
+      const remoteCarts = snapshot.docs.map(function(row) {
+        return normalizeFirebaseCart(row.data(), branch);
+      });
+      state.suppressFirebaseWrites = true;
+      state.tempCarts = remoteCarts;
+      if (!state.tempCarts.some(function(cart) { return cart.tempCartNumber === state.activeTempCartNumber; })) state.activeTempCartNumber = state.tempCarts[0] ? state.tempCarts[0].tempCartNumber : '';
+      persistState();
+      renderCart();
+      state.suppressFirebaseWrites = false;
+      state.firebaseReady = true;
+      settleFirstSnapshot(true, true);
+    }, function(error) {
+      console.error('Firebase cart sync failed.', error);
+      state.firebaseReady = false;
+      settleFirstSnapshot(false, error);
+    });
+  }
+  if (firstSnapshotPromise) await firstSnapshotPromise;
 }
 async function syncTempCartToFirebase(cart) {
   if (state.suppressFirebaseWrites) return;
@@ -613,12 +743,27 @@ function updateSaveBranchButton() {
     btn.textContent = 'Save Branch';
   }
 }
+function getBranchPasswordByName(branchName) {
+  const name = String(branchName || '').trim();
+  if (!name) return '';
+  const parts = name.split(/\s+/).filter(Boolean);
+  return parts.length ? String(parts[parts.length - 1] || '').toUpperCase() : '';
+}
 function saveBranchSelection() {
   const headerBranch = document.getElementById('headerBranch');
   const value = headerBranch ? normalizeBranchSelection(headerBranch.value) : '';
   if (!value) {
     alert('Please select a branch first.');
     return;
+  }
+  if (!isAllBranchValue(value)) {
+    const expectedPassword = getBranchPasswordByName(value);
+    const entered = window.prompt('Enter branch password for ' + value + ':');
+    if (entered == null) return;
+    if (String(entered || '').trim().toUpperCase() !== expectedPassword) {
+      alert('Incorrect branch password.');
+      return;
+    }
   }
   saveCurrentBranch(value);
   const dashboardBranch = document.getElementById('dashboardBranch');
@@ -627,6 +772,7 @@ function saveBranchSelection() {
   renderDashboard();
   refreshPendingList();
   startFirebaseCartSync();
+  startFirebaseFavouriteSync();
 }
 function resetCataloguePagination() { state.cataloguePage = 1; renderCatalogue(); }
 function updateCataloguePageSize(value) {
@@ -642,8 +788,98 @@ function setCatalogueViewMode(mode) {
 function updateCatalogueViewButtons() {
   const cardBtn = document.getElementById('catalogueCardViewBtn');
   const listBtn = document.getElementById('catalogueListViewBtn');
+  const selectBtn = document.getElementById('catalogueSelectModeBtn');
   if (cardBtn) cardBtn.className = state.catalogueViewMode === 'card' ? 'btn btn-sm btn-secondary' : 'btn btn-sm btn-outline-secondary';
   if (listBtn) listBtn.className = state.catalogueViewMode === 'list' ? 'btn btn-sm btn-secondary' : 'btn btn-sm btn-outline-secondary';
+  if (selectBtn) {
+    selectBtn.textContent = 'Select Mode: ' + (state.catalogueSelectMode ? 'On' : 'Off');
+    selectBtn.className = state.catalogueSelectMode ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline-primary';
+  }
+}
+function toggleCatalogueSelectMode() {
+  state.catalogueSelectMode = !state.catalogueSelectMode;
+  renderCatalogue();
+}
+function toggleCatalogueRowSelection(barcode, checked) {
+  const key = String(barcode || '').trim();
+  if (!key) return;
+  if (checked) state.catalogueSelected[key] = true;
+  else delete state.catalogueSelected[key];
+}
+function toggleCatalogueSelectAll(checked) {
+  const rows = getFilteredSortedCatalogueRows();
+  if (checked) {
+    rows.forEach(function(item) {
+      const key = String(item.barcode || '').trim();
+      if (key) state.catalogueSelected[key] = true;
+    });
+  } else {
+    state.catalogueSelected = {};
+  }
+  renderCatalogue();
+}
+async function syncSelectedCatalogueToFavourite() {
+  if (!getCurrentBranchFilter()) {
+    alert('Please save one specific branch before syncing to Kegemaran.');
+    return;
+  }
+  const selectedRows = getFilteredSortedCatalogueRows().filter(function(item) {
+    return !!state.catalogueSelected[String(item.barcode || '').trim()];
+  });
+  if (!selectedRows.length) {
+    alert('Please select at least one catalogue item.');
+    return;
+  }
+  showLoading(true, 'Syncing selected items to Kegemaran...');
+  try {
+    let successCount = 0;
+    const branch = getCurrentBranchFilter();
+    for (const item of selectedRows) {
+      const favRow = upsertFavouriteItemLocal({
+        vendor: item.vendor || '',
+        barcode: item.barcode || '',
+        itemName: item.itemName || '',
+        branch: branch
+      }, branch);
+      if (favRow) {
+        await syncFavouriteItemToFirebase(favRow, branch);
+        successCount += 1;
+      }
+    }
+    await startFirebaseFavouriteSync();
+    alert('Synced to Kegemaran: ' + String(successCount) + ' item(s).');
+  } catch (error) {
+    alert(error.message || 'Unable to sync selected items to Kegemaran.');
+  } finally {
+    showLoading(false);
+  }
+}
+async function bulkImportSelectedCatalogueToCart() {
+  if (!getCurrentBranchFilter()) {
+    alert('Please save one specific branch before bulk import. "All" is view only.');
+    return;
+  }
+  const selectedRows = getFilteredSortedCatalogueRows().filter(function(item) {
+    return !!state.catalogueSelected[String(item.barcode || '').trim()];
+  });
+  if (!selectedRows.length) {
+    alert('Please select at least one catalogue item.');
+    return;
+  }
+  showLoading(true, 'Bulk importing selected catalogue items...');
+  try {
+    let successCount = 0;
+    for (const item of selectedRows) {
+      const ok = await addToCartInternal(item.barcode || '', { showItemAlert: false });
+      if (ok) successCount += 1;
+    }
+    alert('Bulk import completed. Imported ' + String(successCount) + ' / ' + String(selectedRows.length) + ' items.');
+  } catch (error) {
+    alert(error.message || 'Unable to bulk import selected catalogue items.');
+  } finally {
+    showLoading(false);
+    renderCatalogue();
+  }
 }
 function compareCatalogueValues(a, b, key) {
   if (key === 'price') return Number(a.price || 0) - Number(b.price || 0);
@@ -701,8 +937,10 @@ async function boot() {
     await refreshDashboard();
     setTodayDefault();
     await startFirebaseCartSync();
+    await startFirebaseFavouriteSync();
     renderCart();
     refreshPendingList();
+    renderFavouriteHistory();
     setStatus('Ready');
   } catch (error) {
     console.error(error);
@@ -746,17 +984,47 @@ function renderCatalogue() {
   if (pageSizeSelect) pageSizeSelect.value = String(state.cataloguePageSize);
   if (pageLabel) pageLabel.textContent = 'Page ' + String(state.cataloguePage) + ' / ' + String(totalPages);
   if (countLabel) countLabel.textContent = 'Showing ' + String(pageRows.length) + ' of ' + String(rows.length);
-  if (!rows.length) { root.innerHTML = '<div class="small-muted">No catalogue items found.</div>'; return; }
+  if (!rows.length) { root.innerHTML = '<div class="small-muted">No catalogue items found.</div>'; renderCatalogueCartMiniWindow(); return; }
   if (state.catalogueViewMode === 'list') {
-    root.innerHTML = '<div class="catalogue-line catalogue-line-head"><div class="line-cell">Item</div><div class="line-cell">Barcode</div><div class="line-cell">Vendor</div><div class="line-cell text-right">Price</div><div class="line-cell">UOM</div><div class="line-cell text-right">Action</div></div>' + pageRows.map(function(item) {
-      return '<div class="catalogue-line"><div class="line-cell"><div class="line-title">' + escapeHtml(item.itemName || '') + '</div><div class="line-sub">Default Qty: ' + escapeHtml(String(item.defaultQty || 1)) + '</div></div><div class="line-cell mono">' + escapeHtml(item.barcode || '-') + '</div><div class="line-cell">' + escapeHtml(item.vendor || '-') + '</div><div class="line-cell text-right">RM ' + formatMoney(item.price) + '</div><div class="line-cell">' + escapeHtml(item.uom || '-') + '</div><div class="line-cell text-right"><button class="btn btn-sm btn-primary mr-1" type="button" onclick="addToCart(\'' + escapeJs(item.barcode || '') + '\')">Add To Cart</button><button class="btn btn-sm btn-outline-secondary" type="button" onclick="editCatalogueItem(\'' + escapeJs(item.barcode || '') + '\')">Edit</button></div></div>';
+    const selectHead = state.catalogueSelectMode ? '<div class="line-cell text-center">Select</div>' : '';
+    root.innerHTML = '<div class="catalogue-line catalogue-line-head">' + selectHead + '<div class="line-cell">Item</div><div class="line-cell">Barcode</div><div class="line-cell">Vendor</div><div class="line-cell text-right">Price</div><div class="line-cell">UOM</div><div class="line-cell text-right">Action</div></div>' + pageRows.map(function(item) {
+      const barcodeKey = String(item.barcode || '').trim();
+      const checked = state.catalogueSelected[barcodeKey] ? 'checked ' : '';
+      const selectCell = state.catalogueSelectMode ? '<div class="line-cell text-center"><input type="checkbox" ' + checked + 'onchange="toggleCatalogueRowSelection(\'' + escapeJs(barcodeKey) + '\', this.checked)"></div>' : '';
+      return '<div class="catalogue-line">' + selectCell + '<div class="line-cell"><div class="line-title">' + escapeHtml(item.itemName || '') + '</div><div class="line-sub">Default Qty: ' + escapeHtml(String(item.defaultQty || 1)) + '</div></div><div class="line-cell mono">' + escapeHtml(item.barcode || '-') + '</div><div class="line-cell">' + escapeHtml(item.vendor || '-') + '</div><div class="line-cell text-right">RM ' + formatMoney(item.price) + '</div><div class="line-cell">' + escapeHtml(item.uom || '-') + '</div><div class="line-cell text-right"><button class="btn btn-sm btn-primary mr-1" type="button" onclick="addToCart(\'' + escapeJs(item.barcode || '') + '\')">Add To Cart</button><button class="btn btn-sm btn-outline-secondary" type="button" onclick="editCatalogueItem(\'' + escapeJs(item.barcode || '') + '\')">Edit</button></div></div>';
     }).join('');
+    renderCatalogueCartMiniWindow();
     return;
   }
   root.innerHTML = pageRows.map(function(item) {
     const thumbUrl = buildPhotoThumbUrl(item.photoFileId, item.photoUrl);
     const photo = thumbUrl ? '<img src="' + escapeAttr(thumbUrl) + '" alt="' + escapeAttr(item.itemName) + '" loading="lazy">' : '<div class="placeholder">No Photo</div>';
-    return '<div class="catalogue-card"><div class="catalogue-photo" onclick="openCataloguePhotoPreview(\'' + escapeJs(item.itemName || 'Photo Preview') + '\', \'' + escapeJs(item.photoFileId || '') + '\', \'' + escapeJs(item.photoUrl || '') + '\')">' + photo + '</div><div class="catalogue-body"><div class="d-flex justify-content-between align-items-start" style="gap:8px;"><div class="catalogue-head"><div><b class="catalogue-item-name">' + escapeHtml(item.itemName) + '</b></div><div class="small-muted mono">' + escapeHtml(item.barcode || '-') + '</div><div class="small-muted">Vendor: <b>' + escapeHtml(item.vendor || '-') + '</b></div></div><span class="pill">RM ' + formatMoney(item.price) + '</span></div><div class="catalogue-meta mt-2"><div>UOM: <b>' + escapeHtml(item.uom || '-') + '</b></div><div>Default Qty: <b>' + escapeHtml(String(item.defaultQty || 1)) + '</b></div></div><div class="mt-3 d-flex flex-wrap" style="gap:8px;"><button class="btn btn-sm btn-primary" type="button" onclick="addToCart(\'' + escapeJs(item.barcode || '') + '\')">Add To Cart</button><button class="btn btn-sm btn-outline-secondary" type="button" onclick="editCatalogueItem(\'' + escapeJs(item.barcode || '') + '\')">Edit</button></div></div></div>';
+    const barcodeKey = String(item.barcode || '').trim();
+    const checked = state.catalogueSelected[barcodeKey] ? 'checked ' : '';
+    const selectToggle = state.catalogueSelectMode ? '<div class="mb-2"><label class="small-muted mb-0"><input type="checkbox" ' + checked + 'onchange="toggleCatalogueRowSelection(\'' + escapeJs(barcodeKey) + '\', this.checked)"> Select</label></div>' : '';
+    return '<div class="catalogue-card"><div class="catalogue-photo" onclick="openCataloguePhotoPreview(\'' + escapeJs(item.itemName || 'Photo Preview') + '\', \'' + escapeJs(item.photoFileId || '') + '\', \'' + escapeJs(item.photoUrl || '') + '\')">' + photo + '</div><div class="catalogue-body">' + selectToggle + '<div class="d-flex justify-content-between align-items-start" style="gap:8px;"><div class="catalogue-head"><div><b class="catalogue-item-name">' + escapeHtml(item.itemName) + '</b></div><div class="small-muted mono">' + escapeHtml(item.barcode || '-') + '</div><div class="small-muted">Vendor: <b>' + escapeHtml(item.vendor || '-') + '</b></div></div><span class="pill">RM ' + formatMoney(item.price) + '</span></div><div class="catalogue-meta mt-2"><div>UOM: <b>' + escapeHtml(item.uom || '-') + '</b></div><div>Default Qty: <b>' + escapeHtml(String(item.defaultQty || 1)) + '</b></div></div><div class="mt-3 d-flex flex-wrap" style="gap:8px;"><button class="btn btn-sm btn-primary" type="button" onclick="addToCart(\'' + escapeJs(item.barcode || '') + '\')">Add To Cart</button><button class="btn btn-sm btn-outline-secondary" type="button" onclick="editCatalogueItem(\'' + escapeJs(item.barcode || '') + '\')">Edit</button></div></div></div>';
+  }).join('');
+  renderCatalogueCartMiniWindow();
+}
+function renderCatalogueCartMiniWindow() {
+  const root = document.getElementById('catalogueCartMiniWindow');
+  if (!root) return;
+  const carts = getBranchTempCarts().filter(function(cart) {
+    return String(cart.status || '').toUpperCase() !== 'COMPLETE';
+  });
+  if (!carts.length) {
+    root.innerHTML = '<div class="small-muted">No cart data for current branch.</div>';
+    return;
+  }
+  root.innerHTML = carts.map(function(cart) {
+    const items = Array.isArray(cart.items) ? cart.items : [];
+    const header = '<div class="d-flex justify-content-between flex-wrap" style="gap:8px;"><div><b class="mono">' + escapeHtml(cart.tempCartNumber || '-') + '</b> <span class="small-muted">(' + escapeHtml(cart.status || 'PENDING') + ')</span></div><div class="small-muted">' + escapeHtml(cart.vendor || '-') + ' / ' + escapeHtml(cart.branch || '-') + '</div></div>';
+    const body = !items.length
+      ? '<div class="small-muted mt-2">No items.</div>'
+      : '<div class="mt-2">' + items.map(function(item) {
+          return '<div class="d-flex justify-content-between" style="gap:8px;"><div class="text-truncate" style="max-width:72%;">' + escapeHtml(item.itemName || item.barcode || '-') + '</div><div class="mono">Qty ' + escapeHtml(String(item.orderQty || 0)) + '</div></div>';
+        }).join('') + '</div>';
+    return '<div class="p-2 mb-2" style="border:1px solid rgba(15,23,42,.08);border-radius:10px;background:#fff;">' + header + body + '</div>';
   }).join('');
 }
 function extractDriveFileId(photoUrl) {
@@ -972,10 +1240,93 @@ function formatShortDateKey(date) {
 function buildShortCode(value, length) {
   return (String(value || '').toUpperCase().replace(/[^A-Z0-9]+/g, '').slice(0, length || 3) || 'NA').padEnd(length || 3, 'X');
 }
+function normalizeVendorKey(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').toUpperCase();
+}
+function buildFavouriteId(vendor, barcode) {
+  return normalizeVendorKey(vendor) + '|' + String(barcode || '').trim().toUpperCase();
+}
+function normalizeFavouriteItem(payload, branchFallback) {
+  const row = payload || {};
+  const vendor = String(row.vendor || '').trim();
+  const barcode = String(row.barcode || '').trim();
+  return {
+    favouriteId: String(row.favouriteId || buildFavouriteId(vendor, barcode)),
+    vendor: vendor,
+    barcode: barcode,
+    itemName: String(row.itemName || '').trim(),
+    branch: String(row.branch || branchFallback || '').trim()
+  };
+}
+async function syncFavouriteItemToFirebase(item, branchName) {
+  const bridge = getFirebaseBridge() || await waitForFirebaseBridge();
+  const branch = String(branchName || getCurrentBranchFilter() || '').trim();
+  const row = normalizeFavouriteItem(item, branch);
+  if (!bridge || !branch || !row.favouriteId) return;
+  await bridge.setDoc(
+    bridge.doc(bridge.db, 'branches', toFirebaseBranchKey(branch), 'starList', row.favouriteId),
+    { ...row, updatedAt: bridge.serverTimestamp() },
+    { merge: true }
+  );
+}
+function upsertFavouriteItemLocal(item, branchName) {
+  const row = normalizeFavouriteItem(item, branchName);
+  if (!row.favouriteId || !row.barcode) return null;
+  const idx = state.favouriteItems.findIndex(function(x) { return String(x.favouriteId || '') === row.favouriteId; });
+  if (idx >= 0) state.favouriteItems[idx] = { ...state.favouriteItems[idx], ...row };
+  else state.favouriteItems.push(row);
+  state.favouriteItems.sort(function(a, b) {
+    return String(a.vendor || '').localeCompare(String(b.vendor || '')) ||
+      String(a.itemName || '').localeCompare(String(b.itemName || ''));
+  });
+  persistState();
+  return row;
+}
+async function startFirebaseFavouriteSync() {
+  if (state.favouriteUnsubscribe) {
+    state.favouriteUnsubscribe();
+    state.favouriteUnsubscribe = null;
+  }
+  const bridge = await waitForFirebaseBridge();
+  const branch = getCurrentBranchFilter();
+  if (!bridge || !branch) {
+    state.favouriteItems = [];
+    persistState();
+    renderFavouriteHistory();
+    return;
+  }
+  const starRef = bridge.collection(bridge.db, 'branches', toFirebaseBranchKey(branch), 'starList');
+  state.favouriteUnsubscribe = bridge.onSnapshot(starRef, function(snapshot) {
+    state.favouriteItems = snapshot.docs.map(function(docSnap) {
+      return normalizeFavouriteItem(docSnap.data(), branch);
+    });
+    state.favouriteItems.sort(function(a, b) {
+      return String(a.vendor || '').localeCompare(String(b.vendor || '')) ||
+        String(a.itemName || '').localeCompare(String(b.itemName || ''));
+    });
+    persistState();
+    renderFavouriteHistory();
+  }, function(error) {
+    console.error('Firebase favourite sync failed.', error);
+  });
+}
 function generateTempCartNumber(vendor, branchName) {
   const branchCode = buildShortCode(getBranchCodeForName(branchName) || branchName, 3);
   const vendorCode = buildShortCode(vendor, 3);
   return branchCode + vendorCode + formatShortDateKey(new Date());
+}
+function generateUniqueTempCartNumber(vendor, branchName) {
+  const base = generateTempCartNumber(vendor, branchName);
+  const existing = new Set((state.tempCarts || []).map(function(row) {
+    return String(row && row.tempCartNumber || '').trim().toUpperCase();
+  }).filter(Boolean));
+  if (!existing.has(String(base).toUpperCase())) return base;
+  for (let i = 1; i <= 99; i += 1) {
+    const candidate = base + '-' + String(i).padStart(2, '0');
+    if (!existing.has(String(candidate).toUpperCase())) return candidate;
+  }
+  // Fallback with time suffix to guarantee uniqueness.
+  return base + '-' + String(Date.now()).slice(-4);
 }
 function getActiveTempCart() {
   const carts = getWaitingTempCarts();
@@ -1028,40 +1379,55 @@ function updateSaveCartButton() {
 function ensureTempCartForVendor(vendor) {
   const branch = getCurrentBranchFilter();
   if (!branch) return null;
+  const vendorKey = normalizeVendorKey(vendor);
   let cart = state.tempCarts.find(function(row) {
-    return row.vendor === vendor &&
+    return normalizeVendorKey(row.vendor) === vendorKey &&
       String(row.branch || '') === branch &&
       String(row.status || 'PENDING').toUpperCase() === 'PENDING';
   });
   if (!cart) {
-    cart = { tempCartNumber: generateTempCartNumber(vendor, branch), vendor: vendor, status: 'PENDING', poNumber: '', items: [], notes: '', createdAt: new Date().toISOString(), branch: branch };
+    cart = { tempCartNumber: generateUniqueTempCartNumber(vendor, branch), vendor: String(vendor || '').trim(), status: 'PENDING', poNumber: '', items: [], notes: '', createdAt: new Date().toISOString(), branch: branch };
     state.tempCarts.push(cart);
   }
   state.activeTempCartNumber = cart.tempCartNumber;
   return cart;
 }
-async function addToCart(itemBarcode) {
+async function addToCartInternal(itemBarcode, options) {
+  const opts = options || {};
+  const showItemAlert = opts.showItemAlert !== false;
   const barcode = String(itemBarcode || '').trim();
-  if (!barcode) { alert('Item barcode is required before adding to cart.'); return; }
+  if (!barcode) { if (showItemAlert) alert('Item barcode is required before adding to cart.'); return false; }
   const item = state.catalogue.find(function(row) { return String(row.barcode || '').trim() === barcode; });
-  if (!item) return;
-  if (!getCurrentBranchFilter()) { alert('Please save one specific branch before adding item to cart. "All" is view only.'); return; }
+  if (!item) { if (showItemAlert) alert('Item not found in catalogue.'); return false; }
+  if (!getCurrentBranchFilter()) { if (showItemAlert) alert('Please save one specific branch before adding item to cart. "All" is view only.'); return false; }
   const cart = ensureTempCartForVendor(item.vendor || 'Unknown Vendor');
-  if (!cart) return;
+  if (!cart) return false;
   const existing = cart.items.find(function(row) { return String(row.barcode || '').trim() === barcode; });
   if (existing) existing.orderQty = Number(existing.orderQty || 0) + Number(item.defaultQty || 1);
   else cart.items.push({ itemId: item.itemId, vendor: item.vendor || '', barcode: item.barcode, itemName: item.itemName, price: Number(item.price || 0), uom: item.uom, orderQty: Number(item.defaultQty || 1), checkedQty: Number(item.defaultQty || 1), confirmedQty: 0, stockNote: '', photoFileId: item.photoFileId || '', photoUrl: item.photoUrl || '' });
+  const favRow = upsertFavouriteItemLocal({
+    vendor: item.vendor || cart.vendor || '',
+    barcode: item.barcode || '',
+    itemName: item.itemName || '',
+    branch: cart.branch || getCurrentBranchFilter() || ''
+  }, cart.branch || getCurrentBranchFilter() || '');
   persistState();
   renderCart();
+  renderFavouriteHistory();
   try {
     await syncTempCartToFirebase(cart);
+    if (favRow) await syncFavouriteItemToFirebase(favRow, favRow.branch || cart.branch || getCurrentBranchFilter() || '');
     markCartDirty(false);
   } catch (error) {
     console.error('Unable to sync cart add.', error);
     markCartDirty(true);
   }
   renderCart();
-  alert((item.itemName || 'Item') + ' added to cart.');
+  if (showItemAlert) alert((item.itemName || 'Item') + ' added to cart.');
+  return true;
+}
+async function addToCart(itemBarcode) {
+  await addToCartInternal(itemBarcode, { showItemAlert: true });
 }
 function renderCart() {
   renderTempCartOptions();
@@ -1071,7 +1437,7 @@ function renderCart() {
   const tbody = document.getElementById('cartTbody');
   const remarkInput = document.getElementById('poNotes');
   if (remarkInput) remarkInput.value = cart ? String(cart.notes || '') : '';
-  if (!cart || !cart.items.length) { tbody.innerHTML = '<tr><td colspan="10" class="text-center small-muted p-3">Cart is empty.</td></tr>'; updateCartSummary(); return; }
+  if (!cart || !cart.items.length) { tbody.innerHTML = '<tr><td colspan="10" class="text-center small-muted p-3">Cart is empty.</td></tr>'; updateCartSummary(); renderCatalogueCartMiniWindow(); return; }
   tbody.innerHTML = cart.items.map(function(item, idx) {
     const amount = Number(item.orderQty || 0) * Number(item.price || 0);
     const checkedQty = item.checkedQty != null ? item.checkedQty : item.orderQty || 0;
@@ -1080,6 +1446,7 @@ function renderCart() {
     return '<tr><td>' + photo + '</td><td class="mono">' + escapeHtml(item.barcode || '-') + '</td><td>' + escapeHtml(item.itemName || '') + '</td><td class="text-right">' + formatMoney(item.price) + '</td><td>' + escapeHtml(item.uom || '') + '</td><td class="text-right"><input type="number" class="form-control form-control-sm text-right" min="0" step="1" value="' + escapeAttr(String(checkedQty)) + '" onchange="updateCartCheckedQty(' + idx + ', this.value)"></td><td class="text-right"><input type="number" class="form-control form-control-sm text-right" min="1" step="1" value="' + escapeAttr(String(item.orderQty || 1)) + '" onchange="updateCartQty(' + idx + ', this.value)"></td><td><input type="text" class="form-control form-control-sm" value="' + escapeAttr(item.stockNote || '') + '" onchange="updateCartItemRemark(' + idx + ', this.value)" placeholder="Item remark"></td><td class="text-right">' + formatMoney(amount) + '</td><td class="text-right"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeCartItem(' + idx + ')">Remove</button></td></tr>';
   }).join('');
   updateCartSummary();
+  renderCatalogueCartMiniWindow();
 }
 function updateCartRemark(value) {
   const cart = getActiveTempCart();
@@ -1143,6 +1510,105 @@ function renderTempCartGroups() {
     const summary = summarizeCart(cart);
     return '<tr><td class="mono">' + escapeHtml(cart.tempCartNumber) + '</td><td>' + escapeHtml((cart.branch || '-') + ' / ' + (cart.vendor || '-')) + '</td><td class="text-right">' + escapeHtml(String(summary.count)) + '</td><td class="text-right">' + escapeHtml(String(summary.qty)) + '</td><td class="text-right">' + formatMoney(summary.amount) + '</td><td class="text-right"><button type="button" class="btn btn-sm btn-outline-primary" onclick="selectTempCart(\'' + escapeJs(cart.tempCartNumber) + '\')">Edit</button></td></tr>';
   }).join('');
+}
+function renderFavouriteHistory() {
+  const tbody = document.getElementById('historyTbody');
+  if (!tbody) return;
+  const rows = Array.isArray(state.favouriteItems) ? state.favouriteItems.slice() : [];
+  const selectAll = document.getElementById('favouriteSelectAll');
+  updateFavouriteSortIndicators();
+  if (!getCurrentBranchFilter()) {
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center small-muted p-3">Please select one branch (not All) to view star list.</td></tr>';
+    if (selectAll) selectAll.checked = false;
+    return;
+  }
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center small-muted p-3">No star list items yet.</td></tr>';
+    if (selectAll) selectAll.checked = false;
+    return;
+  }
+  rows.sort(function(a, b) {
+    const left = String(a && a[state.favouriteSortKey] || '');
+    const right = String(b && b[state.favouriteSortKey] || '');
+    const compared = left.localeCompare(right, undefined, { numeric: true, sensitivity: 'base' });
+    return state.favouriteSortDir === 'asc' ? compared : -compared;
+  });
+  tbody.innerHTML = rows.map(function(row) {
+    const id = String(row.favouriteId || '');
+    const checked = state.favouriteSelected[id] ? 'checked ' : '';
+    return '<tr><td><input type="checkbox" ' + checked + 'onchange="toggleFavouriteHistoryRow(\'' + escapeJs(id) + '\', this.checked)"></td><td>' + escapeHtml(row.vendor || '-') + '</td><td class="mono">' + escapeHtml(row.barcode || '-') + '</td><td>' + escapeHtml(row.itemName || '-') + '</td></tr>';
+  }).join('');
+  if (selectAll) {
+    const total = rows.length;
+    const selected = rows.filter(function(row) { return !!state.favouriteSelected[String(row.favouriteId || '')]; }).length;
+    selectAll.checked = total > 0 && selected === total;
+  }
+}
+function toggleFavouriteHistoryRow(historyId, checked) {
+  const id = String(historyId || '');
+  if (!id) return;
+  if (checked) state.favouriteSelected[id] = true;
+  else delete state.favouriteSelected[id];
+}
+function toggleFavouriteSelectAll(checked) {
+  const rows = Array.isArray(state.favouriteItems) ? state.favouriteItems : [];
+  if (checked) {
+    rows.forEach(function(row) {
+      const id = String(row.favouriteId || '');
+      if (id) state.favouriteSelected[id] = true;
+    });
+  } else {
+    state.favouriteSelected = {};
+  }
+  renderFavouriteHistory();
+}
+async function bulkAddFavouriteToCart() {
+  if (!getCurrentBranchFilter()) {
+    alert('Please save one specific branch before bulk add. "All" is view only.');
+    return;
+  }
+  const selectedRows = (state.favouriteItems || []).filter(function(row) {
+    const id = String(row.favouriteId || '');
+    return !!state.favouriteSelected[id];
+  });
+  if (!selectedRows.length) {
+    alert('Please select at least one history row.');
+    return;
+  }
+  showLoading(true, 'Bulk importing selected items...');
+  try {
+    let successCount = 0;
+    for (const row of selectedRows) {
+      const ok = await addToCartInternal(row.barcode || '', { showItemAlert: false });
+      if (ok) successCount += 1;
+    }
+    alert('Bulk import completed. Imported ' + String(successCount) + ' / ' + String(selectedRows.length) + ' rows.');
+  } catch (error) {
+    alert(error.message || 'Unable to bulk import selected rows.');
+  } finally {
+    showLoading(false);
+    renderFavouriteHistory();
+  }
+}
+function sortFavouriteBy(key) {
+  if (state.favouriteSortKey === key) {
+    state.favouriteSortDir = state.favouriteSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    state.favouriteSortKey = key;
+    state.favouriteSortDir = 'asc';
+  }
+  renderFavouriteHistory();
+}
+function updateFavouriteSortIndicators() {
+  ['vendor', 'barcode', 'itemName'].forEach(function(key) {
+    const el = document.getElementById('favouriteSort_' + key);
+    if (!el) return;
+    if (state.favouriteSortKey !== key) {
+      el.textContent = '↕';
+      return;
+    }
+    el.textContent = state.favouriteSortDir === 'asc' ? '↑' : '↓';
+  });
 }
 function summarizeCart(cart) {
   return (cart && cart.items || []).reduce(function(acc, item) {
@@ -1268,7 +1734,13 @@ async function saveCurrentCart() {
 async function refreshCartFromFirebase() {
   showLoading(true, 'Refreshing cart...');
   try {
-    await startFirebaseCartSync();
+    state.cartEditorOpen = false;
+    state.cartDirty = false;
+    state.activeTempCartNumber = '';
+    state.tempCarts = [];
+    persistState();
+    renderCart();
+    await startFirebaseCartSync({ waitForFirstSnapshot: true });
     markCartDirty(false);
     renderCart();
   } catch (error) {
