@@ -19,9 +19,9 @@
     .cart-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px}.kpi-item{border:1px solid var(--border);border-radius:14px;padding:12px;background:linear-gradient(180deg,#fff 0%,#f8fbfe 100%)}.kpi-label{color:var(--muted);font-size:12px;margin-bottom:4px}.kpi-value{font-size:22px;font-weight:800}
     .status-badge{display:inline-flex;align-items:center;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700}.status-Draft{background:#e0f2fe;color:#075985}.status-Pending{background:#fef3c7;color:#92400e}.status-Confirmed{background:#dcfce7;color:#166534}
     .master-grid{display:grid;gap:10px}
-    .master-row{display:grid;grid-template-columns:1.2fr 1fr 1.2fr .8fr .7fr .7fr .8fr 1fr auto;gap:8px;align-items:end;padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff}
+    .master-row{display:grid;grid-template-columns:1.2fr 1fr 1.2fr .8fr .7fr .8fr 1fr auto;gap:8px;align-items:end;padding:10px;border:1px solid var(--border);border-radius:12px;background:#fff}
     .master-row .form-group{margin-bottom:0}
-    .master-head{display:grid;grid-template-columns:1.2fr 1fr 1.2fr .8fr .7fr .7fr .8fr 1fr auto;gap:8px;padding:0 10px;color:var(--muted);font-size:12px;font-weight:700}
+    .master-head{display:grid;grid-template-columns:1.2fr 1fr 1.2fr .8fr .7fr .8fr 1fr auto;gap:8px;padding:0 10px;color:var(--muted);font-size:12px;font-weight:700}
     .loading{display:none;position:fixed;inset:0;z-index:99999;background:rgba(191,219,254,.92);backdrop-filter:blur(2px);align-items:center;justify-content:center}
     .loading-panel{min-width:min(88vw,320px);padding:28px 24px;border-radius:18px;border:1px solid rgba(15,23,42,.08);background:#dbeafe;box-shadow:0 18px 40px rgba(15,23,42,.12);text-align:center}
     .loading-title{font-size:22px;font-weight:800;color:#1d4ed8;letter-spacing:.02em}
@@ -82,7 +82,6 @@
               <div>Item Name</div>
               <div>Price</div>
               <div>UOM</div>
-              <div>Qty</div>
               <div>Active</div>
               <div>Photo</div>
               <div>Action</div>
@@ -1053,7 +1052,7 @@ function openCataloguePhotoPreview(title, fileId, photoUrl) {
   if (window.jQuery) window.jQuery('#cataloguePhotoModal').modal('show');
 }
 function createEmptyItemMasterRow() {
-  return { itemId: '', vendor: '', barcode: '', itemName: '', price: '', uom: '', defaultQty: 1, active: true, photoDataUrl: '', photoUrl: '', photoFileId: '' };
+  return { itemId: '', vendor: '', barcode: '', itemName: '', price: '', uom: 'UNIT', defaultQty: 1, active: true, photoDataUrl: '', photoUrl: '', photoFileId: '' };
 }
 function isCatalogueItemActive(item) {
   const value = item && item.active;
@@ -1075,8 +1074,7 @@ function renderItemMasterRows() {
       '<div class="form-group"><input type="text" class="form-control" placeholder="Barcode" value="' + escapeAttr(row.barcode || '') + '" oninput="updateItemMasterField(' + idx + ', \'barcode\', this.value)"></div>' +
       '<div class="form-group"><input type="text" class="form-control" placeholder="Item name" value="' + escapeAttr(row.itemName || '') + '" oninput="updateItemMasterField(' + idx + ', \'itemName\', this.value)"></div>' +
       '<div class="form-group"><input type="number" class="form-control" min="0" step="0.01" placeholder="0.00" value="' + escapeAttr(String(row.price || '')) + '" oninput="updateItemMasterField(' + idx + ', \'price\', this.value)"></div>' +
-      '<div class="form-group"><input type="text" class="form-control" placeholder="PCS" value="' + escapeAttr(row.uom || '') + '" oninput="updateItemMasterField(' + idx + ', \'uom\', this.value)"></div>' +
-      '<div class="form-group"><input type="number" class="form-control" min="1" step="1" value="' + escapeAttr(String(row.defaultQty || 1)) + '" oninput="updateItemMasterField(' + idx + ', \'defaultQty\', this.value)"></div>' +
+      '<div class="form-group"><input type="text" class="form-control" placeholder="UNIT" value="' + escapeAttr(row.uom || 'UNIT') + '" oninput="updateItemMasterField(' + idx + ', \'uom\', this.value)"></div>' +
       '<div class="form-group pt-2"><div class="form-check"><input class="form-check-input" type="checkbox" ' + (row.active !== false ? 'checked ' : '') + 'onchange="updateItemMasterActive(' + idx + ', this.checked)"><label class="form-check-label small-muted">Show</label></div></div>' +
       '<div class="form-group"><input type="file" class="form-control-file" accept="image/*" onchange="handleItemMasterPhoto(' + idx + ', this)"><div class="small-muted mt-1">' + escapeHtml(photoText) + '</div></div>' +
       '<div class="form-group"><button type="button" class="btn btn-outline-danger btn-sm" onclick="removeItemMasterRow(' + idx + ')">X</button></div>' +
@@ -1106,7 +1104,7 @@ function removeItemMasterRow(idx) {
 }
 function updateItemMasterField(idx, field, value) {
   if (!state.itemMasterRows[idx]) return;
-  state.itemMasterRows[idx][field] = field === 'defaultQty' || field === 'price' ? value : String(value || '');
+  state.itemMasterRows[idx][field] = field === 'price' ? value : String(value || '');
 }
 function updateItemMasterActive(idx, checked) {
   if (!state.itemMasterRows[idx]) return;
@@ -1128,7 +1126,7 @@ function editCatalogueItem(itemBarcode) {
     barcode: item.barcode || '',
     itemName: item.itemName || '',
     price: item.price || '',
-    uom: item.uom || '',
+    uom: item.uom || 'UNIT',
     defaultQty: item.defaultQty || 1,
     active: String(item.active || 'TRUE').toUpperCase() !== 'FALSE',
     photoDataUrl: '',
@@ -1140,7 +1138,7 @@ function editCatalogueItem(itemBarcode) {
 }
 async function saveCatalogueItemsBatch() {
   const filledRows = state.itemMasterRows.filter(function(row) {
-    return [row.vendor, row.barcode, row.itemName, row.price, row.uom].join('').trim();
+    return [row.vendor, row.barcode, row.itemName, row.price].join('').trim();
   });
   if (!filledRows.length) {
     alert('Fill at least one item row.');
@@ -1154,8 +1152,9 @@ async function saveCatalogueItemsBatch() {
   try {
     const items = [];
     for (const row of filledRows) {
-      if (!String(row.vendor || '').trim() || !String(row.itemName || '').trim() || !String(row.uom || '').trim() || !Number(row.price || 0)) {
-        throw new Error('Every filled row needs vendor, item name, price, and UOM.');
+      const normalizedUom = String(row.uom || '').trim() || 'UNIT';
+      if (!String(row.vendor || '').trim() || !String(row.itemName || '').trim() || !Number(row.price || 0)) {
+        throw new Error('Every filled row needs vendor, item name, and price.');
       }
       let photoMeta = { fileId: row.photoFileId || '', url: row.photoUrl || '' };
       if (row.photoDataUrl) {
@@ -1168,7 +1167,7 @@ async function saveCatalogueItemsBatch() {
         barcode: String(row.barcode || '').trim(),
         itemName: String(row.itemName || '').trim(),
         price: Number(row.price || 0),
-        uom: String(row.uom || '').trim(),
+        uom: normalizedUom,
         defaultQty: Math.max(1, Number(row.defaultQty || 1) || 1),
         active: row.active !== false,
         photoFileId: photoMeta.fileId,
