@@ -6,6 +6,8 @@
     <title>Sistem Pemulangan Dokumen (Return)</title>
     <script src="setting.js"></script>
     <script src="qrcode.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore-compat.js"></script>
     <!-- PDF.js 用于将 PDF 每页渲染成图片 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script>
@@ -532,6 +534,7 @@
         <button id="tabbtn-return" class="tab-button tab-button-active" onclick="switchTab('return')">RETURN</button>
         <button id="tabbtn-dashboard" class="tab-button" onclick="switchTab('dashboard')">DASHBOARD</button>
         <button id="tabbtn-management" class="tab-button" onclick="switchTab('management')">BRANCH & VENDOR</button>
+        <button id="tabbtn-itemname" class="tab-button" onclick="switchTab('itemname')">ITEM NAME</button>
     </div>
 
     <div id="tab-return">
@@ -705,8 +708,32 @@
         <div id="mgmtVendorByType" class="mgmt-vendor-cards"></div>
     </section>
     </div>
+    <div id="tab-itemname" class="hidden">
+    <section class="mgmt-section">
+        <div class="section-header">
+            <h2 class="section-title">Item Name Mapping</h2>
+            <p class="section-subtitle">Simpan padanan Barcode (Item No) -> Item Name ke Firebase.</p>
+        </div>
+        <div class="mgmt-row">
+            <input type="text" id="itemNameBarcode" placeholder="Barcode / Item No">
+            <input type="text" id="itemNameText" placeholder="Item Name">
+            <button type="button" class="btn-secondary" onclick="saveItemNameMapping()">Simpan</button>
+        </div>
+    </section>
+    </div>
 
     <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyAESOPoaZ4VeX_f9BMH2uo1FUQxz44NsKw",
+            authDomain: "returnconsigmentitemname.firebaseapp.com",
+            projectId: "returnconsigmentitemname",
+            storageBucket: "returnconsigmentitemname.firebasestorage.app",
+            messagingSenderId: "1093710401972",
+            appId: "1:1093710401972:web:f7b044dc274b248e9062e1"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const itemNameDb = firebase.firestore();
+
         // --- INITIALIZATION ---
         window.onload = function() {
             initTheme();
@@ -732,6 +759,7 @@
                 tSelect.add(opt);
             });
             refreshLocalList();
+            bindAllItemRowAutoFill();
         };
 
         const LS_KEYS = { BRANCHES: "app_branches", VENDOR_TYPES: "app_vendor_types", VENDORS_BY_TYPE: "app_vendors_by_type", CONSIGNMENT: "app_consignment_vendors" };
@@ -1176,16 +1204,20 @@ async function mgmtSaveToGAS() {
             const tabReturn = document.getElementById('tab-return');
             const tabDashboard = document.getElementById('tab-dashboard');
             const tabMgmt = document.getElementById('tab-management');
+            const tabItemName = document.getElementById('tab-itemname');
             const btnReturn = document.getElementById('tabbtn-return');
             const btnDashboard = document.getElementById('tabbtn-dashboard');
             const btnMgmt = document.getElementById('tabbtn-management');
+            const btnItemName = document.getElementById('tabbtn-itemname');
 
             tabReturn.classList.add('hidden');
             tabDashboard.classList.add('hidden');
             if (tabMgmt) tabMgmt.classList.add('hidden');
+            if (tabItemName) tabItemName.classList.add('hidden');
             btnReturn.classList.remove('tab-button-active');
             btnDashboard.classList.remove('tab-button-active');
             if (btnMgmt) btnMgmt.classList.remove('tab-button-active');
+            if (btnItemName) btnItemName.classList.remove('tab-button-active');
 
             if (tab === 'dashboard') {
                 tabDashboard.classList.remove('hidden');
@@ -1194,6 +1226,9 @@ async function mgmtSaveToGAS() {
                 if (tabMgmt) tabMgmt.classList.remove('hidden');
                 if (btnMgmt) btnMgmt.classList.add('tab-button-active');
                 renderMgmtAll();
+            } else if (tab === 'itemname') {
+                if (tabItemName) tabItemName.classList.remove('hidden');
+                if (btnItemName) btnItemName.classList.add('tab-button-active');
             } else {
                 tabReturn.classList.remove('hidden');
                 btnReturn.classList.add('tab-button-active');
@@ -1287,6 +1322,80 @@ function generateConsNo() {
             const tbody = document.getElementById('itemBody');
             const row = tbody.insertRow();
             row.innerHTML = `<td><input type="text" class="i-no"></td><td><input type="text" class="i-name"></td><td><input type="text" class="i-unit" value="UNIT"></td><td><input type="number" class="i-qty"></td>`;
+            bindItemRowAutoFill(row);
+        }
+
+        function normalizeBarcode(value) {
+            return String(value || "").trim();
+        }
+
+        async function saveItemNameMapping() {
+            const barcodeInput = document.getElementById('itemNameBarcode');
+            const itemNameInput = document.getElementById('itemNameText');
+            const barcode = normalizeBarcode(barcodeInput ? barcodeInput.value : "");
+            const itemName = String(itemNameInput ? itemNameInput.value : "").trim();
+
+            if (!barcode || !itemName) {
+                alert("Sila isi Barcode dan Item Name.");
+                return;
+            }
+
+            try {
+                await itemNameDb.collection("itemNameMappings").doc(barcode).set({
+                    barcode: barcode,
+                    itemName: itemName,
+                    updatedAt: new Date().toISOString()
+                });
+                if (barcodeInput) barcodeInput.value = "";
+                if (itemNameInput) itemNameInput.value = "";
+                alert("Item name berjaya disimpan ke Firebase.");
+            } catch (e) {
+                alert("Gagal simpan item name: " + (e && e.message ? e.message : e));
+            }
+        }
+
+        async function fetchItemNameByBarcode(barcode) {
+            const cleaned = normalizeBarcode(barcode);
+            if (!cleaned) return "";
+            try {
+                const docSnap = await itemNameDb.collection("itemNameMappings").doc(cleaned).get();
+                if (!docSnap.exists) return "";
+                const data = docSnap.data() || {};
+                return String(data.itemName || "").trim();
+            } catch (e) {
+                console.error("fetchItemNameByBarcode error:", e);
+                return "";
+            }
+        }
+
+        function bindItemRowAutoFill(row) {
+            if (!row) return;
+            const itemNoInput = row.querySelector('.i-no');
+            const itemNameInput = row.querySelector('.i-name');
+            if (!itemNoInput || !itemNameInput) return;
+            if (itemNoInput.dataset.lookupBound === "1") return;
+            itemNoInput.dataset.lookupBound = "1";
+
+            const lookupAndFill = async function() {
+                const lookupToken = Date.now().toString();
+                itemNoInput.dataset.lookupToken = lookupToken;
+                const name = await fetchItemNameByBarcode(itemNoInput.value);
+                if (itemNoInput.dataset.lookupToken !== lookupToken) return;
+                itemNameInput.value = name || "";
+            };
+
+            itemNoInput.addEventListener('blur', lookupAndFill);
+            itemNoInput.addEventListener('change', lookupAndFill);
+            itemNoInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    lookupAndFill();
+                }
+            });
+        }
+
+        function bindAllItemRowAutoFill() {
+            const rows = document.querySelectorAll('#itemBody tr');
+            rows.forEach(bindItemRowAutoFill);
         }
 
         // --- LOCAL STORAGE LOGIC ---
@@ -1623,6 +1732,7 @@ const qrDataUrl =
                 if (!d.items || d.items.length === 0) {
                     addRow();
                 }
+                bindAllItemRowAutoFill();
             }
 
             window.scrollTo({ top: document.getElementById('sec-generate').offsetTop - 12, behavior: 'smooth' });
